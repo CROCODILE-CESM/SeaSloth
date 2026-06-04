@@ -52,8 +52,15 @@ class RegridderApplication:
     def time_apply(self, src_size, dst_size, ntime, method):
         self.regridder(self.src_data)
 
-    def peakmem_apply(self, src_size, dst_size, ntime, method):
+    def track_rss_mb(self, src_size, dst_size, ntime, method):
+        import os
+        import psutil
+        proc = psutil.Process(os.getpid())
+        before = proc.memory_info().rss
         self.regridder(self.src_data)
+        return (proc.memory_info().rss - before) / 1024 ** 2
+
+    track_rss_mb.unit = "MB"
 
 
 class RegridderApplicationMultiVar:

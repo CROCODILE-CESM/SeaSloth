@@ -75,19 +75,17 @@ bash scripts/publish.sh     # builds HTML from results/
 
 The live dashboard is published to GitHub Pages on every push to `main`.
 
-Results from all machines are combined into one dashboard. The flow:
+All benchmarks run locally on GLADE (login node or Casper interactive/PBS). CI only
+publishes — it never runs benchmarks. The flow:
 
-- **CI (xesmf suite):** runs automatically and commits results back to `results/`
-- **HPC runs (mom6_forge, crocodash, e2e):** run locally on GLADE, then commit and push:
-
-  ```bash
-  # After running scripts/run_full.sh or qsub scripts/pbs_submit.sh:
-  git add results/
-  git commit -m "add HPC benchmark results"
-  git push
-  ```
-
-  CI picks them up on the next run and the dashboard shows all suites together.
+1. Run benchmarks locally (see scripts below)
+2. Commit the results and push:
+   ```bash
+   git add results/
+   git commit -m "add benchmark results: <brief description>"
+   git push
+   ```
+3. CI picks up the committed results and rebuilds the dashboard automatically
 
 > **First-time setup:** in the GitHub repo go to **Settings → Pages → Source** and
 > set it to **GitHub Actions**. Only needs to be done once.

@@ -48,9 +48,12 @@ class RegridderCreation:
             unmapped_to_nan=True,
         )
 
-    def mem_create_regridder(self, src_size, dst_size, method):
-        # Return the regridder so ASV can measure its object size (weight matrix).
-        return xe.Regridder(
+    def track_rss_mb(self, src_size, dst_size, method):
+        import os
+        import psutil
+        proc = psutil.Process(os.getpid())
+        before = proc.memory_info().rss
+        xe.Regridder(
             self.src,
             self.dst,
             method=method,
@@ -58,6 +61,9 @@ class RegridderCreation:
             reuse_weights=False,
             unmapped_to_nan=True,
         )
+        return (proc.memory_info().rss - before) / 1024 ** 2
+
+    track_rss_mb.unit = "MB"
 
 
 class RegridderCreationLocstream:
@@ -94,8 +100,12 @@ class RegridderCreationLocstream:
             unmapped_to_nan=True,
         )
 
-    def mem_create_locstream_regridder(self, src_size, n_boundary_pts, method):
-        return xe.Regridder(
+    def track_rss_mb(self, src_size, n_boundary_pts, method):
+        import os
+        import psutil
+        proc = psutil.Process(os.getpid())
+        before = proc.memory_info().rss
+        xe.Regridder(
             self.src,
             self.dst,
             method=method,
@@ -104,6 +114,9 @@ class RegridderCreationLocstream:
             reuse_weights=False,
             unmapped_to_nan=True,
         )
+        return (proc.memory_info().rss - before) / 1024 ** 2
+
+    track_rss_mb.unit = "MB"
 
 
 class RegridderWeightReuse:

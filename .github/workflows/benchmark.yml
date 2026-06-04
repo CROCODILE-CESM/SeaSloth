@@ -3,12 +3,9 @@ name: Benchmark Dashboard
 on:
   push:
     branches: [main]
-  schedule:
-    - cron: '0 6 * * 1'   # every Monday 06:00 UTC
   workflow_dispatch:
 
 permissions:
-  contents: write          # needed to commit CI results back to main
   pages: write
   id-token: write
 
@@ -17,66 +14,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  benchmark:
+  publish:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # full history so git push back works
 
-      - uses: conda-incubator/setup-miniconda@v3
-        with:
-          miniforge-version: latest
-          activate-environment: bench
-          python-version: "3.11"
-
-      - name: Install dependencies
-        shell: bash -el {0}
-        run: |
-          conda install -y -c conda-forge xesmf numpy xarray
-          pip install asv
-
-      - name: Run fast benchmarks (xesmf suite)
-        shell: bash -el {0}
-        run: |
-          PYTHON="$(which python)"
-          python -m asv machine --yes
-          python -m asv run \
-            --python "$PYTHON" \
-            --bench "xesmf" \
-            --quick
-
-      # Commit CI results back so they accumulate across runs.
-      # HPC results (mom6_forge, crocodash, e2e) are committed manually from
-      # GLADE after running scripts/run_full.sh or scripts/pbs_submit.sh —
-      # asv publish below will include them automatically.
-      - name: Commit benchmark results
-        shell: bash -el {0}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main
-          git add results/
-          git diff --staged --quiet || \
-            git commit -m "ci: add xesmf benchmark results [skip ci]"
-          git push origin main
+      - name: Install asv
+        run: pip install asv
 
       - name: Build dashboard
-        shell: bash -el {0}
-        run: python -m asv publish
+        run: asv publish
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: .asv/html
 
-  deploy:
-    needs: benchmark
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
