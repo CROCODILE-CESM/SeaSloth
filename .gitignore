@@ -1,0 +1,37 @@
+# ASV generated output
+.asv/html/
+.asv/cache/
+
+# Large result files (commit small JSON results, ignore large ones)
+results/**/*.json.bz2
+
+# NetCDF and large data files
+*.nc
+*.nc4
+*.grb
+*.grb2
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# ESMF weight files
+*.nc.nc
+esm_weights_*.nc
+weights_*.nc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store

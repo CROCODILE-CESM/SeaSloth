@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "crocoscope"
+version = "0.1.0"
+description = "Performance benchmarking suite for the CROC ocean modeling ecosystem"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "asv>=0.6",
+    "virtualenv",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["benchmarks*"]
