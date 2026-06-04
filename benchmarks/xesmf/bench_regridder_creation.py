@@ -49,7 +49,8 @@ class RegridderCreation:
         )
 
     def mem_create_regridder(self, src_size, dst_size, method):
-        xe.Regridder(
+        # Return the regridder so ASV can measure its object size (weight matrix).
+        return xe.Regridder(
             self.src,
             self.dst,
             method=method,
@@ -94,7 +95,7 @@ class RegridderCreationLocstream:
         )
 
     def mem_create_locstream_regridder(self, src_size, n_boundary_pts, method):
-        xe.Regridder(
+        return xe.Regridder(
             self.src,
             self.dst,
             method=method,

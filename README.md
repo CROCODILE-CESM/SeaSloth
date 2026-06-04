@@ -71,6 +71,28 @@ bash scripts/publish.sh     # builds HTML from results/
 # open .asv/html/index.html
 ```
 
-## Adding New Benchmarks
+## Dashboard and Results
 
-See [docs/adding_benchmarks.md](docs/adding_benchmarks.md).
+The live dashboard is published to GitHub Pages on every push to `main`.
+
+Results from all machines are combined into one dashboard. The flow:
+
+- **CI (xesmf suite):** runs automatically and commits results back to `results/`
+- **HPC runs (mom6_forge, crocodash, e2e):** run locally on GLADE, then commit and push:
+
+  ```bash
+  # After running scripts/run_full.sh or qsub scripts/pbs_submit.sh:
+  git add results/
+  git commit -m "add HPC benchmark results"
+  git push
+  ```
+
+  CI picks them up on the next run and the dashboard shows all suites together.
+
+> **First-time setup:** in the GitHub repo go to **Settings → Pages → Source** and
+> set it to **GitHub Actions**. Only needs to be done once.
+
+## Documentation
+
+- [How benchmarking works](docs/how_benchmarking_works.md) — timing model, subprocess isolation, params, memory benchmarks, results storage
+- [Adding new benchmarks](docs/adding_benchmarks.md) — benchmark class anatomy, CI/HPC split, synthetic data helpers

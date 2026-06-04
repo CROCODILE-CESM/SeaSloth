@@ -52,7 +52,7 @@ class RegridderApplication:
     def time_apply(self, src_size, dst_size, ntime, method):
         self.regridder(self.src_data)
 
-    def mem_apply(self, src_size, dst_size, ntime, method):
+    def peakmem_apply(self, src_size, dst_size, ntime, method):
         self.regridder(self.src_data)
 
 

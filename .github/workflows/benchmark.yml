@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write          # needed to commit CI results back to main
   pages: write
   id-token: write
 
@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so git push back works
 
       - uses: conda-incubator/setup-miniconda@v3
         with:
@@ -38,10 +40,26 @@ jobs:
         shell: bash -el {0}
         run: |
           PYTHON="$(which python)"
+          python -m asv machine --yes
           python -m asv run \
             --python "$PYTHON" \
             --bench "xesmf" \
             --quick
+
+      # Commit CI results back so they accumulate across runs.
+      # HPC results (mom6_forge, crocodash, e2e) are committed manually from
+      # GLADE after running scripts/run_full.sh or scripts/pbs_submit.sh —
+      # asv publish below will include them automatically.
+      - name: Commit benchmark results
+        shell: bash -el {0}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add results/
+          git diff --staged --quiet || \
+            git commit -m "ci: add xesmf benchmark results [skip ci]"
+          git push origin main
 
       - name: Build dashboard
         shell: bash -el {0}
