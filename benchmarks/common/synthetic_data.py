@@ -19,11 +19,21 @@ def make_rect_grid(
     lat0: float = 0.0,
     lat1: float = 10.0,
 ) -> xr.Dataset:
-    """Rectilinear source grid with 1D lon/lat — fast to build, works as xESMF input."""
+    """Rectilinear source grid with 1D lon/lat and cell-edge bounds.
+
+    Includes lon_b/lat_b (n+1 edges) and CF units attributes so xESMF's
+    conservative method can find and use the bounds via cf_xarray.
+    """
+    lon_b = np.linspace(lon0, lon1, nlon + 1)
+    lat_b = np.linspace(lat0, lat1, nlat + 1)
+    lon = 0.5 * (lon_b[:-1] + lon_b[1:])
+    lat = 0.5 * (lat_b[:-1] + lat_b[1:])
     return xr.Dataset(
         {
-            "lon": ("lon", np.linspace(lon0, lon1, nlon)),
-            "lat": ("lat", np.linspace(lat0, lat1, nlat)),
+            "lon": ("lon", lon, {"units": "degrees_east"}),
+            "lat": ("lat", lat, {"units": "degrees_north"}),
+            "lon_b": ("lon_b", lon_b),
+            "lat_b": ("lat_b", lat_b),
         }
     )
 
@@ -32,15 +42,23 @@ def make_curvilinear_grid(nlon: int, nlat: int) -> xr.Dataset:
     """
     2D curvilinear destination grid matching the coordinate layout that mom6_forge's
     Grid class produces (ny x nx arrays of lon/lat).
+
+    Includes 2D lon_b/lat_b corner arrays (ny+1 x nx+1) required by xESMF's
+    conservative regridding method.
     """
+    lon_b_1d = np.linspace(0.0, 10.0, nlon + 1)
+    lat_b_1d = np.linspace(0.0, 10.0, nlat + 1)
     lon2d, lat2d = np.meshgrid(
-        np.linspace(0.0, 10.0, nlon),
-        np.linspace(0.0, 10.0, nlat),
+        0.5 * (lon_b_1d[:-1] + lon_b_1d[1:]),
+        0.5 * (lat_b_1d[:-1] + lat_b_1d[1:]),
     )
+    lon_b2d, lat_b2d = np.meshgrid(lon_b_1d, lat_b_1d)
     return xr.Dataset(
         {
-            "lon": (["ny", "nx"], lon2d),
-            "lat": (["ny", "nx"], lat2d),
+            "lon": (["ny", "nx"], lon2d, {"units": "degrees_east"}),
+            "lat": (["ny", "nx"], lat2d, {"units": "degrees_north"}),
+            "lon_b": (["nyp", "nxp"], lon_b2d),
+            "lat_b": (["nyp", "nxp"], lat_b2d),
         }
     )
 

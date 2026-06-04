@@ -17,15 +17,13 @@ echo ""
 echo "--- xesmf (CrocoDash env) ---"
 "$PYTHON_CROCODASH" -m asv run \
     --python "$PYTHON_CROCODASH" \
-    --bench "xesmf" \
-    EXISTING
+    --bench "xesmf"
 
 echo ""
 echo "--- mom6_forge fast suites (mom6_forge env) ---"
 "$PYTHON_MOM6FORGE" -m asv run \
     --python "$PYTHON_MOM6FORGE" \
-    --bench "bench_grid_kdtree|bench_grid_metrics|bench_regrid_subsampling" \
-    EXISTING
+    --bench "bench_grid_kdtree|bench_grid_metrics|bench_regrid_subsampling"
 
 echo ""
 echo "Done. Run 'bash scripts/publish.sh' to build the dashboard."

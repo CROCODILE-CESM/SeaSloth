@@ -18,8 +18,7 @@ echo ""
 "$PYTHON" -m asv run \
     --python "$PYTHON" \
     --bench "xesmf" \
-    --quick \
-    EXISTING
+    --quick
 
 echo ""
 echo "Done. Run 'bash scripts/publish.sh' to build the dashboard."

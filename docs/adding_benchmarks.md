@@ -71,11 +71,14 @@ Use helpers from `benchmarks/common/synthetic_data.py`:
 
 ```bash
 # Quick sanity check (one rep per param combo)
-conda activate CrocoDash
-asv run --bench "MyBenchmark" --quick HEAD
+/glade/work/manishrv/conda-envs/CrocoDash/bin/python -m asv run \
+    --python /glade/work/manishrv/conda-envs/CrocoDash/bin/python \
+    --bench "MyBenchmark" --quick
 
 # Full timing
-asv run --bench "MyBenchmark" HEAD
+/glade/work/manishrv/conda-envs/CrocoDash/bin/python -m asv run \
+    --python /glade/work/manishrv/conda-envs/CrocoDash/bin/python \
+    --bench "MyBenchmark"
 
 # Build dashboard
 bash scripts/publish.sh

@@ -3,7 +3,7 @@
 #PBS -l select=1:ncpus=8:mem=64GB
 #PBS -l walltime=04:00:00
 #PBS -q casper
-#PBS -A NCGD0011
+#PBS -A NCGD0011    # <-- change to your project allocation code
 #PBS -j oe
 #PBS -o /glade/u/home/manishrv/documents/croc/dev/CrocoScope/pbs_bench.log
 #
@@ -28,15 +28,13 @@ echo ""
 echo "--- mom6_forge topo + tidy (mom6_forge env) ---"
 "$PYTHON_MOM6FORGE" -m asv run \
     --python "$PYTHON_MOM6FORGE" \
-    --bench "bench_topo_regrid|bench_topo_tidy" \
-    EXISTING
+    --bench "bench_topo_regrid|bench_topo_tidy"
 
 echo ""
 echo "--- CrocoDash OBC pipeline (CrocoDash env) ---"
 "$PYTHON_CROCODASH" -m asv run \
     --python "$PYTHON_CROCODASH" \
-    --bench "crocodash" \
-    EXISTING
+    --bench "crocodash"
 
 echo ""
 echo "=== Done: $(date) ==="

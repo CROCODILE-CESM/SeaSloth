@@ -5,10 +5,6 @@
     "repo": ".",
     "branches": ["main"],
     "environment_type": "existing",
-    "pythons": [
-        "/glade/work/manishrv/conda-envs/CrocoDash/bin/python",
-        "/glade/work/manishrv/conda-envs/mom6_forge/bin/python"
-    ],
     "benchmark_dir": "benchmarks",
     "results_dir": "results",
     "html_dir": ".asv/html",
