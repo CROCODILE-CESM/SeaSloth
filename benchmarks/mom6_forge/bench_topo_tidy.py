@@ -11,9 +11,6 @@ Synthetic bathymetry with ~20% land (depth ≤ 0) — no file I/O.
 import numpy as np
 import xarray as xr
 
-from mom6_forge.grid import Grid
-from mom6_forge.topo import Topo
-
 
 class TopoTidyDataset:
     """tidy_dataset() cost across grid sizes and fill_channels flag."""
@@ -26,6 +23,9 @@ class TopoTidyDataset:
     timeout = 600
 
     def setup(self, grid_size, fill_channels):
+        from mom6_forge.grid import Grid
+        from mom6_forge.topo import Topo
+
         nx, ny = grid_size
         grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)
         self._topo = Topo(grid, min_depth=10.0, git=False)

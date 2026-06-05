@@ -8,31 +8,51 @@ through timing to the dashboard. No ASV prior knowledge assumed.
 ## The big picture
 
 ```
-scripts/run_fast.sh
+scripts/run_fast.sh   (or run_full.sh / pbs_submit.sh)
       │
       ▼
-asv run --python <env> --bench "xesmf" --quick
+/path/to/CrocoDash/bin/python -m asv run --bench "..." --quick HEAD
       │
       ├─ 1. Discover benchmarks (import every bench_*.py, find classes)
-      ├─ 2. For each (class, method, param combo):
-      │       spawn a subprocess → run setup() → time the method → record result
-      └─ 3. Write results/<machine>/<commit>-<timestamp>.json
-
-asv publish
-      │
-      └─ Read all result JSON files → build .asv/html/index.html + data files
+      ├─ 2. Checkout CrocoScope at HEAD into a temp worktree
+      ├─ 3. For each (class, method, param combo):
+      │       spawn a subprocess in the ASV conda env
+      │       → run benchmarks/__init__.py  (sets ESMFMKFILE + sys.path)
+      │       → run setup()                 (excluded from timing)
+      │       → time the method             (recorded)
+      └─ 4. Write results/derecho/<commit>-conda-py3.11-....json
 ```
+
+`HEAD` tells ASV to benchmark the current git commit. Results are tagged with that
+commit hash and saved to disk. This is the only range spec that works with
+`environment_type: "conda"`.
+
+---
+
+## What ASV manages vs. what the scripts manage
+
+| Thing | Who manages it |
+|---|---|
+| `env/` — conda env with numpy/xarray/xesmf/etc. | ASV (built once, reused) |
+| mom6_forge, CrocoDash imports | `benchmarks/__init__.py` via `sys.path` from `data_config.json` |
+| ESMFMKFILE | `benchmarks/__init__.py` (glob inside `env/`) |
+| Which Python runs `asv` | The scripts (`/glade/work/.../CrocoDash/bin/python`) |
+| Which Python runs benchmarks | ASV's managed conda env |
+
+The CrocoDash Python is only used to invoke the `asv` CLI — it is not the Python that
+runs your benchmark code. Benchmark code runs inside `env/`.
 
 ---
 
 ## Step 1 — Discovery
 
 ASV recursively imports every Python file under `benchmarks/` whose name starts with
-`bench_`. It looks for classes whose methods start with `time_`, `mem_`, or `track_`.
+`bench_`. It looks for classes whose methods start with `time_`, `mem_`, `peakmem_`, or `track_`.
 Each such method becomes one benchmark.
 
-The full list of discovered benchmarks is stored in `results/benchmarks.json` (the
-metadata file — not timing data).
+Discovery runs `benchmarks/__init__.py` first — this sets `ESMFMKFILE` and adds
+mom6_forge/CrocoDash source roots to `sys.path` so those packages can be imported
+inside the ASV conda env.
 
 ---
 
@@ -51,8 +71,8 @@ class RegridderCreation:
     param_names = ["src_size", "dst_size", "method"]
 ```
 
-This produces 3 × 3 × 3 = **27 individual benchmark runs** for every `time_*` or `mem_*`
-method in that class. Each run is independent — separate subprocess, separate timing.
+This produces 3 × 3 × 3 = **27 individual benchmark runs** for every `time_*` or `track_*`
+method in that class.
 
 ---
 
@@ -61,8 +81,9 @@ method in that class. Each run is independent — separate subprocess, separate 
 For each (method, param combo), ASV does the following in a **fresh subprocess**:
 
 ```
-subprocess starts
+subprocess starts (inside ASV conda env)
       │
+      ├─ import benchmarks (runs __init__.py → ESMFMKFILE + sys.path set)
       ├─ import the benchmark module
       ├─ instantiate the class
       ├─ call setup(params...)          ← excluded from timing
@@ -133,64 +154,45 @@ def mem_create_regridder(self, ...):
     return xe.Regridder(...)   # MUST return the object — ASV measures its size
 ```
 
-This captures the weight matrix stored inside the Regridder (a scipy sparse array in
-Python memory). It does **not** capture ESMF's C/Fortran heap allocations.
-
 **Common mistake:** forgetting the `return`. ASV sees `None` and reports 0.
 
 ### `peakmem_*` — peak tracemalloc during the call
 
 ASV wraps the method with `tracemalloc` and records the highest Python heap usage
-reached during execution. No return value needed.
+reached during execution. No return value needed. Only sees Python heap — misses C/Fortran.
 
-```python
-def peakmem_apply(self, ...):
-    self.regridder(self.src_data)   # no return — tracemalloc captures the peak
-```
+### `track_rss_mb` — custom RSS metric (what CrocoScope uses)
 
-Use this when the interesting memory is **transient** — temporary arrays created during
-a computation (e.g., the intermediate arrays in a sparse matrix–vector multiply).
-Like `mem_*`, it only sees Python heap allocations, not C-level memory.
-
-### `track_*` — custom numeric metric
-
-Returns any number you compute yourself. Use with `psutil` when you need true process
-RSS (captures C/Fortran allocations that tracemalloc misses):
+Returns process RSS delta measured with psutil — captures C/Fortran heap allocations
+(ESMF, NetCDF, HDF5) that `mem_*` and `peakmem_*` miss entirely.
 
 ```python
 def track_rss_mb(self, ...):
-    import psutil, os, gc
-    gc.collect()
+    import os, psutil
     proc = psutil.Process(os.getpid())
     before = proc.memory_info().rss
-    xe.Regridder(...)
+    xe.Regridder(...)          # call being measured
     return (proc.memory_info().rss - before) / 1024**2
 
 track_rss_mb.unit = "MB"
 ```
-
-**In CrocoScope:** creation benchmarks use `mem_*` (weight matrix size) and application
-benchmarks use `peakmem_*` (temporary array peak). If you need to capture ESMF's actual
-C-level memory footprint, add a `track_rss_mb` method.
 
 ---
 
 ## Step 5 — Errors and skipped benchmarks
 
 If `setup()` raises `NotImplementedError`, ASV marks the benchmark as **`n/a`** (not
-applicable) and moves on. This is how CrocoScope marks HPC-only benchmarks that can't
-run without GLORYS or GEBCO data:
+applicable) and moves on. This is how CrocoScope marks data-dependent benchmarks that
+can't run without GLORYS or GEBCO:
 
 ```python
-def setup(self, n_workers, step_days):
-    raise NotImplementedError("Requires HPC GLORYS data — run via scripts/pbs_submit.sh")
+def setup(self, dst_size):
+    gebco = get_path("gebco_path")
+    if not gebco or not Path(gebco).exists():
+        raise NotImplementedError(f"GEBCO not found at {gebco!r}")
 ```
 
-If a `time_*` or `mem_*` method raises any exception, ASV marks it as **failed** (shown
-in red on the dashboard). The run continues with the next combination.
-
-If `setup()` raises any other exception (not NotImplementedError), it's a **failed** run,
-not `n/a`.
+If `setup()` raises any other exception, it's a **failed** run (shown in red), not `n/a`.
 
 ---
 
@@ -200,71 +202,54 @@ After all benchmarks finish, ASV writes one JSON file per run:
 
 ```
 results/
-├── benchmarks.json                          ← benchmark metadata (params, units, code)
-└── crlogin2/                                ← one dir per machine
-    ├── machine.json                         ← CPU/RAM/OS info
-    └── <commit-hash>-existing-<ts>.json     ← timing data for this commit+run
+├── benchmarks.json                                    ← benchmark metadata
+└── derecho/                                           ← one dir per machine
+    ├── machine.json                                   ← CPU/RAM/OS info
+    └── <commit>-conda-py3.11-numpy-psutil-....json   ← timing data
 ```
 
-The commit hash is the current git HEAD at the time of the run. This is how the dashboard
-builds a timeline — each result file is one point on the x-axis.
+The commit hash comes from CrocoScope's own git HEAD at run time. The dashboard X-axis
+is CrocoScope commits — not CrocoDash or mom6_forge commits. To track performance of
+those packages over time, run benchmarks after each change and commit the results with
+a descriptive message.
 
-**Important:** if the ASV process is killed before it finishes (e.g., login node OOM kill),
-the timing JSON is never written. `machine.json` appears early; the timing file appears only
-at the end of the run.
+**If the process is killed mid-run** (e.g., login node OOM), the timing JSON is never
+written and the run is lost. `machine.json` appears early; the timing file only appears
+at the end.
 
 ---
 
 ## Step 7 — `asv publish` and the dashboard
 
-`asv publish` reads **all** JSON files in `results/` — from every machine, every commit —
-and builds a self-contained HTML site in `.asv/html/`.
+`asv publish` reads **all** JSON files in `results/` and builds a self-contained HTML
+site in `.asv/html/`. The dashboard has three views:
 
-The dashboard has three views:
-- **Grid view** — one cell per benchmark, colored by speed relative to baseline
-- **List view** — sortable table of all benchmarks and their latest timings
+- **Grid** — one cell per benchmark, colored by speed relative to baseline
+- **List** — sortable table with latest timings
 - **Regressions** — benchmarks where a recent commit was detectably slower
 
-The dashboard compares across commits on the x-axis. With a single commit (first run),
-the timeline has one point and there's nothing to compare — the grid shows timings but no
-regression arrows. Historical data accumulates as you commit more results.
+`asv publish` needs the full git history to resolve commit hashes to dates and messages.
+This is why the CI workflow uses `fetch-depth: 0` — a shallow clone produces an empty
+dashboard.
 
 ---
 
-## Environment mode
-
-CrocoScope uses `environment_type: "conda"` in `asv.conf.json`. ASV creates and manages
-its own conda environment (in `.asv/env/`) using the packages listed in `matrix`. The
-first run takes a few minutes to build the env; subsequent runs reuse it.
-
-This is the standard ASV approach and is what allows results to be saved. The key
-difference from `environment_type: "existing"`:
-
-| Mode | Saves results? | First run | Requires |
-|---|---|---|---|
-| `"conda"` (current) | **Yes** | Slow (env build) | conda available |
-| `"existing"` (old) | No — terminal only | Fast | Pre-built env |
-
-`"existing"` mode (`asv run --python /path/to/python`) is explicitly documented to NOT
-save results to the results directory — it is a quick-check mode only. Switching to
-`"conda"` is required to get a populated dashboard.
-
----
-
-## Quick reference: what each script does
+## Script reference
 
 | Script | What it runs | When to use |
 |---|---|---|
-| `scripts/run_fast.sh` | `asv run --bench "xesmf" --quick` | Quick sanity check on any node |
-| `scripts/run_full.sh` | xesmf (full) + mom6_forge fast suites | Casper interactive node |
-| `scripts/pbs_submit.sh` | mom6_forge topo + crocodash OBC | PBS job, needs GEBCO/GLORYS |
+| `scripts/run_fast.sh` | mom6_forge grid/kdtree/tidy/subsampling (`--quick`) | Quick sanity check on any node |
+| `scripts/run_full.sh` | All benchmarks including xesmf (full timing) | Casper interactive node |
+| `scripts/pbs_submit.sh` | All benchmarks including data-dependent ones | PBS job; needs GEBCO/GLORYS |
 | `scripts/publish.sh` | `asv publish` | After any run, to rebuild dashboard |
 
-After any HPC run, commit the results before rebuilding the dashboard so they're
-included in version history:
+xesmf benchmarks (ESMF weight generation) are **not** in `run_fast.sh` — they are slow
+even with `--quick` and should be run via `run_full.sh` or `pbs_submit.sh`.
+
+After any run, commit results before rebuilding the dashboard:
 
 ```bash
 git add results/
-git commit -m "add HPC benchmark results: <brief description>"
+git commit -m "add benchmark results: <brief description of what changed>"
 git push
 ```

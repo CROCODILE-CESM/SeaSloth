@@ -8,9 +8,11 @@
     "conda_channels": ["conda-forge"],
     "matrix": {
         "numpy": [],
+        "scipy": [],
         "xarray": [],
         "xesmf": [],
         "psutil": [],
+        "regionmask": [],
         "copernicusmarine": []
     },
     "pythons": ["3.11"],

@@ -14,7 +14,6 @@ import xarray as xr
 
 from benchmarks.common.config import get_path
 from benchmarks.common.synthetic_data import make_curvilinear_grid, make_rect_grid
-from mom6_forge.mapping import regrid_dataset_via_xesmf
 
 
 class RegridDatasetSynthetic:
@@ -29,6 +28,8 @@ class RegridDatasetSynthetic:
     timeout = 600
 
     def setup(self, src_size, dst_size, method):
+        from mom6_forge.mapping import regrid_dataset_via_xesmf
+
         src_nlon, src_nlat = src_size
         dst_nlon, dst_nlat = dst_size
         src = make_rect_grid(src_nlon, src_nlat)
@@ -40,9 +41,10 @@ class RegridDatasetSynthetic:
         self.src = src
         self.dst = make_curvilinear_grid(dst_nlon, dst_nlat)
         self.method = method
+        self._regrid = regrid_dataset_via_xesmf
 
     def time_regrid(self, src_size, dst_size, method):
-        regrid_dataset_via_xesmf(
+        self._regrid(
             input_dataset=self.src,
             output_dataset=self.dst,
             regridding_method=self.method,

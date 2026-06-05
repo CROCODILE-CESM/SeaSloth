@@ -7,8 +7,6 @@ the supergrid (shape 2ny+1 x 2nx+1). Cost scales as O(nx * ny).
 No file I/O — safe on login nodes and in CI.
 """
 
-from mom6_forge.grid import Grid
-
 
 class GridMetricsComputation:
     """Time to recompute all MOM6 grid metrics from the supergrid."""
@@ -18,6 +16,8 @@ class GridMetricsComputation:
     timeout = 300
 
     def setup(self, grid_size):
+        from mom6_forge.grid import Grid
+
         nx, ny = grid_size
         self.grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)
 

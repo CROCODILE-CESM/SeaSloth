@@ -8,11 +8,7 @@ Cost scales as O(ny * nx * n_sub**2).
 No file I/O — safe on login nodes and in CI.
 """
 
-import numpy as np
-
 from benchmarks.common.synthetic_data import make_data_variable, make_rect_grid
-from mom6_forge.grid import Grid
-from mom6_forge.mapping import regrid_with_subsampling
 
 
 class RegridSubsampling:
@@ -26,6 +22,9 @@ class RegridSubsampling:
     timeout = 600
 
     def setup(self, dst_size, n_sub):
+        from mom6_forge.grid import Grid
+        from mom6_forge.mapping import regrid_with_subsampling
+
         dst_nx, dst_ny = dst_size
         # Source: fine 1D rect grid covering the same domain
         src_nx, src_ny = dst_nx * n_sub, dst_ny * n_sub
@@ -37,9 +36,10 @@ class RegridSubsampling:
         self._qlon = grid.qlon.values  # shape (dst_ny+1, dst_nx+1)
         self._qlat = grid.qlat.values
         self._n_sub = n_sub
+        self._regrid = regrid_with_subsampling
 
     def time_regrid_subsampling(self, dst_size, n_sub):
-        regrid_with_subsampling(
+        self._regrid(
             input_dataset=self._src,
             qlon=self._qlon,
             qlat=self._qlat,

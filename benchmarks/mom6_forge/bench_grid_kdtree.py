@@ -8,7 +8,6 @@ No file I/O — safe on login nodes and in CI.
 """
 
 import numpy as np
-from mom6_forge.grid import Grid
 
 
 class GridKDTreeBuild:
@@ -19,6 +18,8 @@ class GridKDTreeBuild:
     timeout = 300
 
     def setup(self, nx):
+        from mom6_forge.grid import Grid
+
         self.grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=nx, xstart=0.0, ystart=0.0)
         _ = self.grid.kdtree  # warm up once so the property path is exercised
 
@@ -28,6 +29,7 @@ class GridKDTreeBuild:
 
     def track_rss_mb(self, nx):
         import os
+
         import psutil
 
         proc = psutil.Process(os.getpid())
@@ -48,6 +50,8 @@ class GridKDTreeQuery:
     timeout = 300
 
     def setup(self, nx, n_queries):
+        from mom6_forge.grid import Grid
+
         self.grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=nx, xstart=0.0, ystart=0.0)
         _ = self.grid.kdtree  # build once
         rng = np.random.default_rng(42)
