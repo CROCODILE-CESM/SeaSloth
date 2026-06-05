@@ -231,21 +231,23 @@ regression arrows. Historical data accumulates as you commit more results.
 
 ---
 
-## Environment mode: why there are no commit checkouts
+## Environment mode
 
-Standard ASV creates its own virtualenvs and checks out different commits to compare
-performance across your git history. CrocoScope uses `environment_type: "existing"` in
-`asv.conf.json` instead, for two reasons:
+CrocoScope uses `environment_type: "conda"` in `asv.conf.json`. ASV creates and manages
+its own conda environment (in `.asv/env/`) using the packages listed in `matrix`. The
+first run takes a few minutes to build the env; subsequent runs reuse it.
 
-1. ESMF cannot be pip-installed — it requires a compiled library (either via conda-forge
-   or an HPC module system). ASV's managed envs can't handle this.
-2. The CrocoDash and mom6_forge conda environments are large and pre-built; recreating
-   them inside ASV would be impractical.
+This is the standard ASV approach and is what allows results to be saved. The key
+difference from `environment_type: "existing"`:
 
-With `environment_type: "existing"`, ASV skips the checkout step and benchmarks whatever
-code is currently installed in the env you point at with `--python`. You lose the
-automatic commit-to-commit regression detection, but gain full compatibility with complex
-HPC environments.
+| Mode | Saves results? | First run | Requires |
+|---|---|---|---|
+| `"conda"` (current) | **Yes** | Slow (env build) | conda available |
+| `"existing"` (old) | No — terminal only | Fast | Pre-built env |
+
+`"existing"` mode (`asv run --python /path/to/python`) is explicitly documented to NOT
+save results to the results directory — it is a quick-check mode only. Switching to
+`"conda"` is required to get a populated dashboard.
 
 ---
 

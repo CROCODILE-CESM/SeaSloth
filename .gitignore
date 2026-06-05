@@ -1,6 +1,7 @@
 # ASV generated output
 .asv/html/
 .asv/cache/
+env/
 
 # Large result files (commit small JSON results, ignore large ones)
 results/**/*.json.bz2

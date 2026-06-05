@@ -1,29 +1,23 @@
 #!/usr/bin/env bash
 # run_full.sh — Run all non-HPC benchmarks (full timing, not --quick).
-# Use on Casper interactive nodes where xesmf + mom6_forge data is available.
-# Slow benchmarks requiring GLORYS/GEBCO are excluded here — use pbs_submit.sh.
+# Use on Casper interactive nodes. HPC benchmarks requiring GLORYS/GEBCO
+# are excluded here — use pbs_submit.sh for those.
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"
 
-PYTHON_CROCODASH="/glade/work/manishrv/conda-envs/CrocoDash/bin/python"
-PYTHON_MOM6FORGE="/glade/work/manishrv/conda-envs/mom6_forge/bin/python"
+PYTHON="/glade/work/manishrv/conda-envs/CrocoDash/bin/python"
+
+ESMF_MK="$(find "$REPO_ROOT/env" -name "esmf.mk" 2>/dev/null | head -1)"
+if [ -n "$ESMF_MK" ]; then
+    export ESMFMKFILE="$ESMF_MK"
+fi
 
 echo "=== CrocoScope: full fast+medium benchmarks ==="
 
-echo ""
-echo "--- xesmf (CrocoDash env) ---"
-"$PYTHON_CROCODASH" -m asv run \
-    --python "$PYTHON_CROCODASH" \
-    --bench "xesmf"
-
-echo ""
-echo "--- mom6_forge fast suites (mom6_forge env) ---"
-"$PYTHON_MOM6FORGE" -m asv run \
-    --python "$PYTHON_MOM6FORGE" \
-    --bench "bench_grid_kdtree|bench_grid_metrics|bench_regrid_subsampling"
+"$PYTHON" -m asv run HEAD
 
 echo ""
 echo "Done. Run 'bash scripts/publish.sh' to build the dashboard."

@@ -4,10 +4,17 @@
     "project_url": "https://github.com/CROCODILE-CESM",
     "repo": ".",
     "branches": ["main"],
-    "environment_type": "existing",
+    "environment_type": "conda",
+    "conda_channels": ["conda-forge"],
+    "matrix": {
+        "numpy": [],
+        "xarray": [],
+        "xesmf": [],
+        "psutil": []
+    },
+    "pythons": ["3.11"],
     "benchmark_dir": "benchmarks",
     "results_dir": "results",
     "html_dir": ".asv/html",
-    "show_commit_url": "https://github.com/CROCODILE-CESM/CrocoScope/commit/",
-    "matrix": {}
+    "show_commit_url": "https://github.com/CROCODILE-CESM/CrocoScope/commit/"
 }

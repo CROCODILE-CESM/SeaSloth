@@ -70,15 +70,11 @@ Use helpers from `benchmarks/common/synthetic_data.py`:
 ## Running your new benchmark
 
 ```bash
-# Quick sanity check (one rep per param combo)
-/glade/work/manishrv/conda-envs/CrocoDash/bin/python -m asv run \
-    --python /glade/work/manishrv/conda-envs/CrocoDash/bin/python \
-    --bench "MyBenchmark" --quick
+# Quick sanity check (one rep per param combo, saves results)
+asv run --bench "MyBenchmark" --quick EXISTING
 
-# Full timing
-/glade/work/manishrv/conda-envs/CrocoDash/bin/python -m asv run \
-    --python /glade/work/manishrv/conda-envs/CrocoDash/bin/python \
-    --bench "MyBenchmark"
+# Full timing (saves results)
+asv run --bench "MyBenchmark" EXISTING
 
 # Build dashboard
 bash scripts/publish.sh

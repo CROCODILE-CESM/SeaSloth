@@ -329,41 +329,6 @@
         "version": "918e5a78639f1a84fb8c6a77a05af2c392ef4be7d4d9d8b7703e89d7731e3fd3",
         "warmup_time": -1
     },
-    "xesmf.bench_regridder_apply.RegridderApplication.mem_apply": {
-        "code": "class RegridderApplication:\n    def mem_apply(self, src_size, dst_size, ntime, method):\n        self.regridder(self.src_data)\n\n    def setup(self, src_size, dst_size, ntime, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
-        "name": "xesmf.bench_regridder_apply.RegridderApplication.mem_apply",
-        "param_names": [
-            "src_size",
-            "dst_size",
-            "ntime",
-            "method"
-        ],
-        "params": [
-            [
-                "(100, 100)",
-                "(300, 300)",
-                "(600, 400)"
-            ],
-            [
-                "(50, 50)",
-                "(200, 200)",
-                "(400, 300)"
-            ],
-            [
-                "1",
-                "12",
-                "60"
-            ],
-            [
-                "'bilinear'",
-                "'nearest_s2d'"
-            ]
-        ],
-        "timeout": 300,
-        "type": "memory",
-        "unit": "bytes",
-        "version": "60683ab57345e879ead99488001169d85dea169537ebc518f345a8c65a72db27"
-    },
     "xesmf.bench_regridder_apply.RegridderApplication.time_apply": {
         "code": "class RegridderApplication:\n    def time_apply(self, src_size, dst_size, ntime, method):\n        self.regridder(self.src_data)\n\n    def setup(self, src_size, dst_size, ntime, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
         "min_run_count": 2,
@@ -405,6 +370,41 @@
         "version": "08c0825c0b89f39e8b48be34df200e5f8a5bc987a74e50ce13661ae96d9a4a60",
         "warmup_time": -1
     },
+    "xesmf.bench_regridder_apply.RegridderApplication.track_rss_mb": {
+        "code": "class RegridderApplication:\n    def track_rss_mb(self, src_size, dst_size, ntime, method):\n        import os\n        import psutil\n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        self.regridder(self.src_data)\n        return (proc.memory_info().rss - before) / 1024 ** 2\n\n    def setup(self, src_size, dst_size, ntime, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
+        "name": "xesmf.bench_regridder_apply.RegridderApplication.track_rss_mb",
+        "param_names": [
+            "src_size",
+            "dst_size",
+            "ntime",
+            "method"
+        ],
+        "params": [
+            [
+                "(100, 100)",
+                "(300, 300)",
+                "(600, 400)"
+            ],
+            [
+                "(50, 50)",
+                "(200, 200)",
+                "(400, 300)"
+            ],
+            [
+                "1",
+                "12",
+                "60"
+            ],
+            [
+                "'bilinear'",
+                "'nearest_s2d'"
+            ]
+        ],
+        "timeout": 300,
+        "type": "track",
+        "unit": "MB",
+        "version": "7407a5dd71cb60d2161317b7da72a0e2afe9de41a60f887c172260ade8cf7435"
+    },
     "xesmf.bench_regridder_apply.RegridderApplicationMultiVar.time_apply_multi_var": {
         "code": "class RegridderApplicationMultiVar:\n    def time_apply_multi_var(self, src_size, dst_size, nvars):\n        self.regridder(self.src_data)\n\n    def setup(self, src_size, dst_size, nvars):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=12, nvars=nvars)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=\"bilinear\",\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
         "min_run_count": 2,
@@ -438,36 +438,6 @@
         "unit": "seconds",
         "version": "043b3c53404e26ace891fad248700df49d263b358e7ba7c004fc9686a8070620",
         "warmup_time": -1
-    },
-    "xesmf.bench_regridder_creation.RegridderCreation.mem_create_regridder": {
-        "code": "class RegridderCreation:\n    def mem_create_regridder(self, src_size, dst_size, method):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, dst_size, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)",
-        "name": "xesmf.bench_regridder_creation.RegridderCreation.mem_create_regridder",
-        "param_names": [
-            "src_size",
-            "dst_size",
-            "method"
-        ],
-        "params": [
-            [
-                "(100, 100)",
-                "(300, 300)",
-                "(600, 400)"
-            ],
-            [
-                "(50, 50)",
-                "(200, 200)",
-                "(400, 300)"
-            ],
-            [
-                "'bilinear'",
-                "'nearest_s2d'",
-                "'conservative'"
-            ]
-        ],
-        "timeout": 600,
-        "type": "memory",
-        "unit": "bytes",
-        "version": "d6743eb329cdce89c283351a41cc317faeeaf30a8e0d76a13f4b5a505b9ca72f"
     },
     "xesmf.bench_regridder_creation.RegridderCreation.time_create_regridder": {
         "code": "class RegridderCreation:\n    def time_create_regridder(self, src_size, dst_size, method):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, dst_size, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)",
@@ -505,12 +475,12 @@
         "version": "a5d4326a17475ce807fff77b009299c164c6ee1a944f76dfd43e12dda219cacc",
         "warmup_time": -1
     },
-    "xesmf.bench_regridder_creation.RegridderCreationLocstream.mem_create_locstream_regridder": {
-        "code": "class RegridderCreationLocstream:\n    def mem_create_locstream_regridder(self, src_size, n_boundary_pts, method):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, n_boundary_pts, method):\n        from benchmarks.common.synthetic_data import make_locstream_grid\n    \n        snlon, snlat = src_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_locstream_grid(n_boundary_pts)",
-        "name": "xesmf.bench_regridder_creation.RegridderCreationLocstream.mem_create_locstream_regridder",
+    "xesmf.bench_regridder_creation.RegridderCreation.track_rss_mb": {
+        "code": "class RegridderCreation:\n    def track_rss_mb(self, src_size, dst_size, method):\n        import os\n        import psutil\n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n        return (proc.memory_info().rss - before) / 1024 ** 2\n\n    def setup(self, src_size, dst_size, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)",
+        "name": "xesmf.bench_regridder_creation.RegridderCreation.track_rss_mb",
         "param_names": [
             "src_size",
-            "n_boundary_pts",
+            "dst_size",
             "method"
         ],
         "params": [
@@ -520,19 +490,20 @@
                 "(600, 400)"
             ],
             [
-                "500",
-                "2000",
-                "5000"
+                "(50, 50)",
+                "(200, 200)",
+                "(400, 300)"
             ],
             [
                 "'bilinear'",
-                "'nearest_s2d'"
+                "'nearest_s2d'",
+                "'conservative'"
             ]
         ],
         "timeout": 600,
-        "type": "memory",
-        "unit": "bytes",
-        "version": "f87d6264dd08b351f7f0c01c5cefba4e6d7c8edfa146f804c9addf27ba4a871c"
+        "type": "track",
+        "unit": "MB",
+        "version": "4b5f4e8abbc6dad968218854bf658a48b2233421fe7b3a36b0f01b0f9ff8e46a"
     },
     "xesmf.bench_regridder_creation.RegridderCreationLocstream.time_create_locstream_regridder": {
         "code": "class RegridderCreationLocstream:\n    def time_create_locstream_regridder(self, src_size, n_boundary_pts, method):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, n_boundary_pts, method):\n        from benchmarks.common.synthetic_data import make_locstream_grid\n    \n        snlon, snlat = src_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_locstream_grid(n_boundary_pts)",
@@ -568,6 +539,35 @@
         "unit": "seconds",
         "version": "d037d0265b7f3b56b33452014389ebca5251972578d38fa3543cc000da208d69",
         "warmup_time": -1
+    },
+    "xesmf.bench_regridder_creation.RegridderCreationLocstream.track_rss_mb": {
+        "code": "class RegridderCreationLocstream:\n    def track_rss_mb(self, src_size, n_boundary_pts, method):\n        import os\n        import psutil\n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n        return (proc.memory_info().rss - before) / 1024 ** 2\n\n    def setup(self, src_size, n_boundary_pts, method):\n        from benchmarks.common.synthetic_data import make_locstream_grid\n    \n        snlon, snlat = src_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_locstream_grid(n_boundary_pts)",
+        "name": "xesmf.bench_regridder_creation.RegridderCreationLocstream.track_rss_mb",
+        "param_names": [
+            "src_size",
+            "n_boundary_pts",
+            "method"
+        ],
+        "params": [
+            [
+                "(100, 100)",
+                "(300, 300)",
+                "(600, 400)"
+            ],
+            [
+                "500",
+                "2000",
+                "5000"
+            ],
+            [
+                "'bilinear'",
+                "'nearest_s2d'"
+            ]
+        ],
+        "timeout": 600,
+        "type": "track",
+        "unit": "MB",
+        "version": "4b381e5b468d5a15153e8ab9910d009383bb144d616b2815354ba2f81ee6aad8"
     },
     "xesmf.bench_regridder_creation.RegridderWeightReuse.time_create_with_reuse_setting": {
         "code": "class RegridderWeightReuse:\n    def time_create_with_reuse_setting(self, src_size, dst_size, reuse_weights):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=\"bilinear\",\n            periodic=False,\n            reuse_weights=reuse_weights,\n            filename=self._weight_file,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, dst_size, reuse_weights):\n        import tempfile\n        import os\n    \n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)\n    \n        self._tmpdir = tempfile.mkdtemp()\n        self._weight_file = os.path.join(\n            self._tmpdir, f\"weights_{snlon}x{snlat}_to_{dnlon}x{dnlat}.nc\"\n        )\n    \n        if reuse_weights:\n            # Pre-generate the weight file so reuse actually reuses\n            xe.Regridder(\n                self.src,\n                self.dst,\n                method=\"bilinear\",\n                periodic=False,\n                reuse_weights=False,\n                filename=self._weight_file,\n                unmapped_to_nan=True,\n            )",

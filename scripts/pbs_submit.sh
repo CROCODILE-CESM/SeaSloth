@@ -8,33 +8,25 @@
 #PBS -o /glade/u/home/manishrv/documents/croc/dev/CrocoScope/pbs_bench.log
 #
 # pbs_submit.sh — PBS job for slow/HPC benchmarks on Casper.
-# Runs the medium and slow suites that require GEBCO or GLORYS data.
+# Runs suites that require GEBCO or GLORYS data.
 # Submit with: qsub scripts/pbs_submit.sh
-#
-# Adjust -A (project code) and walltime as needed.
 
 set -euo pipefail
 
 REPO_ROOT="/glade/u/home/manishrv/documents/croc/dev/CrocoScope"
 cd "$REPO_ROOT"
 
-PYTHON_CROCODASH="/glade/work/manishrv/conda-envs/CrocoDash/bin/python"
-PYTHON_MOM6FORGE="/glade/work/manishrv/conda-envs/mom6_forge/bin/python"
+PYTHON="/glade/work/manishrv/conda-envs/CrocoDash/bin/python"
+
+ESMF_MK="$(find "$REPO_ROOT/env" -name "esmf.mk" 2>/dev/null | head -1)"
+if [ -n "$ESMF_MK" ]; then
+    export ESMFMKFILE="$ESMF_MK"
+fi
 
 echo "=== CrocoScope HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-echo ""
-echo "--- mom6_forge topo + tidy (mom6_forge env) ---"
-"$PYTHON_MOM6FORGE" -m asv run \
-    --python "$PYTHON_MOM6FORGE" \
-    --bench "bench_topo_regrid|bench_topo_tidy"
-
-echo ""
-echo "--- CrocoDash OBC pipeline (CrocoDash env) ---"
-"$PYTHON_CROCODASH" -m asv run \
-    --python "$PYTHON_CROCODASH" \
-    --bench "crocodash"
+"$PYTHON" -m asv run HEAD
 
 echo ""
 echo "=== Done: $(date) ==="
