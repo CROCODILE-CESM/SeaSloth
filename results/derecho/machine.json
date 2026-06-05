@@ -1,1 +1,9 @@
-{"arch": "x86_64", "cpu": "AMD EPYC 9555 64-Core Processor", "machine": "derecho", "num_cpu": "1", "os": "Linux 6.4.0-150600.23.81-default", "ram": "2", "version": 1}
+{
+    "arch": "x86_64",
+    "cpu": "AMD EPYC 9555 64-Core Processor",
+    "machine": "derecho",
+    "num_cpu": "1",
+    "os": "Linux 6.4.0-150600.23.81-default",
+    "ram": "2",
+    "version": 1
+}

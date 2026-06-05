@@ -1,35 +1,47 @@
 """
 Benchmarks: Topo.tidy_dataset() (mom6_forge).
 
-tidy_dataset() runs an iterative scipy.ndimage.binary_fill_holes loop to remove
-inland lakes and narrow channels from the bathymetry mask. Convergence time
-depends on grid size and the complexity of the coastline geometry.
+tidy_dataset() runs scipy.ndimage binary_fill_holes to remove inland lakes
+and optionally fill narrow channels. Convergence time scales with grid size
+and coastline complexity.
 
-Env: mom6_forge conda env
-CI/local: synthetic binary masks — safe, no file I/O.
-HPC: realistic bathymetry from set_from_dataset() output.
+Synthetic bathymetry with ~20% land (depth ≤ 0) — no file I/O.
 """
 
-# TODO: Implement.
-# Call Topo.tidy_dataset() on a Topo object with a pre-loaded bathymetry array.
-# Can generate a synthetic mask (random binary array + gaussian smoothing) to avoid
-# needing real GEBCO data for the CI/fast variant.
-#
-# Key function: topo.tidy_dataset(fill_channels=True/False, minimum_depth=10)
-# Parameters:
-#   grid_size: [(100,100), (300,300), (500,500)]
-#   fill_channels: [True, False]
+import numpy as np
+import xarray as xr
+
+from mom6_forge.grid import Grid
+from mom6_forge.topo import Topo
 
 
 class TopoTidyDataset:
-    """Placeholder — implement with synthetic binary bathymetry mask."""
+    """tidy_dataset() cost across grid sizes and fill_channels flag."""
 
-    params = [[(100, 100), (300, 300)], [True, False]]
+    params = [
+        [(100, 100), (300, 300), (500, 500)],
+        [False, True],
+    ]
     param_names = ["grid_size", "fill_channels"]
     timeout = 600
 
     def setup(self, grid_size, fill_channels):
-        raise NotImplementedError
+        nx, ny = grid_size
+        grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)
+        self._topo = Topo(grid, min_depth=10.0, git=False)
+        # ~20% cells are land (depth ≤ 0) to produce a realistic coastline
+        rng = np.random.default_rng(42)
+        depth = rng.uniform(-200.0, 800.0, (ny, nx)).astype(np.float32)
+        self._bathy = xr.Dataset(
+            {"depth": (["ny", "nx"], depth)},
+            coords={
+                "lon": (["ny", "nx"], grid.tlon.values),
+                "lat": (["ny", "nx"], grid.tlat.values),
+            },
+        )
 
     def time_tidy_dataset(self, grid_size, fill_channels):
-        raise NotImplementedError
+        self._topo.tidy_dataset(
+            fill_channels=fill_channels,
+            bathymetry=self._bathy,
+        )

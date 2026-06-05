@@ -1,0 +1,6 @@
+{
+    "gebco_path": "/glade/derecho/scratch/manishrv/ice/croc/gebco/GEBCO_2024.nc",
+    "glorys_rda_path": "/glade/campaign/collections/rda/data/d010049/",
+    "mom6_forge_src": "/glade/u/home/manishrv/documents/croc/regional_mom_workflows/mom6_forge",
+    "crocodash_src": "/glade/u/home/manishrv/documents/croc/regional_mom_workflows/CrocoDash"
+}

@@ -10,7 +10,8 @@
         "numpy": [],
         "xarray": [],
         "xesmf": [],
-        "psutil": []
+        "psutil": [],
+        "copernicusmarine": []
     },
     "pythons": ["3.11"],
     "benchmark_dir": "benchmarks",
