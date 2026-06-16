@@ -6,10 +6,11 @@ Performance benchmarking suite for the CROC ocean modeling ecosystem (CrocoDash,
 
 | Suite | Env | Speed | What it measures |
 |---|---|---|---|
-| `benchmarks/xesmf/` | CrocoDash | Fast (CI/local) | xESMF regridder creation + application at various grid sizes and methods |
-| `benchmarks/mom6_forge/` | mom6_forge | Fast–Medium | Grid metrics, KDTree, bathymetry regridding, tidy_dataset |
+| `benchmarks/xesmf/` | CrocoDash | Slow | xESMF regridder creation + application at various grid sizes and methods |
+| `benchmarks/mom6_forge/` | mom6_forge | Slow | Grid metrics, KDTree, bathymetry regridding |
 | `benchmarks/crocodash/` | CrocoDash | Slow (HPC) | OBC forcing pipeline (process_obc_conditions) |
-| `benchmarks/e2e/` | CrocoDash | Very slow (HPC) | End-to-end case workflow timing |
+| `benchmarks/raw_data_access` | CrocoDash | Very slow (HPC) | All the data access methods |
+| `benchmarks/CrocoDash Case Initialization` | CrocoDash | Slow (HPC) | The Case Init time across commits |
 
 ## Setup
 
