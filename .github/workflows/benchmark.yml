@@ -24,11 +24,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install asv
-        run: pip install asv
+      - name: Install dependencies
+        run: pip install asv matplotlib numpy
 
       - name: Build dashboard
         run: asv publish
+
+      - name: Generate benchmark report
+        run: python scripts/generate_report.py
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

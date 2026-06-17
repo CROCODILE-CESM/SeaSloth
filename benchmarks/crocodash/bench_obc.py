@@ -1,70 +1,112 @@
 """
-Benchmarks: CrocoDash process_obc_conditions() — OBC forcing pipeline.
+Benchmarks: CrocoDash OBC forcing pipeline — REGRID + MERGE phases only.
 
-process_obc_conditions() is the main 3-phase forcing pipeline:
-  1. GET  — parallel Dask download of GLORYS chunks from RDA
-  2. REGRID — sequential regrid of each chunk to MOM6 boundary segments
-  3. MERGE — concatenate segments into final boundary forcing files
+process_conditions() orchestrates three phases:
+  1. GET    — download raw GLORYS chunks  (skipped here)
+  2. REGRID — regrid each chunk to MOM6 boundary segments
+  3. MERGE  — concatenate into final boundary forcing files
 
-This benchmark requires:
-  - Access to GLORYS data on GLADE/RDA
-  - A valid CrocoDash config JSON pointing to real or cached forcing data
-  - A Dask cluster (local or PBS)
+This benchmark skips GET and times only REGRID + MERGE, using pre-cached
+GLORYS files already on disk. This isolates the computational cost from
+network/storage variability.
 
-Env: CrocoDash conda env
-CI/local: NOT safe — requires HPC data access. Skip on CI.
-HPC: run via scripts/pbs_submit.sh
+step_days controls the chunking of the raw dataset — smaller values mean more
+but smaller files (more regrid iterations); larger values mean fewer, bigger
+files. The total date range is held constant so total data volume is fixed.
+
+Required setup in data_config.json:
+  "obc_config_path": "/path/to/CrocoDash/case/config.yaml"
+    → must point to a valid CrocoDash case config whose raw_dataset_path
+      already contains pre-downloaded GLORYS files.
+
+  "obc_step_days_dirs": {
+    "5":  "/path/to/cached_glorys_step5/",
+    "15": "/path/to/cached_glorys_step15/",
+    "30": "/path/to/cached_glorys_step30/"
+  }
+    → pre-staged raw GLORYS folders, each chunked at that step_days value.
+      The benchmark swaps the raw_dataset_path for each run.
+
+HPC only — skip gracefully on machines without the data.
 """
 
-# TODO: Implement once a suitable small cached GLORYS dataset is available for
-# benchmarking. Options:
-#   A. Use a pre-cached small regional GLORYS subset (e.g., 1 month, 6° x 6° box)
-#   B. Mock the GET phase and only benchmark REGRID + MERGE
-#
-# Entry point:
-#   from CrocoDash.extract_forcings.obc import process_obc_conditions
-#   process_obc_conditions(config_path=..., client=dask_client, preview=False)
-#
-# Parameters to vary:
-#   n_workers: [1, 4, 8]         -- Dask local cluster size
-#   step_days: [5, 15, 30]       -- chunk size for GET phase
-#   arakawa_grid: ["A", "B", "C"]
+import shutil
+import tempfile
+from pathlib import Path
 
 
-class OBCPipeline:
+class OBCRegridMerge:
     """
-    Full process_obc_conditions() timing.
-    HPC only — requires GLORYS data access.
+    REGRID + MERGE phases of process_conditions() with pre-cached GLORYS data.
+
+    step_days determines the number of raw-data chunks the regrid loop
+    iterates over — smaller = more iterations, larger = fewer but bigger.
     """
 
+    params = [[5, 15, 30]]
+    param_names = ["step_days"]
     timeout = 7200
 
-    params = [[1, 4], [5, 15]]
-    param_names = ["n_workers", "step_days"]
+    def setup(self, step_days):
+        import json
 
-    def setup(self, n_workers, step_days):
-        raise NotImplementedError(
-            "Requires HPC GLORYS data access — run via scripts/pbs_submit.sh"
+        config_path = Path(__file__).parent.parent / "data_config.json"
+        with open(config_path) as f:
+            cfg = json.load(f)
+
+        obc_cfg = cfg.get("obc_config_path", "")
+        step_dirs = cfg.get("obc_step_days_dirs", {})
+        raw_dir = step_dirs.get(str(step_days), "")
+
+        if not obc_cfg or not Path(obc_cfg).exists():
+            raise NotImplementedError(
+                "obc_config_path not set or file missing — set in data_config.json"
+            )
+        if not raw_dir or not Path(raw_dir).exists():
+            raise NotImplementedError(
+                f"obc_step_days_dirs[{step_days!r}] not set or missing — "
+                "pre-stage GLORYS chunks and set in data_config.json"
+            )
+
+        self._obc_config = obc_cfg
+        self._raw_dir = raw_dir
+        self._tmpdir = tempfile.mkdtemp(prefix="crocoscope_obc_")
+
+    def teardown(self, step_days):
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
+
+    def time_regrid_and_merge(self, step_days):
+        import CrocoDash.extract_forcings.case_setup.driver as driver
+        import CrocoDash.extract_forcings.regrid_dataset_piecewise as rdp
+        import CrocoDash.extract_forcings.merge_piecewise_dataset as mpd
+        import CrocoDash.extract_forcings.utils as utils
+
+        config = utils.Config(self._obc_config)
+
+        rdp.regrid_dataset_piecewise(
+            self._raw_dir,
+            config["basic"]["file_regex"]["raw_dataset_pattern"],
+            config["basic"]["dates"]["format"],
+            config["basic"]["dates"]["start"],
+            config["basic"]["dates"]["end"],
+            config["basic"]["paths"]["hgrid_path"],
+            config["basic"]["paths"]["bathymetry_path"],
+            config["basic"]["forcing"]["information"],
+            Path(self._tmpdir) / "regridded",
+            config["basic"]["general"]["boundary_number_conversion"],
+            run_initial_condition=False,
+            run_boundary_conditions=True,
+            vgrid_path=config["basic"]["paths"].get("vgrid_path"),
         )
 
-    def time_process_obc(self, n_workers, step_days):
-        raise NotImplementedError
-
-
-class OBCRegridOnly:
-    """
-    Benchmark only the REGRID phase of process_obc_conditions(), using cached
-    pre-downloaded forcing data. Eliminates network variability.
-    HPC — needs cached GLORYS files on GLADE scratch.
-    """
-
-    timeout = 3600
-
-    params = [[(100, 100), (300, 300)], ["bilinear", "nearest_s2d"]]
-    param_names = ["hgrid_size", "regrid_method"]
-
-    def setup(self, hgrid_size, regrid_method):
-        raise NotImplementedError("Implement: load cached forcing, call regrid step only")
-
-    def time_regrid_phase(self, hgrid_size, regrid_method):
-        raise NotImplementedError
+        mpd.merge_piecewise_dataset(
+            Path(self._tmpdir) / "regridded",
+            config["basic"]["file_regex"]["regridded_dataset_pattern"],
+            config["basic"]["dates"]["format"],
+            config["basic"]["dates"]["start"],
+            config["basic"]["dates"]["end"],
+            config["basic"]["general"]["boundary_number_conversion"],
+            Path(self._tmpdir) / "output",
+            run_initial_condition=False,
+            run_boundary_conditions=True,
+        )

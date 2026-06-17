@@ -10,10 +10,12 @@ cd "$REPO_ROOT"
 PYTHON="/glade/work/manishrv/conda-envs/CrocoDash/bin/python"
 
 "$PYTHON" -m asv publish
+"$PYTHON" scripts/generate_report.py
 
 echo ""
-echo "Dashboard built at: $REPO_ROOT/.asv/html/index.html"
+echo "Benchmark report: $REPO_ROOT/.asv/html/report.html"
+echo "ASV dashboard:    $REPO_ROOT/.asv/html/index.html"
 echo ""
 echo "To preview in a browser:"
 echo "  $PYTHON -m asv preview"
-echo "  # or just open .asv/html/index.html in Jupyter file browser"
+echo "  # or open either file directly in the Jupyter file browser"

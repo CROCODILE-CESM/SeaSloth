@@ -1,6 +1,28 @@
 {
     "gebco_path": "/glade/derecho/scratch/manishrv/ice/croc/gebco/GEBCO_2024.nc",
     "glorys_rda_path": "/glade/campaign/collections/rda/data/d010049/",
-    "mom6_forge_src": "/glade/u/home/manishrv/documents/croc/regional_mom_workflows/mom6_forge",
-    "crocodash_src": "/glade/u/home/manishrv/documents/croc/regional_mom_workflows/CrocoDash"
+
+    "mesh_pairs": [
+        {
+            "label": "coarse",
+            "rof_mesh": "",
+            "ocn_mesh": "",
+            "rmax": 100.0,
+            "fold": 25.0
+        },
+        {
+            "label": "fine",
+            "rof_mesh": "",
+            "ocn_mesh": "",
+            "rmax": 50.0,
+            "fold": 12.5
+        }
+    ],
+
+    "obc_config_path": "",
+    "obc_step_days_dirs": {
+        "5":  "",
+        "15": "",
+        "30": ""
+    }
 }

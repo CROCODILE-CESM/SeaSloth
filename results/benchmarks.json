@@ -1,21 +1,17 @@
 {
-    "crocodash.bench_obc.OBCPipeline.time_process_obc": {
-        "code": "class OBCPipeline:\n    def time_process_obc(self, n_workers, step_days):\n        raise NotImplementedError\n\n    def setup(self, n_workers, step_days):\n        raise NotImplementedError(\n            \"Requires HPC GLORYS data access \u2014 run via scripts/pbs_submit.sh\"\n        )",
+    "crocodash.bench_obc.OBCRegridMerge.time_regrid_and_merge": {
+        "code": "class OBCRegridMerge:\n    def time_regrid_and_merge(self, step_days):\n        import CrocoDash.extract_forcings.case_setup.driver as driver\n        import CrocoDash.extract_forcings.regrid_dataset_piecewise as rdp\n        import CrocoDash.extract_forcings.merge_piecewise_dataset as mpd\n        import CrocoDash.extract_forcings.utils as utils\n    \n        config = utils.Config(self._obc_config)\n    \n        rdp.regrid_dataset_piecewise(\n            self._raw_dir,\n            config[\"basic\"][\"file_regex\"][\"raw_dataset_pattern\"],\n            config[\"basic\"][\"dates\"][\"format\"],\n            config[\"basic\"][\"dates\"][\"start\"],\n            config[\"basic\"][\"dates\"][\"end\"],\n            config[\"basic\"][\"paths\"][\"hgrid_path\"],\n            config[\"basic\"][\"paths\"][\"bathymetry_path\"],\n            config[\"basic\"][\"forcing\"][\"information\"],\n            Path(self._tmpdir) / \"regridded\",\n            config[\"basic\"][\"general\"][\"boundary_number_conversion\"],\n            run_initial_condition=False,\n            run_boundary_conditions=True,\n            vgrid_path=config[\"basic\"][\"paths\"].get(\"vgrid_path\"),\n        )\n    \n        mpd.merge_piecewise_dataset(\n            Path(self._tmpdir) / \"regridded\",\n            config[\"basic\"][\"file_regex\"][\"regridded_dataset_pattern\"],\n            config[\"basic\"][\"dates\"][\"format\"],\n            config[\"basic\"][\"dates\"][\"start\"],\n            config[\"basic\"][\"dates\"][\"end\"],\n            config[\"basic\"][\"general\"][\"boundary_number_conversion\"],\n            Path(self._tmpdir) / \"output\",\n            run_initial_condition=False,\n            run_boundary_conditions=True,\n        )\n\n    def setup(self, step_days):\n        import json\n    \n        config_path = Path(__file__).parent.parent / \"data_config.json\"\n        with open(config_path) as f:\n            cfg = json.load(f)\n    \n        obc_cfg = cfg.get(\"obc_config_path\", \"\")\n        step_dirs = cfg.get(\"obc_step_days_dirs\", {})\n        raw_dir = step_dirs.get(str(step_days), \"\")\n    \n        if not obc_cfg or not Path(obc_cfg).exists():\n            raise NotImplementedError(\n                \"obc_config_path not set or file missing \u2014 set in data_config.json\"\n            )\n        if not raw_dir or not Path(raw_dir).exists():\n            raise NotImplementedError(\n                f\"obc_step_days_dirs[{step_days!r}] not set or missing \u2014 \"\n                \"pre-stage GLORYS chunks and set in data_config.json\"\n            )\n    \n        self._obc_config = obc_cfg\n        self._raw_dir = raw_dir\n        self._tmpdir = tempfile.mkdtemp(prefix=\"crocoscope_obc_\")",
         "min_run_count": 2,
-        "name": "crocodash.bench_obc.OBCPipeline.time_process_obc",
+        "name": "crocodash.bench_obc.OBCRegridMerge.time_regrid_and_merge",
         "number": 0,
         "param_names": [
-            "n_workers",
             "step_days"
         ],
         "params": [
             [
-                "1",
-                "4"
-            ],
-            [
                 "5",
-                "15"
+                "15",
+                "30"
             ]
         ],
         "repeat": 0,
@@ -24,36 +20,33 @@
         "timeout": 7200,
         "type": "time",
         "unit": "seconds",
-        "version": "e2b64de47739416a63d6e587d01e97917ba7483e74543e302a42604aa1a52665",
+        "version": "64982194ed1dde979c61f20c062fe3213fd06bb4bb1c6dfa71c5aa3a288001b5",
         "warmup_time": -1
     },
-    "crocodash.bench_obc.OBCRegridOnly.time_regrid_phase": {
-        "code": "class OBCRegridOnly:\n    def time_regrid_phase(self, hgrid_size, regrid_method):\n        raise NotImplementedError\n\n    def setup(self, hgrid_size, regrid_method):\n        raise NotImplementedError(\"Implement: load cached forcing, call regrid step only\")",
-        "min_run_count": 2,
-        "name": "crocodash.bench_obc.OBCRegridOnly.time_regrid_phase",
-        "number": 0,
+    "crocodash.bench_raw_data_access.DataAccessHealth.track_accessible": {
+        "code": "class DataAccessHealth:\n    def track_accessible(self, product_method):\n        product, method = product_method\n        try:\n            ProductRegistry.validate_function(product, method)\n            return 1.0\n        except Exception:\n            return 0.0\n\n    def setup(self, _product_method):\n        if not _CROCODASH_AVAILABLE:\n            raise NotImplementedError(\n                \"CrocoDash not importable \u2014 install it or activate the CrocoDash env\"\n            )",
+        "name": "crocodash.bench_raw_data_access.DataAccessHealth.track_accessible",
         "param_names": [
-            "hgrid_size",
-            "regrid_method"
+            "product_method"
         ],
         "params": [
             [
-                "(100, 100)",
-                "(300, 300)"
-            ],
-            [
-                "'bilinear'",
-                "'nearest_s2d'"
+                "('gebco', 'get_gebco_data_with_python')",
+                "('gebco', 'get_gebco_data_script')",
+                "('glofas', 'get_global_data_with_python')",
+                "('glofas', 'get_processed_global_glofas_script_for_cli')",
+                "('glorys', 'get_glorys_data_from_rda')",
+                "('glorys', 'get_glorys_data_from_cds_api')",
+                "('glorys', 'get_glorys_data_script_for_cli')",
+                "('mom6_output', 'get_mom6_data')",
+                "('seawifs', 'get_global_seawifs_script_for_cli')",
+                "('seawifs', 'get_processed_global_seawifs_script_for_cli')"
             ]
         ],
-        "repeat": 0,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "timeout": 3600,
-        "type": "time",
-        "unit": "seconds",
-        "version": "da6498783b038eff4e0a35c853901ed873e6a220b43447f550de6b2720cd76db",
-        "warmup_time": -1
+        "timeout": 120,
+        "type": "track",
+        "unit": "pass",
+        "version": "fbe1dff27c188df36dc3f21e8e617321fcb826645d4f369373ce289b385ecd8a"
     },
     "e2e.bench_case_workflow.CaseGridOnly.time_grid_and_bathy": {
         "code": "class CaseGridOnly:\n    def time_grid_and_bathy(self, resolution):\n        raise NotImplementedError\n\n    def setup(self, resolution):\n        raise NotImplementedError(\"Requires GEBCO \u2014 HPC only\")",
@@ -106,113 +99,86 @@
         "version": "e92b77663f3bdf4fcee102019ac6a7aabdb7aa175bb29644e24f14a3d3d12998",
         "warmup_time": -1
     },
-    "mom6_forge.bench_grid_kdtree.GridKDTreeConstruction.time_kdtree_build": {
-        "code": "class GridKDTreeConstruction:\n    def time_kdtree_build(self, nx):\n        raise NotImplementedError\n\n    def setup(self, nx):\n        raise NotImplementedError(\"Implement: load Grid from synthetic supergrid\")",
+    "esmf.bench_regrid_apply.ESMFRegridApply.time_apply": {
+        "code": "class ESMFRegridApply:\n    def time_apply(self, src_size, dst_size, ntime, method):\n        for _ in range(self._ntime):\n            self._regrid(self._src_field, self._dst_field)\n\n    def setup(self, src_size, dst_size, ntime, method):\n        import esmpy\n    \n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n    \n        self._src_grid = _make_esmpy_grid(snlon, snlat)\n        self._dst_grid = _make_esmpy_grid(\n            dnlon, dnlat, lon0=-100.0, lon1=100.0, lat0=-45.0, lat1=45.0\n        )\n        self._src_field = esmpy.Field(self._src_grid, name=\"src\")\n        self._dst_field = esmpy.Field(self._dst_grid, name=\"dst\")\n        self._src_field.data[...] = np.random.default_rng(0).uniform(\n            0, 1, self._src_field.data.shape\n        )\n    \n        method_map = {\n            \"bilinear\": esmpy.RegridMethod.BILINEAR,\n            \"nearest_s2d\": esmpy.RegridMethod.NEAREST_STOD,\n        }\n        self._regrid = esmpy.Regrid(\n            self._src_field,\n            self._dst_field,\n            regrid_method=method_map[method],\n            unmapped_action=esmpy.UnmappedAction.IGNORE,\n        )\n        self._ntime = ntime",
         "min_run_count": 2,
-        "name": "mom6_forge.bench_grid_kdtree.GridKDTreeConstruction.time_kdtree_build",
+        "name": "esmf.bench_regrid_apply.ESMFRegridApply.time_apply",
         "number": 0,
         "param_names": [
-            "nx"
-        ],
-        "params": [
-            [
-                "100",
-                "300",
-                "600"
-            ]
-        ],
-        "repeat": 0,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "d6a75b6b199112642261be7c1a5201f042903301902b4b5acfcc6947c39e9d35",
-        "warmup_time": -1
-    },
-    "mom6_forge.bench_grid_kdtree.GridKDTreeQuery.time_kdtree_query": {
-        "code": "class GridKDTreeQuery:\n    def time_kdtree_query(self, nx, n_queries):\n        raise NotImplementedError\n\n    def setup(self, nx, n_queries):\n        raise NotImplementedError",
-        "min_run_count": 2,
-        "name": "mom6_forge.bench_grid_kdtree.GridKDTreeQuery.time_kdtree_query",
-        "number": 0,
-        "param_names": [
-            "nx",
-            "n_queries"
-        ],
-        "params": [
-            [
-                "100",
-                "300"
-            ],
-            [
-                "1000",
-                "100000"
-            ]
-        ],
-        "repeat": 0,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "6983bec39cdfd6037b399cfad40cb98b96d82572e07f2d04225a2dbdb180c1b1",
-        "warmup_time": -1
-    },
-    "mom6_forge.bench_grid_metrics.GridMetricsComputation.time_compute_metrics": {
-        "code": "class GridMetricsComputation:\n    def time_compute_metrics(self, grid_size):\n        raise NotImplementedError\n\n    def setup(self, grid_size):\n        raise NotImplementedError",
-        "min_run_count": 2,
-        "name": "mom6_forge.bench_grid_metrics.GridMetricsComputation.time_compute_metrics",
-        "number": 0,
-        "param_names": [
-            "grid_size"
-        ],
-        "params": [
-            [
-                "(100, 100)",
-                "(300, 300)",
-                "(600, 400)"
-            ]
-        ],
-        "repeat": 0,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "type": "time",
-        "unit": "seconds",
-        "version": "0e2fc4ae611a35eefdfbd8e89c73f021cec28a807407cb8326681549dc15ead8",
-        "warmup_time": -1
-    },
-    "mom6_forge.bench_regrid_subsampling.RegridSubsampling.time_regrid_subsampling": {
-        "code": "class RegridSubsampling:\n    def time_regrid_subsampling(self, dst_size, n_sub):\n        raise NotImplementedError\n\n    def setup(self, dst_size, n_sub):\n        raise NotImplementedError",
-        "min_run_count": 2,
-        "name": "mom6_forge.bench_regrid_subsampling.RegridSubsampling.time_regrid_subsampling",
-        "number": 0,
-        "param_names": [
+            "src_size",
             "dst_size",
-            "n_sub"
+            "ntime",
+            "method"
         ],
         "params": [
             [
-                "(50, 50)",
-                "(100, 100)",
-                "(200, 200)"
+                "(300, 300)",
+                "(800, 600)",
+                "(1500, 700)"
             ],
             [
-                "5",
-                "10",
-                "20"
+                "(150, 150)",
+                "(400, 300)",
+                "(700, 350)"
+            ],
+            [
+                "1",
+                "12",
+                "60"
+            ],
+            [
+                "'bilinear'",
+                "'nearest_s2d'"
             ]
         ],
         "repeat": 0,
         "rounds": 2,
         "sample_time": 0.01,
-        "timeout": 300,
+        "timeout": 600,
         "type": "time",
         "unit": "seconds",
-        "version": "16034fe92532cb0693b9567ed74c2fff26fdd44810717bfba1dd50792f2af03e",
+        "version": "c6bb03038d8b40236273e408b002ab137b9f26e082c101e382f76effc60828aa",
         "warmup_time": -1
     },
-    "mom6_forge.bench_topo_regrid.TopoRegridSynthetic.time_regrid_bathy": {
-        "code": "class TopoRegridSynthetic:\n    def time_regrid_bathy(self, src_size, dst_size, method):\n        raise NotImplementedError\n\n    def setup(self, src_size, dst_size, method):\n        raise NotImplementedError(\"Implement: call regrid_dataset_via_xesmf with synthetic grids\")",
+    "esmf.bench_regrid_apply.ESMFRegridApply.track_rss_mb": {
+        "code": "class ESMFRegridApply:\n    def track_rss_mb(self, src_size, dst_size, ntime, method):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        for _ in range(self._ntime):\n            self._regrid(self._src_field, self._dst_field)\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, src_size, dst_size, ntime, method):\n        import esmpy\n    \n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n    \n        self._src_grid = _make_esmpy_grid(snlon, snlat)\n        self._dst_grid = _make_esmpy_grid(\n            dnlon, dnlat, lon0=-100.0, lon1=100.0, lat0=-45.0, lat1=45.0\n        )\n        self._src_field = esmpy.Field(self._src_grid, name=\"src\")\n        self._dst_field = esmpy.Field(self._dst_grid, name=\"dst\")\n        self._src_field.data[...] = np.random.default_rng(0).uniform(\n            0, 1, self._src_field.data.shape\n        )\n    \n        method_map = {\n            \"bilinear\": esmpy.RegridMethod.BILINEAR,\n            \"nearest_s2d\": esmpy.RegridMethod.NEAREST_STOD,\n        }\n        self._regrid = esmpy.Regrid(\n            self._src_field,\n            self._dst_field,\n            regrid_method=method_map[method],\n            unmapped_action=esmpy.UnmappedAction.IGNORE,\n        )\n        self._ntime = ntime",
+        "name": "esmf.bench_regrid_apply.ESMFRegridApply.track_rss_mb",
+        "param_names": [
+            "src_size",
+            "dst_size",
+            "ntime",
+            "method"
+        ],
+        "params": [
+            [
+                "(300, 300)",
+                "(800, 600)",
+                "(1500, 700)"
+            ],
+            [
+                "(150, 150)",
+                "(400, 300)",
+                "(700, 350)"
+            ],
+            [
+                "1",
+                "12",
+                "60"
+            ],
+            [
+                "'bilinear'",
+                "'nearest_s2d'"
+            ]
+        ],
+        "timeout": 600,
+        "type": "track",
+        "unit": "MB",
+        "version": "4d788f9746eddbc430cd0c1fa1eea3efffc213890af54e3d61d9f21c6eba9c2a"
+    },
+    "esmf.bench_weights_generate.ESMFWeightsGenerate.time_generate_weights": {
+        "code": "class ESMFWeightsGenerate:\n    def time_generate_weights(self, src_size, dst_size, method):\n        import esmpy\n    \n        regrid = esmpy.Regrid(\n            self._src_field,\n            self._dst_field,\n            regrid_method=self._method_map[method],\n            unmapped_action=esmpy.UnmappedAction.IGNORE,\n        )\n        regrid.destroy()\n\n    def setup(self, src_size, dst_size, method):\n        import esmpy\n    \n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self._src_grid = _make_esmpy_grid(snlon, snlat)\n        self._dst_grid = _make_esmpy_grid(\n            dnlon, dnlat, lon0=-100.0, lon1=100.0, lat0=-45.0, lat1=45.0\n        )\n        self._src_field = esmpy.Field(self._src_grid, name=\"src\")\n        self._dst_field = esmpy.Field(self._dst_grid, name=\"dst\")\n    \n        self._method_map = {\n            \"bilinear\": esmpy.RegridMethod.BILINEAR,\n            \"nearest_s2d\": esmpy.RegridMethod.NEAREST_STOD,\n        }",
         "min_run_count": 2,
-        "name": "mom6_forge.bench_topo_regrid.TopoRegridSynthetic.time_regrid_bathy",
+        "name": "esmf.bench_weights_generate.ESMFWeightsGenerate.time_generate_weights",
         "number": 0,
         "param_names": [
             "src_size",
@@ -221,39 +187,70 @@
         ],
         "params": [
             [
-                "(200, 200)",
-                "(500, 500)"
+                "(300, 300)",
+                "(800, 600)",
+                "(1500, 700)"
             ],
             [
-                "(50, 50)",
-                "(100, 100)"
+                "(150, 150)",
+                "(400, 300)",
+                "(700, 350)"
             ],
             [
                 "'bilinear'",
-                "'conservative'"
+                "'nearest_s2d'"
             ]
         ],
         "repeat": 0,
         "rounds": 2,
         "sample_time": 0.01,
-        "timeout": 600,
+        "timeout": 1800,
         "type": "time",
         "unit": "seconds",
-        "version": "70a2e097ee69c2019886ef79fae0a62faed8ea180b1fd851df8502a9e93bd982",
+        "version": "c1311d7961e684cbc18f76be009077599115b810b4bcb8407d8e463abd0a940b",
         "warmup_time": -1
     },
-    "mom6_forge.bench_topo_regrid.TopoSetFromDatasetHPC.time_set_from_dataset": {
-        "code": "class TopoSetFromDatasetHPC:\n    def time_set_from_dataset(self, dst_size):\n        raise NotImplementedError\n\n    def setup(self, dst_size):\n        import os\n    \n        if not os.path.exists(self.GEBCO_PATH):\n            raise NotImplementedError(\n                f\"GEBCO file not found at {self.GEBCO_PATH} \u2014 HPC only benchmark\"\n            )\n        raise NotImplementedError(\"Implement: Topo.set_from_dataset() call with synthetic dst grid\")",
-        "min_run_count": 2,
-        "name": "mom6_forge.bench_topo_regrid.TopoSetFromDatasetHPC.time_set_from_dataset",
-        "number": 0,
+    "esmf.bench_weights_generate.ESMFWeightsGenerate.track_rss_mb": {
+        "code": "class ESMFWeightsGenerate:\n    def track_rss_mb(self, src_size, dst_size, method):\n        import os\n    \n        import esmpy\n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        regrid = esmpy.Regrid(\n            self._src_field,\n            self._dst_field,\n            regrid_method=self._method_map[method],\n            unmapped_action=esmpy.UnmappedAction.IGNORE,\n        )\n        rss_delta = (proc.memory_info().rss - before) / 1024**2\n        regrid.destroy()\n        return rss_delta\n\n    def setup(self, src_size, dst_size, method):\n        import esmpy\n    \n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self._src_grid = _make_esmpy_grid(snlon, snlat)\n        self._dst_grid = _make_esmpy_grid(\n            dnlon, dnlat, lon0=-100.0, lon1=100.0, lat0=-45.0, lat1=45.0\n        )\n        self._src_field = esmpy.Field(self._src_grid, name=\"src\")\n        self._dst_field = esmpy.Field(self._dst_grid, name=\"dst\")\n    \n        self._method_map = {\n            \"bilinear\": esmpy.RegridMethod.BILINEAR,\n            \"nearest_s2d\": esmpy.RegridMethod.NEAREST_STOD,\n        }",
+        "name": "esmf.bench_weights_generate.ESMFWeightsGenerate.track_rss_mb",
         "param_names": [
-            "dst_size"
+            "src_size",
+            "dst_size",
+            "method"
         ],
         "params": [
             [
-                "(100, 100)",
-                "(300, 300)"
+                "(300, 300)",
+                "(800, 600)",
+                "(1500, 700)"
+            ],
+            [
+                "(150, 150)",
+                "(400, 300)",
+                "(700, 350)"
+            ],
+            [
+                "'bilinear'",
+                "'nearest_s2d'"
+            ]
+        ],
+        "timeout": 1800,
+        "type": "track",
+        "unit": "MB",
+        "version": "af22f17fc0027dc5f30a1e2ce3f9328c2d66888042352e107fb15ca6617deef4"
+    },
+    "mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn": {
+        "code": "class RunoffMappingNearestNeighbour:\n    def time_gen_rof_maps_nn(self, mesh_pair):\n        from mom6_forge.mapping import gen_rof_maps\n    \n        gen_rof_maps(\n            rof_mesh_path=self._rof,\n            ocn_mesh_path=self._ocn,\n            output_dir=self._tmpdir,\n            mapping_file_prefix=f\"bench_{mesh_pair}_nn\",\n            rmax=None,\n            fold=None,\n        )\n\n    def setup(self, mesh_pair):\n        pairs = {p[\"label\"]: p for p in _load_mesh_pairs()}\n        if mesh_pair not in pairs:\n            raise NotImplementedError(\n                f\"Mesh pair {mesh_pair!r} not in data_config.json \u2014 add 'mesh_pairs' entries\"\n            )\n        p = pairs[mesh_pair]\n        rof = Path(p[\"rof_mesh\"])\n        ocn = Path(p[\"ocn_mesh\"])\n        if not rof.exists():\n            raise NotImplementedError(f\"ROF mesh not found: {rof}\")\n        if not ocn.exists():\n            raise NotImplementedError(f\"OCN mesh not found: {ocn}\")\n        self._rof = rof\n        self._ocn = ocn\n        self._tmpdir = Path(tempfile.mkdtemp(prefix=\"crocoscope_rof_\"))",
+        "min_run_count": 2,
+        "name": "mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn",
+        "number": 0,
+        "param_names": [
+            "mesh_pair"
+        ],
+        "params": [
+            [
+                "'coarse'",
+                "'fine'"
             ]
         ],
         "repeat": 0,
@@ -262,26 +259,107 @@
         "timeout": 3600,
         "type": "time",
         "unit": "seconds",
-        "version": "0a6560f439202c81d2747ca58cace5fae1dabf9dcc5fb182abecd61957268ad2",
+        "version": "20cb1bac8aa076cde63802351daaa84295b3f6a92749e8af1e7d4940f6076112",
         "warmup_time": -1
     },
-    "mom6_forge.bench_topo_tidy.TopoTidyDataset.time_tidy_dataset": {
-        "code": "class TopoTidyDataset:\n    def time_tidy_dataset(self, grid_size, fill_channels):\n        raise NotImplementedError\n\n    def setup(self, grid_size, fill_channels):\n        raise NotImplementedError",
+    "mom6_forge.bench_runoff_mapping.RunoffMappingSmoothed.time_gen_rof_maps_smoothed": {
+        "code": "class RunoffMappingSmoothed:\n    def time_gen_rof_maps_smoothed(self, mesh_pair):\n        from mom6_forge.mapping import gen_rof_maps\n    \n        gen_rof_maps(\n            rof_mesh_path=self._rof,\n            ocn_mesh_path=self._ocn,\n            output_dir=self._tmpdir,\n            mapping_file_prefix=f\"bench_{mesh_pair}_sm\",\n            rmax=self._rmax,\n            fold=self._fold,\n        )\n\n    def setup(self, mesh_pair):\n        pairs = {p[\"label\"]: p for p in _load_mesh_pairs()}\n        if mesh_pair not in pairs:\n            raise NotImplementedError(\n                f\"Mesh pair {mesh_pair!r} not in data_config.json \u2014 add 'mesh_pairs' entries\"\n            )\n        p = pairs[mesh_pair]\n        rof = Path(p[\"rof_mesh\"])\n        ocn = Path(p[\"ocn_mesh\"])\n        if not rof.exists():\n            raise NotImplementedError(f\"ROF mesh not found: {rof}\")\n        if not ocn.exists():\n            raise NotImplementedError(f\"OCN mesh not found: {ocn}\")\n        self._rof = rof\n        self._ocn = ocn\n        self._rmax = p.get(\"rmax\", 100.0)\n        self._fold = p.get(\"fold\", 25.0)\n        self._tmpdir = Path(tempfile.mkdtemp(prefix=\"crocoscope_rof_sm_\"))",
         "min_run_count": 2,
-        "name": "mom6_forge.bench_topo_tidy.TopoTidyDataset.time_tidy_dataset",
+        "name": "mom6_forge.bench_runoff_mapping.RunoffMappingSmoothed.time_gen_rof_maps_smoothed",
         "number": 0,
         "param_names": [
-            "grid_size",
-            "fill_channels"
+            "mesh_pair"
+        ],
+        "params": [
+            [
+                "'coarse'",
+                "'fine'"
+            ]
+        ],
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "timeout": 7200,
+        "type": "time",
+        "unit": "seconds",
+        "version": "238e78080621f37e8053b04131dd7766c4d63964f1d38c7c7542c4a74a069b35",
+        "warmup_time": -1
+    },
+    "mom6_forge.bench_topo.TopoSetFromDataset.time_set_from_dataset": {
+        "code": "class TopoSetFromDataset:\n    def time_set_from_dataset(self, dst_size):\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n\n    def setup(self, dst_size):\n        import tempfile\n    \n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        nx, ny = dst_size\n        self._grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"crocoscope_topo_\")",
+        "min_run_count": 2,
+        "name": "mom6_forge.bench_topo.TopoSetFromDataset.time_set_from_dataset",
+        "number": 0,
+        "param_names": [
+            "dst_size"
         ],
         "params": [
             [
                 "(100, 100)",
-                "(300, 300)"
+                "(300, 300)",
+                "(600, 400)",
+                "(1000, 600)"
+            ]
+        ],
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "timeout": 3600,
+        "type": "time",
+        "unit": "seconds",
+        "version": "b18d28b88bb6e84cbf347b5312103daac8133fd86db04e5ef383125bb2af782b",
+        "warmup_time": -1
+    },
+    "mom6_forge.bench_topo.TopoSetFromDataset.track_rss_mb": {
+        "code": "class TopoSetFromDataset:\n    def track_rss_mb(self, dst_size):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, dst_size):\n        import tempfile\n    \n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        nx, ny = dst_size\n        self._grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"crocoscope_topo_\")",
+        "name": "mom6_forge.bench_topo.TopoSetFromDataset.track_rss_mb",
+        "param_names": [
+            "dst_size"
+        ],
+        "params": [
+            [
+                "(100, 100)",
+                "(300, 300)",
+                "(600, 400)",
+                "(1000, 600)"
+            ]
+        ],
+        "timeout": 3600,
+        "type": "track",
+        "unit": "MB",
+        "version": "fbc09cc8fc9811d98602b8728959d14c02a993468cfe86641a5d8b9a913bcc02"
+    },
+    "version": 2,
+    "xesmf.bench_regrid_apply.XESMFRegridApply.time_apply": {
+        "code": "class XESMFRegridApply:\n    def time_apply(self, src_size, dst_size, ntime, method):\n        self.regridder(self.src_data)\n\n    def setup(self, src_size, dst_size, ntime, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
+        "min_run_count": 2,
+        "name": "xesmf.bench_regrid_apply.XESMFRegridApply.time_apply",
+        "number": 0,
+        "param_names": [
+            "src_size",
+            "dst_size",
+            "ntime",
+            "method"
+        ],
+        "params": [
+            [
+                "(300, 300)",
+                "(800, 600)",
+                "(1500, 700)"
             ],
             [
-                "True",
-                "False"
+                "(150, 150)",
+                "(400, 300)",
+                "(700, 350)"
+            ],
+            [
+                "1",
+                "12",
+                "60"
+            ],
+            [
+                "'bilinear'",
+                "'nearest_s2d'"
             ]
         ],
         "repeat": 0,
@@ -290,14 +368,48 @@
         "timeout": 600,
         "type": "time",
         "unit": "seconds",
-        "version": "48c6788700203cb638806162e02045b1c8a60d4141c0537f9cf6addca55657a8",
+        "version": "1607f7aa4d7e2a66cde903eb7276aaae91badf4b3d56f9210df1c4f32d356b23",
         "warmup_time": -1
     },
-    "version": 2,
-    "xesmf.bench_regridder_apply.LocstreamApplication.time_apply_locstream": {
-        "code": "class LocstreamApplication:\n    def time_apply_locstream(self, src_size, n_boundary_pts, ntime):\n        self.regridder(self.src_data)\n\n    def setup(self, src_size, n_boundary_pts, ntime):\n        snlon, snlat = src_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_locstream_grid(n_boundary_pts)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=\"bilinear\",\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
+    "xesmf.bench_regrid_apply.XESMFRegridApply.track_rss_mb": {
+        "code": "class XESMFRegridApply:\n    def track_rss_mb(self, src_size, dst_size, ntime, method):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        self.regridder(self.src_data)\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, src_size, dst_size, ntime, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
+        "name": "xesmf.bench_regrid_apply.XESMFRegridApply.track_rss_mb",
+        "param_names": [
+            "src_size",
+            "dst_size",
+            "ntime",
+            "method"
+        ],
+        "params": [
+            [
+                "(300, 300)",
+                "(800, 600)",
+                "(1500, 700)"
+            ],
+            [
+                "(150, 150)",
+                "(400, 300)",
+                "(700, 350)"
+            ],
+            [
+                "1",
+                "12",
+                "60"
+            ],
+            [
+                "'bilinear'",
+                "'nearest_s2d'"
+            ]
+        ],
+        "timeout": 600,
+        "type": "track",
+        "unit": "MB",
+        "version": "a614c7469403f44e2e3a15d1b6572887b7a25e68bfc6a6273602e9315f8943a7"
+    },
+    "xesmf.bench_regrid_apply.XESMFRegridApplyLocstream.time_apply": {
+        "code": "class XESMFRegridApplyLocstream:\n    def time_apply(self, src_size, n_boundary_pts, ntime):\n        self.regridder(self.src_data)\n\n    def setup(self, src_size, n_boundary_pts, ntime):\n        snlon, snlat = src_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_locstream_grid(n_boundary_pts)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=\"bilinear\",\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
         "min_run_count": 2,
-        "name": "xesmf.bench_regridder_apply.LocstreamApplication.time_apply_locstream",
+        "name": "xesmf.bench_regrid_apply.XESMFRegridApplyLocstream.time_apply",
         "number": 0,
         "param_names": [
             "src_size",
@@ -307,163 +419,18 @@
         "params": [
             [
                 "(300, 300)",
-                "(600, 400)"
+                "(800, 600)",
+                "(1500, 700)"
             ],
             [
-                "500",
-                "2000",
-                "5000"
-            ],
-            [
-                "1",
-                "12",
-                "60"
-            ]
-        ],
-        "repeat": 0,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "timeout": 300,
-        "type": "time",
-        "unit": "seconds",
-        "version": "918e5a78639f1a84fb8c6a77a05af2c392ef4be7d4d9d8b7703e89d7731e3fd3",
-        "warmup_time": -1
-    },
-    "xesmf.bench_regridder_apply.RegridderApplication.time_apply": {
-        "code": "class RegridderApplication:\n    def time_apply(self, src_size, dst_size, ntime, method):\n        self.regridder(self.src_data)\n\n    def setup(self, src_size, dst_size, ntime, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
-        "min_run_count": 2,
-        "name": "xesmf.bench_regridder_apply.RegridderApplication.time_apply",
-        "number": 0,
-        "param_names": [
-            "src_size",
-            "dst_size",
-            "ntime",
-            "method"
-        ],
-        "params": [
-            [
-                "(100, 100)",
-                "(300, 300)",
-                "(600, 400)"
-            ],
-            [
-                "(50, 50)",
-                "(200, 200)",
-                "(400, 300)"
+                "1000",
+                "10000",
+                "100000"
             ],
             [
                 "1",
                 "12",
                 "60"
-            ],
-            [
-                "'bilinear'",
-                "'nearest_s2d'"
-            ]
-        ],
-        "repeat": 0,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "timeout": 300,
-        "type": "time",
-        "unit": "seconds",
-        "version": "08c0825c0b89f39e8b48be34df200e5f8a5bc987a74e50ce13661ae96d9a4a60",
-        "warmup_time": -1
-    },
-    "xesmf.bench_regridder_apply.RegridderApplication.track_rss_mb": {
-        "code": "class RegridderApplication:\n    def track_rss_mb(self, src_size, dst_size, ntime, method):\n        import os\n        import psutil\n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        self.regridder(self.src_data)\n        return (proc.memory_info().rss - before) / 1024 ** 2\n\n    def setup(self, src_size, dst_size, ntime, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=ntime)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
-        "name": "xesmf.bench_regridder_apply.RegridderApplication.track_rss_mb",
-        "param_names": [
-            "src_size",
-            "dst_size",
-            "ntime",
-            "method"
-        ],
-        "params": [
-            [
-                "(100, 100)",
-                "(300, 300)",
-                "(600, 400)"
-            ],
-            [
-                "(50, 50)",
-                "(200, 200)",
-                "(400, 300)"
-            ],
-            [
-                "1",
-                "12",
-                "60"
-            ],
-            [
-                "'bilinear'",
-                "'nearest_s2d'"
-            ]
-        ],
-        "timeout": 300,
-        "type": "track",
-        "unit": "MB",
-        "version": "7407a5dd71cb60d2161317b7da72a0e2afe9de41a60f887c172260ade8cf7435"
-    },
-    "xesmf.bench_regridder_apply.RegridderApplicationMultiVar.time_apply_multi_var": {
-        "code": "class RegridderApplicationMultiVar:\n    def time_apply_multi_var(self, src_size, dst_size, nvars):\n        self.regridder(self.src_data)\n\n    def setup(self, src_size, dst_size, nvars):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        src_grid = make_rect_grid(snlon, snlat)\n        dst_grid = make_curvilinear_grid(dnlon, dnlat)\n        self.src_data = make_data_variable(src_grid, ntime=12, nvars=nvars)\n        self.regridder = xe.Regridder(\n            src_grid,\n            dst_grid,\n            method=\"bilinear\",\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )",
-        "min_run_count": 2,
-        "name": "xesmf.bench_regridder_apply.RegridderApplicationMultiVar.time_apply_multi_var",
-        "number": 0,
-        "param_names": [
-            "src_size",
-            "dst_size",
-            "nvars"
-        ],
-        "params": [
-            [
-                "(300, 300)",
-                "(600, 400)"
-            ],
-            [
-                "(200, 200)",
-                "(400, 300)"
-            ],
-            [
-                "1",
-                "3",
-                "6"
-            ]
-        ],
-        "repeat": 0,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "timeout": 300,
-        "type": "time",
-        "unit": "seconds",
-        "version": "043b3c53404e26ace891fad248700df49d263b358e7ba7c004fc9686a8070620",
-        "warmup_time": -1
-    },
-    "xesmf.bench_regridder_creation.RegridderCreation.time_create_regridder": {
-        "code": "class RegridderCreation:\n    def time_create_regridder(self, src_size, dst_size, method):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, dst_size, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)",
-        "min_run_count": 2,
-        "name": "xesmf.bench_regridder_creation.RegridderCreation.time_create_regridder",
-        "number": 0,
-        "param_names": [
-            "src_size",
-            "dst_size",
-            "method"
-        ],
-        "params": [
-            [
-                "(100, 100)",
-                "(300, 300)",
-                "(600, 400)"
-            ],
-            [
-                "(50, 50)",
-                "(200, 200)",
-                "(400, 300)"
-            ],
-            [
-                "'bilinear'",
-                "'nearest_s2d'",
-                "'conservative'"
             ]
         ],
         "repeat": 0,
@@ -472,12 +439,14 @@
         "timeout": 600,
         "type": "time",
         "unit": "seconds",
-        "version": "a5d4326a17475ce807fff77b009299c164c6ee1a944f76dfd43e12dda219cacc",
+        "version": "bf611c1cee34205a125e755b6510aafbff79d9ac0fb5f329d720b363e73cf499",
         "warmup_time": -1
     },
-    "xesmf.bench_regridder_creation.RegridderCreation.track_rss_mb": {
-        "code": "class RegridderCreation:\n    def track_rss_mb(self, src_size, dst_size, method):\n        import os\n        import psutil\n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n        return (proc.memory_info().rss - before) / 1024 ** 2\n\n    def setup(self, src_size, dst_size, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)",
-        "name": "xesmf.bench_regridder_creation.RegridderCreation.track_rss_mb",
+    "xesmf.bench_weights_generate.XESMFWeightsGenerate.time_generate_weights": {
+        "code": "class XESMFWeightsGenerate:\n    def time_generate_weights(self, src_size, dst_size, method):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, dst_size, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)",
+        "min_run_count": 2,
+        "name": "xesmf.bench_weights_generate.XESMFWeightsGenerate.time_generate_weights",
+        "number": 0,
         "param_names": [
             "src_size",
             "dst_size",
@@ -485,30 +454,62 @@
         ],
         "params": [
             [
-                "(100, 100)",
                 "(300, 300)",
-                "(600, 400)"
+                "(800, 600)",
+                "(1500, 700)"
             ],
             [
-                "(50, 50)",
-                "(200, 200)",
-                "(400, 300)"
+                "(150, 150)",
+                "(400, 300)",
+                "(700, 350)"
             ],
             [
                 "'bilinear'",
-                "'nearest_s2d'",
                 "'conservative'"
             ]
         ],
-        "timeout": 600,
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "timeout": 1800,
+        "type": "time",
+        "unit": "seconds",
+        "version": "20631ce77b4b842dee495985ebe0490dd5a74159965374e657807cca5b0a1ea4",
+        "warmup_time": -1
+    },
+    "xesmf.bench_weights_generate.XESMFWeightsGenerate.track_rss_mb": {
+        "code": "class XESMFWeightsGenerate:\n    def track_rss_mb(self, src_size, dst_size, method):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, src_size, dst_size, method):\n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)",
+        "name": "xesmf.bench_weights_generate.XESMFWeightsGenerate.track_rss_mb",
+        "param_names": [
+            "src_size",
+            "dst_size",
+            "method"
+        ],
+        "params": [
+            [
+                "(300, 300)",
+                "(800, 600)",
+                "(1500, 700)"
+            ],
+            [
+                "(150, 150)",
+                "(400, 300)",
+                "(700, 350)"
+            ],
+            [
+                "'bilinear'",
+                "'conservative'"
+            ]
+        ],
+        "timeout": 1800,
         "type": "track",
         "unit": "MB",
-        "version": "4b5f4e8abbc6dad968218854bf658a48b2233421fe7b3a36b0f01b0f9ff8e46a"
+        "version": "77e111b93836e46b6ae38cfac18d7cf431abb4ce02a479575b5174cb8240b897"
     },
-    "xesmf.bench_regridder_creation.RegridderCreationLocstream.time_create_locstream_regridder": {
-        "code": "class RegridderCreationLocstream:\n    def time_create_locstream_regridder(self, src_size, n_boundary_pts, method):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, n_boundary_pts, method):\n        from benchmarks.common.synthetic_data import make_locstream_grid\n    \n        snlon, snlat = src_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_locstream_grid(n_boundary_pts)",
+    "xesmf.bench_weights_generate.XESMFWeightsGenerateLocstream.time_generate_weights": {
+        "code": "class XESMFWeightsGenerateLocstream:\n    def time_generate_weights(self, src_size, n_boundary_pts, method):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, n_boundary_pts, method):\n        from benchmarks.common.synthetic_data import make_locstream_grid\n    \n        snlon, snlat = src_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_locstream_grid(n_boundary_pts)",
         "min_run_count": 2,
-        "name": "xesmf.bench_regridder_creation.RegridderCreationLocstream.time_create_locstream_regridder",
+        "name": "xesmf.bench_weights_generate.XESMFWeightsGenerateLocstream.time_generate_weights",
         "number": 0,
         "param_names": [
             "src_size",
@@ -517,14 +518,14 @@
         ],
         "params": [
             [
-                "(100, 100)",
                 "(300, 300)",
-                "(600, 400)"
+                "(800, 600)",
+                "(1500, 700)"
             ],
             [
-                "500",
-                "2000",
-                "5000"
+                "1000",
+                "10000",
+                "100000"
             ],
             [
                 "'bilinear'",
@@ -534,15 +535,15 @@
         "repeat": 0,
         "rounds": 2,
         "sample_time": 0.01,
-        "timeout": 600,
+        "timeout": 1800,
         "type": "time",
         "unit": "seconds",
-        "version": "d037d0265b7f3b56b33452014389ebca5251972578d38fa3543cc000da208d69",
+        "version": "97ef6b734e0e1604737afcfbca8d340e5ed6048bfc417caf45e5040df46a27df",
         "warmup_time": -1
     },
-    "xesmf.bench_regridder_creation.RegridderCreationLocstream.track_rss_mb": {
-        "code": "class RegridderCreationLocstream:\n    def track_rss_mb(self, src_size, n_boundary_pts, method):\n        import os\n        import psutil\n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n        return (proc.memory_info().rss - before) / 1024 ** 2\n\n    def setup(self, src_size, n_boundary_pts, method):\n        from benchmarks.common.synthetic_data import make_locstream_grid\n    \n        snlon, snlat = src_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_locstream_grid(n_boundary_pts)",
-        "name": "xesmf.bench_regridder_creation.RegridderCreationLocstream.track_rss_mb",
+    "xesmf.bench_weights_generate.XESMFWeightsGenerateLocstream.track_rss_mb": {
+        "code": "class XESMFWeightsGenerateLocstream:\n    def track_rss_mb(self, src_size, n_boundary_pts, method):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=method,\n            locstream_out=True,\n            periodic=False,\n            reuse_weights=False,\n            unmapped_to_nan=True,\n        )\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, src_size, n_boundary_pts, method):\n        from benchmarks.common.synthetic_data import make_locstream_grid\n    \n        snlon, snlat = src_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_locstream_grid(n_boundary_pts)",
+        "name": "xesmf.bench_weights_generate.XESMFWeightsGenerateLocstream.track_rss_mb",
         "param_names": [
             "src_size",
             "n_boundary_pts",
@@ -550,56 +551,23 @@
         ],
         "params": [
             [
-                "(100, 100)",
                 "(300, 300)",
-                "(600, 400)"
+                "(800, 600)",
+                "(1500, 700)"
             ],
             [
-                "500",
-                "2000",
-                "5000"
+                "1000",
+                "10000",
+                "100000"
             ],
             [
                 "'bilinear'",
                 "'nearest_s2d'"
             ]
         ],
-        "timeout": 600,
+        "timeout": 1800,
         "type": "track",
         "unit": "MB",
-        "version": "4b381e5b468d5a15153e8ab9910d009383bb144d616b2815354ba2f81ee6aad8"
-    },
-    "xesmf.bench_regridder_creation.RegridderWeightReuse.time_create_with_reuse_setting": {
-        "code": "class RegridderWeightReuse:\n    def time_create_with_reuse_setting(self, src_size, dst_size, reuse_weights):\n        xe.Regridder(\n            self.src,\n            self.dst,\n            method=\"bilinear\",\n            periodic=False,\n            reuse_weights=reuse_weights,\n            filename=self._weight_file,\n            unmapped_to_nan=True,\n        )\n\n    def setup(self, src_size, dst_size, reuse_weights):\n        import tempfile\n        import os\n    \n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n        self.src = make_rect_grid(snlon, snlat)\n        self.dst = make_curvilinear_grid(dnlon, dnlat)\n    \n        self._tmpdir = tempfile.mkdtemp()\n        self._weight_file = os.path.join(\n            self._tmpdir, f\"weights_{snlon}x{snlat}_to_{dnlon}x{dnlat}.nc\"\n        )\n    \n        if reuse_weights:\n            # Pre-generate the weight file so reuse actually reuses\n            xe.Regridder(\n                self.src,\n                self.dst,\n                method=\"bilinear\",\n                periodic=False,\n                reuse_weights=False,\n                filename=self._weight_file,\n                unmapped_to_nan=True,\n            )",
-        "min_run_count": 2,
-        "name": "xesmf.bench_regridder_creation.RegridderWeightReuse.time_create_with_reuse_setting",
-        "number": 0,
-        "param_names": [
-            "src_size",
-            "dst_size",
-            "reuse_weights"
-        ],
-        "params": [
-            [
-                "(300, 300)",
-                "(600, 400)"
-            ],
-            [
-                "(200, 200)",
-                "(400, 300)"
-            ],
-            [
-                "True",
-                "False"
-            ]
-        ],
-        "repeat": 0,
-        "rounds": 2,
-        "sample_time": 0.01,
-        "timeout": 600,
-        "type": "time",
-        "unit": "seconds",
-        "version": "ec87b7af2ef09d8a89a2db10a977fd3b905dd4fe79539057e630ed7ae1067a9b",
-        "warmup_time": -1
+        "version": "8943eaf4b185fb1a2b9ac4413c833bb3f96ba60534564148c484a3ccbd3fc536"
     }
 }
