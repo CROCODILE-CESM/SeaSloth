@@ -59,15 +59,10 @@ SeaSloth/
 
 ## Running Benchmarks
 
-**One-time setup** — patches `asv.conf.json` with your CrocoDash path:
-```bash
-conda activate CrocoDash
-bash scripts/configure.sh
-```
-
 **Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV silently
 discards results if this flag is omitted. `HEAD` resolves to the current CrocoDash commit
-because `asv.conf.json` `"repo"` points to CrocoDash (set by `configure.sh`).
+because `asv.conf.json` `"repo"` is the CrocoDash GitHub URL — works on GLADE and in CI
+with no local path setup. Run `bash scripts/configure.sh` to verify your env.
 
 ```bash
 conda activate CrocoDash

@@ -18,14 +18,14 @@ Performance benchmarking suite for the CROC ocean modeling ecosystem (CrocoDash,
 
 ## First-time Setup
 
-Run once after cloning, with the `CrocoDash` conda env active:
+Verify your environment is ready:
 
 ```bash
 conda activate CrocoDash
 bash scripts/configure.sh
 ```
 
-This discovers your CrocoDash install and writes its path into `asv.conf.json`. Re-run if you move your CrocoDash checkout or switch environments. The `repo` field in `asv.conf.json` must point to CrocoDash (not SeaSloth) so that benchmark results are tagged to CrocoDash commits and the regression timeline links to the right repo.
+No path configuration needed — `asv.conf.json` points to the public CrocoDash GitHub repo so it works identically on GLADE and in CI.
 
 ## Running Benchmarks
 

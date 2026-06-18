@@ -23,9 +23,9 @@ cd "$REPO_ROOT"
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-# HEAD resolves against CrocoDash (asv.conf.json "repo" points there after configure.sh)
+# HEAD resolves against CrocoDash (asv.conf.json "repo" is the CrocoDash GitHub URL)
 CROCO_HASH=$(python -c "
-import CrocoDash, os, subprocess, pathlib
+import CrocoDash, os, subprocess
 croco_dir = os.path.dirname(os.path.dirname(os.path.abspath(CrocoDash.__file__)))
 print(subprocess.check_output(['git', '-C', croco_dir, 'rev-parse', 'HEAD']).decode().strip())
 ")

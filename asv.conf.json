@@ -2,7 +2,7 @@
     "version": 1,
     "project": "SeaSloth",
     "project_url": "https://github.com/CROCODILE-CESM",
-    "repo": "/glade/u/home/manishrv/documents/croc/regional_mom_workflows/CrocoDash",
+    "repo": "https://github.com/CROCODILE-CESM/CrocoDash.git",
     "branches": ["main"],
     "environment_type": "existing",
     "benchmark_dir": "benchmarks",

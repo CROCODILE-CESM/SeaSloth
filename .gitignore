@@ -3,6 +3,9 @@
 .asv/cache/
 env/
 
+# ASV clones the "repo" here as a local bare-git cache
+SeaSloth/
+
 # Large result files (commit small JSON results, ignore large ones)
 results/**/*.json.bz2
 

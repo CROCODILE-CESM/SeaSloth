@@ -39,15 +39,14 @@ links back to CrocoDash commits on GitHub.
 
 ## First-time setup
 
-`asv.conf.json` has a `"repo"` field that must point to your CrocoDash checkout. Run once:
+No path configuration needed. `asv.conf.json` uses the public CrocoDash GitHub URL:
 
-```bash
-conda activate CrocoDash
-bash scripts/configure.sh
+```json
+"repo": "https://github.com/CROCODILE-CESM/CrocoDash"
 ```
 
-This discovers CrocoDash from the active editable install and patches `asv.conf.json`.
-Re-run if you move your CrocoDash checkout.
+This works on GLADE and in CI without any local path setup. Run `bash scripts/configure.sh`
+to verify that CrocoDash and mom6_forge are importable in the active environment.
 
 ---
 
