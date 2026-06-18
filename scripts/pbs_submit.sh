@@ -15,7 +15,7 @@ set -euo pipefail
 module load conda
 conda activate CrocoDash
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="${PBS_O_WORKDIR:-/glade/u/home/manishrv/documents/croc/dev/SeaSloth}"
 cd "$REPO_ROOT"
 
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
