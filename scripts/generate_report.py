@@ -270,7 +270,7 @@ def build_html(all_results):
 <header>
   <h1>SeaSloth Benchmark Report</h1>
   <p>Performance snapshot — benchmarks run on Derecho/GLADE.
-     <a href="asv_timeline.html" style="color:#9fc3e8">View commit history &rarr;</a></p>
+     <a href="asv_timeline.html" style="color:#9fc3e8">Regression timeline &rarr;</a> <span style="opacity:0.5;font-size:0.8rem">(needs 2+ commits to show data)</span></p>
 </header>
 {body}
 <footer>

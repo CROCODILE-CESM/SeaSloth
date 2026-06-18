@@ -6,4 +6,5 @@ Node: crhtc40
 [ 2.94%] ··· Running (crocodash.bench_obc.OBCRegridMerge.time_regrid_and_merge--)..
 [14.71%] ··· Running (esmf.bench_weights_generate.ESMFWeightsGenerate.time_generate_weights--).
 [20.59%] ··· Running (mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn--)...
-[32.35%] ··· Running (xesmf.bench_regrid_apply.XESMFRegridApply.time_apply--)
+[32.35%] ··· Running (xesmf.bench_regrid_apply.XESMFRegridApply.time_apply--).
+[38.24%] ··· Running (xesmf.bench_regrid_apply.XESMFRegridApplyLocstream.time_apply--)

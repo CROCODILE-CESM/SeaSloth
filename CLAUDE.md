@@ -59,17 +59,20 @@ SeaSloth/
 
 ## Running Benchmarks
 
-**Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV skips writing result files unless this flag is set — it runs fine but silently discards results.
+**Always pass `--set-commit-hash`.** With `environment_type: "existing"`, ASV skips writing result files unless this flag is set — it runs fine but silently discards results.
+
+Pass the **CrocoDash commit hash** (not SeaSloth's) so that each CrocoDash commit gets its own result file and the regression timeline links back to the right commit:
 
 ```bash
 conda activate CrocoDash
-python -m asv run --set-commit-hash HEAD
+CROCO_HASH=$(cd /path/to/CrocoDash && git rev-parse HEAD)
+python -m asv run --set-commit-hash $CROCO_HASH
 
 # Single class or suite
-python -m asv run --bench "XESMFWeightsGenerate" --set-commit-hash HEAD
-python -m asv run --bench "bench_raw_data_access" --set-commit-hash HEAD
+python -m asv run --bench "XESMFWeightsGenerate" --set-commit-hash $CROCO_HASH
+python -m asv run --bench "bench_raw_data_access" --set-commit-hash $CROCO_HASH
 
-# On Derecho — PBS job
+# On Derecho — PBS job (already uses --set-commit-hash HEAD; update pbs_submit.sh if tracking CrocoDash commits)
 qsub scripts/pbs_submit.sh
 
 # Build dashboard from committed results
