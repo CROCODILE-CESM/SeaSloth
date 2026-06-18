@@ -59,20 +59,16 @@ SeaSloth/
 
 ## Running Benchmarks
 
-**Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV silently
-discards results if this flag is omitted. `HEAD` resolves to the current CrocoDash commit
-because `asv.conf.json` `"repo"` is the CrocoDash GitHub URL — works on GLADE and in CI
-with no local path setup. Run `bash scripts/configure.sh` to verify your env.
+Use `scripts/run_bench.sh` — it automatically detects the CrocoDash commit from the active
+editable install and passes `--set-commit-hash` correctly:
 
 ```bash
 conda activate CrocoDash
 
-# Run all benchmarks
-python -m asv run --set-commit-hash HEAD
-
-# Single class or suite
-python -m asv run --bench "XESMFWeightsGenerate" --set-commit-hash HEAD
-python -m asv run --bench "CrocoDashImports" --quick --set-commit-hash HEAD
+bash scripts/run_bench.sh                                   # all benchmarks
+bash scripts/run_bench.sh --quick                           # fast single-rep run
+bash scripts/run_bench.sh --bench "CrocoDashImports" --quick
+bash scripts/run_bench.sh --bench "XESMFWeightsGenerate"
 
 # On Derecho — PBS job (handles --set-commit-hash and auto-commits results)
 qsub scripts/pbs_submit.sh
@@ -81,12 +77,17 @@ qsub scripts/pbs_submit.sh
 bash scripts/publish.sh
 ```
 
+With `environment_type: "existing"`, ASV silently discards results without `--set-commit-hash`.
+The wrapper handles this and uses your local CrocoDash HEAD (not GitHub's main), so benchmarking
+older commits is correct. `asv.conf.json` `"repo"` is the CrocoDash GitHub URL — works on GLADE
+and in CI with no local path setup.
+
 **Multi-commit iteration** — to populate the regression timeline with real per-version data:
 ```bash
 COMMITS=(a90e282a af474049 1b98b32a)  # CrocoDash commit hashes
 for HASH in "${COMMITS[@]}"; do
     git -C /path/to/CrocoDash checkout --quiet "$HASH"
-    python -m asv run --quick --bench "CrocoDashImports" --set-commit-hash "$HASH"
+    bash scripts/run_bench.sh --quick --bench "CrocoDashImports"
 done
 git -C /path/to/CrocoDash checkout main
 ```

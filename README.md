@@ -29,23 +29,25 @@ No path configuration needed — `asv.conf.json` points to the public CrocoDash 
 
 ## Running Benchmarks
 
+Use `scripts/run_bench.sh` — it automatically detects the CrocoDash commit from your active editable install and passes the correct `--set-commit-hash`:
+
 ```bash
 conda activate CrocoDash
 
-# Run all benchmarks (full timing — may take a while)
-python -m asv run --set-commit-hash HEAD
+# Run all benchmarks (full timing)
+bash scripts/run_bench.sh
 
 # Quick sanity check (one rep per benchmark, less accurate but fast)
-python -m asv run --quick --set-commit-hash HEAD
+bash scripts/run_bench.sh --quick
 
 # Run a specific suite or class
-python -m asv run --bench "CrocoDashImports" --set-commit-hash HEAD
-python -m asv run --bench "XESMFWeightsGenerate" --set-commit-hash HEAD
+bash scripts/run_bench.sh --bench "CrocoDashImports" --quick
+bash scripts/run_bench.sh --bench "XESMFWeightsGenerate"
 ```
 
-`HEAD` resolves to the current CrocoDash commit (since `asv.conf.json` `"repo"` points there). Each run produces a result file named `<croco-hash>-existing-....json` in `results/derecho/`.
+Any extra arguments are passed straight through to `asv run`. Each run produces a result file named `<croco-hash>-existing-....json` in `results/derecho/`, tagged to the exact CrocoDash commit checked out locally.
 
-**Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV silently discards results if this flag is omitted.
+**Why the wrapper instead of `asv run` directly?** With `environment_type: "existing"`, ASV silently discards results unless `--set-commit-hash` is passed. The wrapper handles this automatically and uses your local CrocoDash HEAD (not GitHub's `main`), so benchmarking older commits works correctly.
 
 On Derecho/GLADE, submit as a PBS job for data-dependent benchmarks:
 

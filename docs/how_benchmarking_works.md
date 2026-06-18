@@ -9,7 +9,7 @@ through timing to the dashboard. No ASV prior knowledge assumed.
 
 ```
 conda activate CrocoDash
-python -m asv run --set-commit-hash HEAD
+bash scripts/run_bench.sh   # discovers CrocoDash commit → asv run --set-commit-hash <hash>
       │
       ▼
 ASV reads asv.conf.json
@@ -56,13 +56,16 @@ With `environment_type: "existing"`, ASV has no git worktree to determine which 
 is being benchmarked. Without `--set-commit-hash`, ASV silently skips writing the result
 file — benchmarks run but results are discarded.
 
-Always pass it:
+Use `scripts/run_bench.sh` — it handles this automatically:
 ```bash
-python -m asv run --set-commit-hash HEAD   # HEAD = current CrocoDash HEAD
+conda activate CrocoDash
+bash scripts/run_bench.sh          # detects CrocoDash commit, passes --set-commit-hash
+bash scripts/run_bench.sh --quick --bench "CrocoDashImports"
 ```
 
-`HEAD` is resolved by ASV from the CrocoDash git repo (via `"repo"` in `asv.conf.json`).
-Pass a specific hash instead of `HEAD` when benchmarking older commits.
+The script discovers the CrocoDash commit from your active editable install via
+`CrocoDash.__file__` and runs `git rev-parse HEAD` there — so if you've checked out
+an older CrocoDash commit locally, it tags the result to that commit, not GitHub's main.
 
 ---
 

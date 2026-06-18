@@ -136,20 +136,19 @@ grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)
 conda activate CrocoDash
 
 # Quick sanity check (one rep per combo — fast but noisy)
-python -m asv run --bench "MyBenchmark" --quick --set-commit-hash HEAD
+bash scripts/run_bench.sh --bench "MyBenchmark" --quick
 
 # Full timing (adaptive reps — use for real data)
-python -m asv run --bench "MyBenchmark" --set-commit-hash HEAD
+bash scripts/run_bench.sh --bench "MyBenchmark"
 
 # Build dashboard
 bash scripts/publish.sh
 ```
 
-**Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV silently
-skips writing result files unless this flag is set.
-
-`HEAD` resolves to the current CrocoDash commit — `asv.conf.json` `"repo"` is the public
-CrocoDash GitHub URL, so no local path setup is needed.
+`scripts/run_bench.sh` automatically detects the CrocoDash commit from your active editable
+install and passes `--set-commit-hash` for you. With `environment_type: "existing"`, ASV
+silently discards results if this flag is omitted — the wrapper ensures it's always set
+correctly.
 
 ## Committing results
 
