@@ -10,8 +10,6 @@
 # pbs_submit.sh — PBS job for slow/HPC benchmarks on Casper.
 # Runs suites that require GEBCO or GLORYS data.
 # Submit with: qsub scripts/pbs_submit.sh
-#
-# Prerequisites: run `bash scripts/configure.sh` once to set up asv.conf.json.
 
 set -euo pipefail
 module load conda
@@ -23,22 +21,10 @@ cd "$REPO_ROOT"
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-# HEAD resolves against CrocoDash (asv.conf.json "repo" is the CrocoDash GitHub URL)
-CROCO_HASH=$(python -c "
-import CrocoDash, os, subprocess
-croco_dir = os.path.dirname(os.path.dirname(os.path.abspath(CrocoDash.__file__)))
-print(subprocess.check_output(['git', '-C', croco_dir, 'rev-parse', 'HEAD']).decode().strip())
-")
-echo "CrocoDash commit: $CROCO_HASH"
-
-python -m asv run --set-commit-hash HEAD
-
-echo ""
-echo "=== Committing results: $(date) ==="
-git add results/
-git commit -m "bench: CrocoDash ${CROCO_HASH:0:8} on $(hostname)" || echo "Nothing new to commit"
+bash scripts/run_bench.sh
 
 echo ""
 echo "=== Done: $(date) ==="
-echo "Push results and run 'bash scripts/publish.sh' from login node to rebuild dashboard."
-echo "  git push && bash scripts/publish.sh"
+echo "Commit results and rebuild dashboard from login node:"
+echo "  git add results/ && git commit -m 'bench: <description>' && git push"
+echo "  bash scripts/publish.sh"
