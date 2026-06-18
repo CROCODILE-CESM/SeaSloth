@@ -79,7 +79,7 @@ class RunoffMappingNearestNeighbour:
             raise NotImplementedError(f"OCN mesh not found: {ocn}")
         self._rof = rof
         self._ocn = ocn
-        self._tmpdir = Path(tempfile.mkdtemp(prefix="crocoscope_rof_"))
+        self._tmpdir = Path(tempfile.mkdtemp(prefix="seasloth_rof_"))
 
     def teardown(self, mesh_pair):
         shutil.rmtree(self._tmpdir, ignore_errors=True)
@@ -127,7 +127,7 @@ class RunoffMappingSmoothed:
         self._ocn = ocn
         self._rmax = p.get("rmax", 100.0)
         self._fold = p.get("fold", 25.0)
-        self._tmpdir = Path(tempfile.mkdtemp(prefix="crocoscope_rof_sm_"))
+        self._tmpdir = Path(tempfile.mkdtemp(prefix="seasloth_rof_sm_"))
 
     def teardown(self, mesh_pair):
         shutil.rmtree(self._tmpdir, ignore_errors=True)

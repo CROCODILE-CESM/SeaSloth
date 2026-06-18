@@ -70,7 +70,7 @@ class OBCRegridMerge:
 
         self._obc_config = obc_cfg
         self._raw_dir = raw_dir
-        self._tmpdir = tempfile.mkdtemp(prefix="crocoscope_obc_")
+        self._tmpdir = tempfile.mkdtemp(prefix="seasloth_obc_")
 
     def teardown(self, step_days):
         shutil.rmtree(self._tmpdir, ignore_errors=True)

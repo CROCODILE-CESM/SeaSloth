@@ -1,4 +1,4 @@
-# Adding New Benchmarks to CrocoScope
+# Adding New Benchmarks to SeaSloth
 
 ## Which file to edit
 

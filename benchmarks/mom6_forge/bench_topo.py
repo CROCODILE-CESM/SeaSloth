@@ -40,7 +40,7 @@ class TopoSetFromDataset:
         self._grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)
         self._topo = Topo(self._grid, min_depth=10.0, git=False)
         self._gebco = gebco
-        self._tmpdir = tempfile.mkdtemp(prefix="crocoscope_topo_")
+        self._tmpdir = tempfile.mkdtemp(prefix="seasloth_topo_")
 
     def teardown(self, dst_size):
         import shutil

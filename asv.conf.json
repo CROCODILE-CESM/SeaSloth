@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "project": "CrocoScope",
+    "project": "SeaSloth",
     "project_url": "https://github.com/CROCODILE-CESM",
     "repo": ".",
     "branches": ["main"],
@@ -8,5 +8,5 @@
     "benchmark_dir": "benchmarks",
     "results_dir": "results",
     "html_dir": ".asv/html",
-    "show_commit_url": "https://github.com/CROCODILE-CESM/CrocoScope/commit/"
+    "show_commit_url": "https://github.com/CROCODILE-CESM/SeaSloth/commit/"
 }

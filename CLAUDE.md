@@ -4,7 +4,7 @@ This file provides guidance to Claude Code when working in this repository.
 
 ## Project Overview
 
-**CrocoScope** is the performance benchmarking suite for the CROC ocean modeling ecosystem (CrocoDash, mom6_forge). It uses [ASV (Airspeed Velocity)](https://asv.readthedocs.io/) to measure computationally expensive operations — xESMF/ESMF weight generation, bathymetry pipelines, OBC forcing — and presents results in an interactive HTML dashboard.
+**SeaSloth** is the performance benchmarking suite for the CROC ocean modeling ecosystem (CrocoDash, mom6_forge). It uses [ASV (Airspeed Velocity)](https://asv.readthedocs.io/) to measure computationally expensive operations — xESMF/ESMF weight generation, bathymetry pipelines, OBC forcing — and presents results in an interactive HTML dashboard.
 
 GitHub org: https://github.com/CROCODILE-CESM
 
@@ -35,7 +35,7 @@ Key conventions:
 ## Directory Structure
 
 ```
-CrocoScope/
+SeaSloth/
 ├── asv.conf.json                         # ASV config — environment_type, matrix, result paths
 ├── benchmarks/
 │   ├── __init__.py                       # Sets ESMFMKFILE + adds mom6_forge/CrocoDash to sys.path
@@ -108,7 +108,7 @@ Keys that need to be set before HPC-dependent benchmarks will run:
 
 ## Memory Benchmarks
 
-CrocoScope uses `track_rss_mb` (not `mem_*`) for memory measurements because ESMF performs large C/Fortran heap allocations invisible to Python's `sys.getsizeof` and `tracemalloc`.
+SeaSloth uses `track_rss_mb` (not `mem_*`) for memory measurements because ESMF performs large C/Fortran heap allocations invisible to Python's `sys.getsizeof` and `tracemalloc`.
 
 ```python
 def track_rss_mb(self, ...):

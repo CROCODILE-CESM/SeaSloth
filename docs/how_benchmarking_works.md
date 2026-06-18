@@ -1,4 +1,4 @@
-# How CrocoScope Benchmarking Works
+# How SeaSloth Benchmarking Works
 
 This document explains what actually happens when you run a benchmark — from invocation
 through timing to the dashboard. No ASV prior knowledge assumed.
@@ -14,7 +14,7 @@ scripts/run_fast.sh   (or run_full.sh / pbs_submit.sh)
 /path/to/CrocoDash/bin/python -m asv run --bench "..." --quick HEAD
       │
       ├─ 1. Discover benchmarks (import every bench_*.py, find classes)
-      ├─ 2. Checkout CrocoScope at HEAD into a temp worktree
+      ├─ 2. Checkout SeaSloth at HEAD into a temp worktree
       ├─ 3. For each (class, method, param combo):
       │       spawn a subprocess in the ASV conda env
       │       → run benchmarks/__init__.py  (sets ESMFMKFILE + sys.path)
@@ -161,7 +161,7 @@ def mem_create_regridder(self, ...):
 ASV wraps the method with `tracemalloc` and records the highest Python heap usage
 reached during execution. No return value needed. Only sees Python heap — misses C/Fortran.
 
-### `track_rss_mb` — custom RSS metric (what CrocoScope uses)
+### `track_rss_mb` — custom RSS metric (what SeaSloth uses)
 
 Returns process RSS delta measured with psutil — captures C/Fortran heap allocations
 (ESMF, NetCDF, HDF5) that `mem_*` and `peakmem_*` miss entirely.
@@ -182,7 +182,7 @@ track_rss_mb.unit = "MB"
 ## Step 5 — Errors and skipped benchmarks
 
 If `setup()` raises `NotImplementedError`, ASV marks the benchmark as **`n/a`** (not
-applicable) and moves on. This is how CrocoScope marks data-dependent benchmarks that
+applicable) and moves on. This is how SeaSloth marks data-dependent benchmarks that
 can't run without GLORYS or GEBCO:
 
 ```python
@@ -208,8 +208,8 @@ results/
     └── <commit>-conda-py3.11-numpy-psutil-....json   ← timing data
 ```
 
-The commit hash comes from CrocoScope's own git HEAD at run time. The dashboard X-axis
-is CrocoScope commits — not CrocoDash or mom6_forge commits. To track performance of
+The commit hash comes from SeaSloth's own git HEAD at run time. The dashboard X-axis
+is SeaSloth commits — not CrocoDash or mom6_forge commits. To track performance of
 those packages over time, run benchmarks after each change and commit the results with
 a descriptive message.
 

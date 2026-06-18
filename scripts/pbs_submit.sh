@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-#PBS -N crocoscope_bench
+#PBS -N seasloth_bench
 #PBS -l select=1:ncpus=8:mem=64GB
 #PBS -l walltime=04:00:00
 #PBS -q casper
 #PBS -A NCGD0011    # <-- change to your project allocation code
 #PBS -j oe
-#PBS -o /glade/u/home/manishrv/documents/croc/dev/CrocoScope/pbs_bench.log
+#PBS -o /glade/u/home/manishrv/documents/croc/dev/SeaSloth/pbs_bench.log
 #
 # pbs_submit.sh — PBS job for slow/HPC benchmarks on Casper.
 # Runs suites that require GEBCO or GLORYS data.
@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-REPO_ROOT="/glade/u/home/manishrv/documents/croc/dev/CrocoScope"
+REPO_ROOT="/glade/u/home/manishrv/documents/croc/dev/SeaSloth"
 cd "$REPO_ROOT"
 
 PYTHON="/glade/work/manishrv/conda-envs/CrocoDash/bin/python"
@@ -23,7 +23,7 @@ if [ -n "$ESMF_MK" ]; then
     export ESMFMKFILE="$ESMF_MK"
 fi
 
-echo "=== CrocoScope HPC benchmarks: $(date) ==="
+echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
 "$PYTHON" -m asv run HEAD

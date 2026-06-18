@@ -1,4 +1,4 @@
-# CrocoScope
+# SeaSloth
 
 Performance benchmarking suite for the CROC ocean modeling ecosystem (CrocoDash, mom6_forge, xESMF/ESMF regridding).
 
