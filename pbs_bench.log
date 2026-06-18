@@ -1,0 +1,8 @@
+=== SeaSloth HPC benchmarks: Thu Jun 18 10:43:36 AM MDT 2026 ===
+Node: crhtc40
+· Discovering benchmarks
+· Running 17 total benchmarks (1 commits * 1 environments * 17 benchmarks)
+[ 0.00%] ·· Benchmarking existing-py_glade_work_manishrv_conda-envs_CrocoDash_bin_python
+[ 2.94%] ··· Running (crocodash.bench_obc.OBCRegridMerge.time_regrid_and_merge--)..
+[14.71%] ··· Running (esmf.bench_weights_generate.ESMFWeightsGenerate.time_generate_weights--).
+[20.59%] ··· Running (mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn--)..

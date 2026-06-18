@@ -12,7 +12,6 @@
 | mom6_forge regrid subsampling | `benchmarks/mom6_forge/bench_regrid_subsampling.py` | Implemented |
 | CrocoDash GLORYS download throughput | `benchmarks/crocodash/bench_raw_data_access.py` | Implemented |
 | CrocoDash OBC forcing pipeline | `benchmarks/crocodash/bench_obc.py` | Stub (needs GLORYS) |
-| End-to-end Case workflow | `benchmarks/e2e/bench_case_workflow.py` | Stub (HPC only) |
 
 ## Benchmark class anatomy
 

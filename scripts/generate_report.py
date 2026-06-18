@@ -34,7 +34,6 @@ SUITE_LABELS = {
     "xesmf": "xESMF / ESMF",
     "mom6_forge": "mom6_forge",
     "crocodash": "CrocoDash",
-    "e2e": "End-to-End",
 }
 
 

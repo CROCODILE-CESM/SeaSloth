@@ -46,8 +46,7 @@ SeaSloth/
 │   ├── xesmf/                            # xESMF weight generation and application
 │   ├── esmf/                             # Raw esmpy weight generation and application
 │   ├── mom6_forge/                       # Topo.set_from_dataset() + gen_rof_maps()
-│   ├── crocodash/                        # OBC pipeline + raw data health checks
-│   └── e2e/                              # End-to-end CESM case timing (stub, HPC only)
+│   └── crocodash/                        # OBC pipeline + raw data health checks
 ├── results/                              # ASV result JSON — commit these to track history
 ├── scripts/
 │   ├── publish.sh                        # Build .asv/html/ dashboard + report
