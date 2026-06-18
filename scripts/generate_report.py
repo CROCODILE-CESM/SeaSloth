@@ -12,6 +12,7 @@ import itertools
 import json
 import math
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -103,14 +104,36 @@ def make_chart(bench_key, results, params):
 
     unit = infer_unit(bench_key)
 
+    all_values = [r for _, r in valid_pairs]
+    finite = [v for v in all_values if v and not (isinstance(v, float) and math.isnan(v))]
+    use_log = len(finite) > 1 and max(finite) / min(finite) > 100
+
+    def fmt_val(v):
+        if v is None or (isinstance(v, float) and math.isnan(v)):
+            return ""
+        if unit == "s":
+            if v >= 1:
+                return f"{v:.2f}s"
+            if v >= 1e-3:
+                return f"{v*1e3:.1f}ms"
+            if v >= 1e-6:
+                return f"{v*1e6:.1f}μs"
+            return f"{v*1e9:.1f}ns"
+        if unit == "MB":
+            return f"{v:.1f}MB"
+        return f"{v:.3g}"
+
     if len(params) == 1:
         labels = [short(c[0]) for c, _ in valid_pairs]
         values = [r for _, r in valid_pairs]
 
         fig, ax = plt.subplots(figsize=(max(5, len(labels) * 0.9 + 1), 4))
-        ax.bar(range(len(labels)), values, color="#4c78a8", width=0.6)
+        bars = ax.bar(range(len(labels)), values, color="#4c78a8", width=0.6)
+        ax.bar_label(bars, labels=[fmt_val(v) for v in values], padding=3, fontsize=8)
         ax.set_xticks(range(len(labels)))
         ax.set_xticklabels(labels, rotation=25, ha="right", fontsize=9)
+        if use_log:
+            ax.set_yscale("log")
         ax.set_ylabel(unit)
         ax.yaxis.grid(True, alpha=0.35)
         ax.set_axisbelow(True)
@@ -136,12 +159,15 @@ def make_chart(bench_key, results, params):
         for i, g in enumerate(group_vals):
             offsets = [j + i * width for j in range(n_x)]
             values = [lookup.get((xc, g), np.nan) for xc in x_combos]
-            ax.bar(offsets, values, width=width, label=short(g), color=colors[i], alpha=0.88)
+            bars = ax.bar(offsets, values, width=width, label=short(g), color=colors[i], alpha=0.88)
+            ax.bar_label(bars, labels=[fmt_val(v) for v in values], padding=2, fontsize=7)
 
         center = (n_g - 1) * width / 2
         x_labels = [" × ".join(short(v) for v in xc) for xc in x_combos]
         ax.set_xticks([j + center for j in range(n_x)])
         ax.set_xticklabels(x_labels, rotation=30, ha="right", fontsize=8)
+        if use_log:
+            ax.set_yscale("log")
         ax.set_ylabel(unit)
         ax.legend(fontsize=8, framealpha=0.7)
         ax.yaxis.grid(True, alpha=0.35)
@@ -244,7 +270,7 @@ def build_html(all_results):
 <header>
   <h1>SeaSloth Benchmark Report</h1>
   <p>Performance snapshot — benchmarks run on Derecho/GLADE.
-     <a href="summarylist.html" style="color:#9fc3e8">View commit history &rarr;</a></p>
+     <a href="asv_timeline.html" style="color:#9fc3e8">View commit history &rarr;</a></p>
 </header>
 {body}
 <footer>
@@ -266,6 +292,12 @@ def main():
     print(f"Found {len(all_results)} benchmarks with data.")
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    # Preserve ASV's index.html as asv_timeline.html before overwriting
+    asv_index = OUTPUT_FILE.parent / "asv_timeline.html"
+    if OUTPUT_FILE.exists():
+        shutil.copy2(OUTPUT_FILE, asv_index)
+
     html = build_html(all_results)
     OUTPUT_FILE.write_text(html)
     print(f"Report written to {OUTPUT_FILE}")

@@ -12,7 +12,7 @@ python scripts/generate_report.py
 
 echo ""
 echo "Dashboard: $REPO_ROOT/.asv/html/index.html"
-echo "ASV timeline: $REPO_ROOT/.asv/html/summarylist.html"
+echo "ASV timeline: $REPO_ROOT/.asv/html/asv_timeline.html"
 echo ""
 echo "To preview in a browser:"
 echo "  python -m asv preview"

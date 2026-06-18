@@ -21,7 +21,7 @@ cd "$REPO_ROOT"
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-python -m asv run
+python -m asv run --set-commit-hash HEAD
 
 echo ""
 echo "=== Done: $(date) ==="

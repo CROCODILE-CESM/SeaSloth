@@ -1,6 +1,8 @@
 import importlib
 import sys
 
+_EVICT_PREFIXES = ("CrocoDash", "mom6_forge")
+
 
 class CrocoDashImports:
     params = [
@@ -15,10 +17,12 @@ class CrocoDashImports:
     timeout = 60
 
     def setup(self, module):
-        # Evict the module so the import is not cached
-        for key in list(sys.modules.keys()):
-            if key == module or key.startswith(module + "."):
-                del sys.modules[key]
+        pass
 
     def time_import(self, module):
+        # Evict before every call — ASV calls this many times in a loop,
+        # so without this every call after the first hits sys.modules cache.
+        for key in list(sys.modules.keys()):
+            if any(key == p or key.startswith(p + ".") for p in _EVICT_PREFIXES):
+                del sys.modules[key]
         importlib.import_module(module)

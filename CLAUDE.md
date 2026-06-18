@@ -59,15 +59,15 @@ SeaSloth/
 
 ## Running Benchmarks
 
-**Always use `asv run HEAD` — never `asv run EXISTING` or `asv run --python /path`.**
+**Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV skips writing result files unless this flag is set — it runs fine but silently discards results.
 
 ```bash
 conda activate CrocoDash
-python -m asv run
+python -m asv run --set-commit-hash HEAD
 
 # Single class or suite
-python -m asv run --bench "XESMFWeightsGenerate"
-python -m asv run --bench "bench_raw_data_access"
+python -m asv run --bench "XESMFWeightsGenerate" --set-commit-hash HEAD
+python -m asv run --bench "bench_raw_data_access" --set-commit-hash HEAD
 
 # On Derecho — PBS job
 qsub scripts/pbs_submit.sh

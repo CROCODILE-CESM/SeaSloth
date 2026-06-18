@@ -134,17 +134,17 @@ grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)
 
 ```bash
 # Quick sanity check (saves results)
-/glade/work/manishrv/conda-envs/CrocoDash/bin/python -m asv run --bench "MyBenchmark" --quick HEAD
+python -m asv run --bench "MyBenchmark" --quick --set-commit-hash HEAD
 
 # Full timing (saves results)
-/glade/work/manishrv/conda-envs/CrocoDash/bin/python -m asv run --bench "MyBenchmark" HEAD
+python -m asv run --bench "MyBenchmark" --set-commit-hash HEAD
 
 # Build dashboard
 bash scripts/publish.sh
 ```
 
-**Never use `asv run EXISTING` or `asv run --python /path`** — these modes do not save
-results to `results/`.
+**Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV silently
+skips writing result files unless this flag is set — benchmarks run but results are discarded.
 
 ## Committing results
 

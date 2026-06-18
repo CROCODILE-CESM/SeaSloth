@@ -1,6 +1,6 @@
 {
     "crocodash.bench_imports.CrocoDashImports.time_import": {
-        "code": "class CrocoDashImports:\n    def time_import(self, module):\n        importlib.import_module(module)\n\n    def setup(self, module):\n        # Evict the module so the import is not cached\n        for key in list(sys.modules.keys()):\n            if key == module or key.startswith(module + \".\"):\n                del sys.modules[key]",
+        "code": "class CrocoDashImports:\n    def time_import(self, module):\n        # Evict before every call \u2014 ASV calls this many times in a loop,\n        # so without this every call after the first hits sys.modules cache.\n        for key in list(sys.modules.keys()):\n            if any(key == p or key.startswith(p + \".\") for p in _EVICT_PREFIXES):\n                del sys.modules[key]\n        importlib.import_module(module)\n\n    def setup(self, module):\n        pass",
         "min_run_count": 2,
         "name": "crocodash.bench_imports.CrocoDashImports.time_import",
         "number": 0,
@@ -21,7 +21,7 @@
         "timeout": 60,
         "type": "time",
         "unit": "seconds",
-        "version": "b0f5e6fd5b79c0992becff6fcfe426d6dd05c74c9ff960cb24456c4fa8ea7fd6",
+        "version": "0d9151b19efdc0698cd966a933a9e7856e90c5be7409fa1bc506ab9091629b1e",
         "warmup_time": -1
     },
     "crocodash.bench_obc.OBCRegridMerge.time_regrid_and_merge": {
