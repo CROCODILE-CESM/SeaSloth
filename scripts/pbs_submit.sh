@@ -3,7 +3,7 @@
 #PBS -l select=1:ncpus=8:mem=64GB
 #PBS -l walltime=04:00:00
 #PBS -q casper
-#PBS -A NCGD0011    # <-- change to your project allocation code
+#PBS -A NCGD0011 
 #PBS -j oe
 #PBS -o /glade/u/home/manishrv/documents/croc/dev/SeaSloth/pbs_bench.log
 #
@@ -12,21 +12,16 @@
 # Submit with: qsub scripts/pbs_submit.sh
 
 set -euo pipefail
-
+module load conda
+conda activate CrocoDash
 REPO_ROOT="/glade/u/home/manishrv/documents/croc/dev/SeaSloth"
 cd "$REPO_ROOT"
 
-PYTHON="/glade/work/manishrv/conda-envs/CrocoDash/bin/python"
-
-ESMF_MK="$(find "$REPO_ROOT/env" -name "esmf.mk" 2>/dev/null | head -1)"
-if [ -n "$ESMF_MK" ]; then
-    export ESMFMKFILE="$ESMF_MK"
-fi
 
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-"$PYTHON" -m asv run HEAD
+python -m asv run
 
 echo ""
 echo "=== Done: $(date) ==="

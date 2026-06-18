@@ -23,7 +23,7 @@ import numpy as np
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = REPO_ROOT / "results"
-OUTPUT_FILE = REPO_ROOT / ".asv" / "html" / "report.html"
+OUTPUT_FILE = REPO_ROOT / ".asv" / "html" / "index.html"
 
 UNIT_LABELS = {
     "time": "seconds",
@@ -245,7 +245,7 @@ def build_html(all_results):
 <header>
   <h1>SeaSloth Benchmark Report</h1>
   <p>Performance snapshot — benchmarks run on Derecho/GLADE.
-     <a href="index.html" style="color:#9fc3e8">View commit history &rarr;</a></p>
+     <a href="summarylist.html" style="color:#9fc3e8">View commit history &rarr;</a></p>
 </header>
 {body}
 <footer>
