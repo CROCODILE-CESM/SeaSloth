@@ -3,30 +3,35 @@
 #PBS -l select=1:ncpus=8:mem=64GB
 #PBS -l walltime=04:00:00
 #PBS -q casper
-#PBS -A NCGD0011 
+#PBS -A NCGD0011
 #PBS -j oe
 #PBS -o /glade/u/home/manishrv/documents/croc/dev/SeaSloth/pbs_bench.log
 #
 # pbs_submit.sh — PBS job for slow/HPC benchmarks on Casper.
 # Runs suites that require GEBCO or GLORYS data.
 # Submit with: qsub scripts/pbs_submit.sh
+#
+# Prerequisites: run `bash scripts/configure.sh` once to set up asv.conf.json.
 
 set -euo pipefail
 module load conda
 conda activate CrocoDash
-REPO_ROOT="/glade/u/home/manishrv/documents/croc/dev/SeaSloth"
-cd "$REPO_ROOT"
 
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$REPO_ROOT"
 
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-# Discover CrocoDash source root from the active editable install
-CROCO_DIR=$(python -c "import CrocoDash, os; print(os.path.dirname(os.path.dirname(os.path.abspath(CrocoDash.__file__))))")
-CROCO_HASH=$(git -C "$CROCO_DIR" rev-parse HEAD)
+# HEAD resolves against CrocoDash (asv.conf.json "repo" points there after configure.sh)
+CROCO_HASH=$(python -c "
+import CrocoDash, os, subprocess, pathlib
+croco_dir = os.path.dirname(os.path.dirname(os.path.abspath(CrocoDash.__file__)))
+print(subprocess.check_output(['git', '-C', croco_dir, 'rev-parse', 'HEAD']).decode().strip())
+")
 echo "CrocoDash commit: $CROCO_HASH"
 
-python -m asv run --set-commit-hash "$CROCO_HASH"
+python -m asv run --set-commit-hash HEAD
 
 echo ""
 echo "=== Committing results: $(date) ==="

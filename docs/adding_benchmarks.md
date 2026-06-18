@@ -133,10 +133,12 @@ grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)
 ## Running your new benchmark
 
 ```bash
-# Quick sanity check (saves results)
+conda activate CrocoDash
+
+# Quick sanity check (one rep per combo — fast but noisy)
 python -m asv run --bench "MyBenchmark" --quick --set-commit-hash HEAD
 
-# Full timing (saves results)
+# Full timing (adaptive reps — use for real data)
 python -m asv run --bench "MyBenchmark" --set-commit-hash HEAD
 
 # Build dashboard
@@ -144,7 +146,11 @@ bash scripts/publish.sh
 ```
 
 **Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV silently
-skips writing result files unless this flag is set — benchmarks run but results are discarded.
+skips writing result files unless this flag is set.
+
+`HEAD` resolves to the current CrocoDash commit (since `asv.conf.json` `"repo"` points to
+CrocoDash). If you haven't run `scripts/configure.sh` yet, do that first — it sets `"repo"`
+to your CrocoDash path.
 
 ## Committing results
 

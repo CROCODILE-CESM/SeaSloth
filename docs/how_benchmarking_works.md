@@ -8,55 +8,66 @@ through timing to the dashboard. No ASV prior knowledge assumed.
 ## The big picture
 
 ```
-scripts/run_fast.sh   (or run_full.sh / pbs_submit.sh)
+conda activate CrocoDash
+python -m asv run --set-commit-hash HEAD
       │
       ▼
-/path/to/CrocoDash/bin/python -m asv run --bench "..." --quick HEAD
+ASV reads asv.conf.json
       │
-      ├─ 1. Discover benchmarks (import every bench_*.py, find classes)
-      ├─ 2. Checkout SeaSloth at HEAD into a temp worktree
-      ├─ 3. For each (class, method, param combo):
-      │       spawn a subprocess in the ASV conda env
-      │       → run benchmarks/__init__.py  (sets ESMFMKFILE + sys.path)
-      │       → run setup()                 (excluded from timing)
-      │       → time the method             (recorded)
-      └─ 4. Write results/derecho/<commit>-conda-py3.11-....json
+      ├─ "environment_type": "existing"  → use the currently active Python (CrocoDash env)
+      ├─ "repo": "/path/to/CrocoDash"    → validate HEAD against CrocoDash git history
+      │
+      ├─ 1. Discover benchmarks (import every bench_*.py, find time_/track_/mem_ classes)
+      ├─ 2. For each (class, method, param combo):
+      │       spawn a subprocess in the active Python env
+      │       → run benchmarks/__init__.py  (sets ESMFMKFILE)
+      │       → call setup()               (excluded from timing)
+      │       → time the method            (recorded)
+      └─ 3. Write results/derecho/<croco-commit>-existing-py_<env>....json
 ```
 
-`HEAD` tells ASV to benchmark the current git commit. Results are tagged with that
-commit hash and saved to disk. This is the only range spec that works with
-`environment_type: "conda"`.
+**No conda env building.** `environment_type: "existing"` means ASV uses whatever Python
+is currently active — it never creates or manages its own env. This is why you must
+`conda activate CrocoDash` first.
+
+**Results are tagged to CrocoDash commits**, not SeaSloth commits. The `"repo"` field in
+`asv.conf.json` points to the CrocoDash git repository. ASV resolves `HEAD` and validates
+commit hashes against CrocoDash's git history. The regression timeline on the dashboard
+links back to CrocoDash commits on GitHub.
 
 ---
 
-## What ASV manages vs. what the scripts manage
+## First-time setup
 
-| Thing | Who manages it |
-|---|---|
-| `env/` — conda env with numpy/xarray/xesmf/etc. | ASV (built once, reused) |
-| mom6_forge, CrocoDash imports | `benchmarks/__init__.py` via `sys.path` from `data_config.json` |
-| ESMFMKFILE | `benchmarks/__init__.py` (glob inside `env/`) |
-| Which Python runs `asv` | The scripts (`/glade/work/.../CrocoDash/bin/python`) |
-| Which Python runs benchmarks | ASV's managed conda env |
+`asv.conf.json` has a `"repo"` field that must point to your CrocoDash checkout. Run once:
 
-The CrocoDash Python is only used to invoke the `asv` CLI — it is not the Python that
-runs your benchmark code. Benchmark code runs inside `env/`.
+```bash
+conda activate CrocoDash
+bash scripts/configure.sh
+```
 
----
-
-## Step 1 — Discovery
-
-ASV recursively imports every Python file under `benchmarks/` whose name starts with
-`bench_`. It looks for classes whose methods start with `time_`, `mem_`, `peakmem_`, or `track_`.
-Each such method becomes one benchmark.
-
-Discovery runs `benchmarks/__init__.py` first — this sets `ESMFMKFILE` and adds
-mom6_forge/CrocoDash source roots to `sys.path` so those packages can be imported
-inside the ASV conda env.
+This discovers CrocoDash from the active editable install and patches `asv.conf.json`.
+Re-run if you move your CrocoDash checkout.
 
 ---
 
-## Step 2 — Params: the Cartesian product
+## `--set-commit-hash` — why it's required
+
+With `environment_type: "existing"`, ASV has no git worktree to determine which commit
+is being benchmarked. Without `--set-commit-hash`, ASV silently skips writing the result
+file — benchmarks run but results are discarded.
+
+Always pass it:
+```bash
+python -m asv run --set-commit-hash HEAD   # HEAD = current CrocoDash HEAD
+```
+
+`HEAD` is resolved by ASV from the CrocoDash git repo (via `"repo"` in `asv.conf.json`).
+Pass a specific hash instead of `HEAD` when benchmarking older commits.
+
+---
+
+## Params: the Cartesian product
 
 Every benchmark class can have a `params` attribute — a list of lists. ASV computes the
 full Cartesian product and runs the benchmark once per combination.
@@ -64,26 +75,27 @@ full Cartesian product and runs the benchmark once per combination.
 ```python
 class RegridderCreation:
     params = [
-        [(100, 100), (300, 300), (600, 400)],   # src_size  — 3 values
-        [(50, 50), (200, 200), (400, 300)],      # dst_size  — 3 values
-        ["bilinear", "nearest_s2d", "conservative"],  # method — 3 values
+        [(100, 100), (300, 300), (600, 400)],        # src_size  — 3 values
+        [(50, 50), (200, 200), (400, 300)],           # dst_size  — 3 values
+        ["bilinear", "nearest_s2d", "conservative"],  # method    — 3 values
     ]
     param_names = ["src_size", "dst_size", "method"]
 ```
 
 This produces 3 × 3 × 3 = **27 individual benchmark runs** for every `time_*` or `track_*`
-method in that class.
+method in the class.
 
 ---
 
-## Step 3 — How a single benchmark run works
+## How a single benchmark run works
 
-For each (method, param combo), ASV does the following in a **fresh subprocess**:
+For each (method, param combo), ASV spawns a **fresh subprocess**:
 
 ```
-subprocess starts (inside ASV conda env)
+subprocess starts (inside active CrocoDash Python env)
       │
-      ├─ import benchmarks (runs __init__.py → ESMFMKFILE + sys.path set)
+      ├─ run benchmarks/__init__.py  (sets ESMFMKFILE; CrocoDash/mom6_forge are already
+      │                               on sys.path via the editable install)
       ├─ import the benchmark module
       ├─ instantiate the class
       ├─ call setup(params...)          ← excluded from timing
@@ -95,83 +107,68 @@ subprocess starts (inside ASV conda env)
             record: min, mean, std of N reps
 ```
 
-The subprocess isolation means:
-- A crash in one benchmark doesn't affect others
-- Memory from one run doesn't leak into the next
-- Each run starts with a clean Python interpreter
+Each subprocess is isolated — a crash in one benchmark doesn't affect the others, and
+memory from one run doesn't leak into the next.
 
-### What `setup()` is for
+### `setup()` — excluded from timing
 
-`setup()` runs before timing begins and is **not included in the measurement**. Put
-anything expensive that you want to exclude — building grids, constructing regridders,
-loading data. Only the `time_*` method body is on the clock.
+`setup()` runs before the timing loop and is not measured. Put expensive construction here:
 
 ```python
 def setup(self, src_size, dst_size, method):
-    # NOT timed — build grids here
     self.src = make_rect_grid(*src_size)
     self.dst = make_curvilinear_grid(*dst_size)
+    # NOT timed — only time_* below is on the clock
 
 def time_create_regridder(self, src_size, dst_size, method):
-    # TIMED — only this call is measured
-    xe.Regridder(self.src, self.dst, method=method, ...)
+    xe.Regridder(self.src, self.dst, method=method)
 ```
 
-### The timing mechanism
+### Timing mechanism
 
-ASV uses Python's `timeit` module internally. It runs the method multiple times
-and reports statistics (min/mean/std). The number of repetitions is chosen automatically
-to get a stable measurement — fast operations get more reps, slow ones fewer.
+ASV uses Python's `timeit` internally. It runs the method multiple times and reports
+statistics (mean ± std). The number of repetitions is chosen automatically to get a
+stable measurement — fast operations get more reps, slow ones fewer.
 
-`--quick` mode forces exactly **one repetition per param combo** and skips the warmup
-phase. Results are less statistically reliable but the run finishes much faster. Use it
-for sanity checks; use full runs (no `--quick`) for real data.
+`--quick` forces exactly **one repetition per param combo**. Results are noisier but the
+run finishes much faster. Use `--quick` for sanity checks; omit it for real data.
 
 ### `teardown()` — cleanup after timing
 
-If a benchmark creates temp files or other side effects, `teardown()` runs after timing
-completes (still in the same subprocess). ASV calls it even if the timing raised an error.
+Called after timing completes even if timing raised an error. Use it to remove temp files
+or destroy ESMF objects:
 
 ```python
 def teardown(self, src_size, dst_size, reuse_weights):
     shutil.rmtree(self._tmpdir, ignore_errors=True)
 ```
 
+### Errors and skipped benchmarks
+
+- `setup()` raises `NotImplementedError` → benchmark is marked **`n/a`** (skipped, not failed).
+  Use this for data-dependent benchmarks when the required file is absent.
+- `setup()` raises any other exception → benchmark is marked **failed** (red on dashboard).
+- `time_*` raises an exception → benchmark is marked **failed**.
+
 ---
 
-## Step 4 — Memory benchmarks: three conventions
+## Memory benchmarks
 
-ASV has three distinct memory benchmark types. **They work very differently** and it's
-easy to get zeros if you use the wrong one.
+ASV has three memory benchmark types. SeaSloth uses `track_rss_mb` because ESMF makes
+large C/Fortran heap allocations that `mem_*` and `peakmem_*` miss entirely.
 
-### `mem_*` — size of the return value
-
-ASV calls the method and measures the deep Python object size of what it **returns**
-(using `sys.getsizeof` recursively). If the method returns `None`, the result is 0.
-
-```python
-def mem_create_regridder(self, ...):
-    return xe.Regridder(...)   # MUST return the object — ASV measures its size
-```
-
-**Common mistake:** forgetting the `return`. ASV sees `None` and reports 0.
-
-### `peakmem_*` — peak tracemalloc during the call
-
-ASV wraps the method with `tracemalloc` and records the highest Python heap usage
-reached during execution. No return value needed. Only sees Python heap — misses C/Fortran.
-
-### `track_rss_mb` — custom RSS metric (what SeaSloth uses)
-
-Returns process RSS delta measured with psutil — captures C/Fortran heap allocations
-(ESMF, NetCDF, HDF5) that `mem_*` and `peakmem_*` miss entirely.
+| Type | What it measures | When to use |
+|---|---|---|
+| `mem_*` | Deep Python object size of the **return value** | Pure Python objects |
+| `peakmem_*` | Peak `tracemalloc` usage during the call | Python heap only |
+| `track_rss_mb` | Process RSS delta via psutil | C/Fortran allocations (ESMF, NetCDF) |
 
 ```python
 def track_rss_mb(self, ...):
     import os, psutil
     proc = psutil.Process(os.getpid())
     before = proc.memory_info().rss
-    xe.Regridder(...)          # call being measured
+    xe.Regridder(...)
     return (proc.memory_info().rss - before) / 1024**2
 
 track_rss_mb.unit = "MB"
@@ -179,77 +176,59 @@ track_rss_mb.unit = "MB"
 
 ---
 
-## Step 5 — Errors and skipped benchmarks
-
-If `setup()` raises `NotImplementedError`, ASV marks the benchmark as **`n/a`** (not
-applicable) and moves on. This is how SeaSloth marks data-dependent benchmarks that
-can't run without GLORYS or GEBCO:
-
-```python
-def setup(self, dst_size):
-    gebco = get_path("gebco_path")
-    if not gebco or not Path(gebco).exists():
-        raise NotImplementedError(f"GEBCO not found at {gebco!r}")
-```
-
-If `setup()` raises any other exception, it's a **failed** run (shown in red), not `n/a`.
-
----
-
-## Step 6 — Results storage
+## Results storage
 
 After all benchmarks finish, ASV writes one JSON file per run:
 
 ```
 results/
-├── benchmarks.json                                    ← benchmark metadata
-└── derecho/                                           ← one dir per machine
-    ├── machine.json                                   ← CPU/RAM/OS info
-    └── <commit>-conda-py3.11-numpy-psutil-....json   ← timing data
+├── benchmarks.json                                           ← benchmark metadata
+└── derecho/
+    ├── machine.json                                          ← CPU/RAM/OS info
+    └── <croco-commit>-existing-py_<env-path>.json           ← timing data
 ```
 
-The commit hash comes from SeaSloth's own git HEAD at run time. The dashboard X-axis
-is SeaSloth commits — not CrocoDash or mom6_forge commits. To track performance of
-those packages over time, run benchmarks after each change and commit the results with
-a descriptive message.
+The file is named with the **CrocoDash commit hash** (from `--set-commit-hash`). This is
+what links the dashboard timeline to CrocoDash's git history and makes `show_commit_url`
+point to the right commit on GitHub.
 
-**If the process is killed mid-run** (e.g., login node OOM), the timing JSON is never
-written and the run is lost. `machine.json` appears early; the timing file only appears
-at the end.
+If the process is killed mid-run (e.g., PBS walltime exceeded), the timing JSON is never
+written. `machine.json` appears early; the timing file only appears at the very end.
 
----
-
-## Step 7 — `asv publish` and the dashboard
-
-`asv publish` reads **all** JSON files in `results/` and builds a self-contained HTML
-site in `.asv/html/`. The dashboard has three views:
-
-- **Grid** — one cell per benchmark, colored by speed relative to baseline
-- **List** — sortable table with latest timings
-- **Regressions** — benchmarks where a recent commit was detectably slower
-
-`asv publish` needs the full git history to resolve commit hashes to dates and messages.
-This is why the CI workflow uses `fetch-depth: 0` — a shallow clone produces an empty
-dashboard.
-
----
-
-## Script reference
-
-| Script | What it runs | When to use |
-|---|---|---|
-| `scripts/run_fast.sh` | mom6_forge grid/kdtree/tidy/subsampling (`--quick`) | Quick sanity check on any node |
-| `scripts/run_full.sh` | All benchmarks including xesmf (full timing) | Casper interactive node |
-| `scripts/pbs_submit.sh` | All benchmarks including data-dependent ones | PBS job; needs GEBCO/GLORYS |
-| `scripts/publish.sh` | `asv publish` | After any run, to rebuild dashboard |
-
-xesmf benchmarks (ESMF weight generation) are **not** in `run_fast.sh` — they are slow
-even with `--quick` and should be run via `run_full.sh` or `pbs_submit.sh`.
-
-After any run, commit results before rebuilding the dashboard:
+Commit results to git so the history accumulates:
 
 ```bash
 git add results/
-git commit -m "add benchmark results: <brief description of what changed>"
+git commit -m "bench: <brief description>"
 git push
 ```
+
+---
+
+## `asv publish` and the dashboard
+
+`scripts/publish.sh` runs two things:
+
+1. **`asv publish`** — reads all JSON files in `results/`, resolves commit hashes against
+   the CrocoDash git repo, and builds a self-contained HTML app in `.asv/html/`. Needs the
+   full git history — this is why CI uses `fetch-depth: 0`.
+
+2. **`scripts/generate_report.py`** — reads the same JSON files and generates snapshot bar
+   charts (one per benchmark class) as a standalone `index.html`. Overwrites ASV's
+   `index.html` and saves ASV's version as `asv_timeline.html`.
+
+| Page | What it shows | Useful for |
+|---|---|---|
+| `index.html` | Bar charts per benchmark class (latest values) | Parameter sweeps, quick comparison |
+| `asv_timeline.html` | Commit timeline, regression detection | Spotting regressions across versions |
+
+The ASV timeline needs **2+ commits** with data before it shows anything meaningful.
+
+---
+
+## CI
+
+The GitHub Actions workflow (`.github/workflows/benchmark.yml`) only runs `asv publish`
+and `generate_report.py` — it never runs benchmarks. Benchmarks run on GLADE. Results are
+committed to `results/` in git. CI checks out the repo with full history (`fetch-depth: 0`)
+so ASV can resolve all CrocoDash commit hashes in the result files, then deploys to GitHub Pages.

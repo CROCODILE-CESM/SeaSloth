@@ -59,24 +59,41 @@ SeaSloth/
 
 ## Running Benchmarks
 
-**Always pass `--set-commit-hash`.** With `environment_type: "existing"`, ASV skips writing result files unless this flag is set — it runs fine but silently discards results.
+**One-time setup** — patches `asv.conf.json` with your CrocoDash path:
+```bash
+conda activate CrocoDash
+bash scripts/configure.sh
+```
 
-Pass the **CrocoDash commit hash** (not SeaSloth's) so that each CrocoDash commit gets its own result file and the regression timeline links back to the right commit:
+**Always pass `--set-commit-hash HEAD`.** With `environment_type: "existing"`, ASV silently
+discards results if this flag is omitted. `HEAD` resolves to the current CrocoDash commit
+because `asv.conf.json` `"repo"` points to CrocoDash (set by `configure.sh`).
 
 ```bash
 conda activate CrocoDash
-CROCO_HASH=$(cd /path/to/CrocoDash && git rev-parse HEAD)
-python -m asv run --set-commit-hash $CROCO_HASH
+
+# Run all benchmarks
+python -m asv run --set-commit-hash HEAD
 
 # Single class or suite
-python -m asv run --bench "XESMFWeightsGenerate" --set-commit-hash $CROCO_HASH
-python -m asv run --bench "bench_raw_data_access" --set-commit-hash $CROCO_HASH
+python -m asv run --bench "XESMFWeightsGenerate" --set-commit-hash HEAD
+python -m asv run --bench "CrocoDashImports" --quick --set-commit-hash HEAD
 
-# On Derecho — PBS job (already uses --set-commit-hash HEAD; update pbs_submit.sh if tracking CrocoDash commits)
+# On Derecho — PBS job (handles --set-commit-hash and auto-commits results)
 qsub scripts/pbs_submit.sh
 
 # Build dashboard from committed results
 bash scripts/publish.sh
+```
+
+**Multi-commit iteration** — to populate the regression timeline with real per-version data:
+```bash
+COMMITS=(a90e282a af474049 1b98b32a)  # CrocoDash commit hashes
+for HASH in "${COMMITS[@]}"; do
+    git -C /path/to/CrocoDash checkout --quiet "$HASH"
+    python -m asv run --quick --bench "CrocoDashImports" --set-commit-hash "$HASH"
+done
+git -C /path/to/CrocoDash checkout main
 ```
 
 After any run, commit `results/` so the dashboard history accumulates:
