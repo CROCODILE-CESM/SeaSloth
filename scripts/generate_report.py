@@ -136,10 +136,20 @@ def extract_summary(all_results):
     topo_mem_key = "mom6_forge.bench_topo.TopoSetFromDataset.track_rss_mb"
     if topo_key in all_results:
         results, params = all_results[topo_key]
-        vals = [v for _, v in _valid_values(results, params)]
+        pairs = _valid_values(results, params)
+        vals = [v for _, v in pairs]
         s["topo_min_s"] = min(vals)
         s["topo_max_s"] = max(vals)
-        s["topo_grid_sizes"] = [short(p[0]) for p in params[0]]
+        # param is domain_deg (integer degrees) in new results; try to parse as float
+        # old results stored tuple-like strings '(100, 100)' — skip domain narrative for those
+        try:
+            by_domain = {float(short(c[0])): v for c, v in pairs}
+            domain_vals = sorted(by_domain.keys())
+            s["topo_domain_min_deg"] = domain_vals[0]
+            s["topo_domain_max_deg"] = domain_vals[-1]
+            s["topo_by_domain"] = by_domain
+        except (ValueError, TypeError):
+            pass  # old tuple-format params — domain narrative will be skipped
     if topo_mem_key in all_results:
         results, params = all_results[topo_mem_key]
         vals = [v for _, v in _valid_values(results, params)]
@@ -249,16 +259,35 @@ def build_narrative_html(all_results):
     # Bathymetry
     if "topo_min_s" in s:
         mem_str = fmt_mb(s.get("topo_mem_mb"))
+        by_domain = s.get("topo_by_domain", {})
+        domain_min = s.get("topo_domain_min_deg")
+        domain_max = s.get("topo_domain_max_deg")
+        # Build a representative sentence if we have multiple domain sizes
+        if by_domain and len(by_domain) > 1 and domain_min and domain_max:
+            t_small = by_domain.get(domain_min)
+            t_large = by_domain.get(domain_max)
+            scaling_str = (
+                f"A <b>{int(domain_min)}°×{int(domain_min)}°</b> domain takes "
+                f"<b>{fmt_time(t_small)}</b>; "
+                f"a <b>{int(domain_max)}°×{int(domain_max)}°</b> domain takes "
+                f"<b>{fmt_time(t_large)}</b>."
+                if t_small and t_large else
+                f"Times range from <b>{fmt_time(s['topo_min_s'])}</b> to "
+                f"<b>{fmt_time(s['topo_max_s'])}</b> across tested domain sizes."
+            )
+        else:
+            scaling_str = (
+                f"Time: <b>{fmt_time(s['topo_min_s'])}–{fmt_time(s['topo_max_s'])}</b>."
+            )
+        mem_note = f" Memory usage averages <b>~{mem_str}</b>." if mem_str != "n/a" else ""
         paras.append(
             f"""<h3>Bathymetry — <code>Topo.set_from_dataset()</code></h3>
-<p>Loading GEBCO bathymetry and regridding it onto a model grid takes
-<b>{fmt_time(s['topo_min_s'])}–{fmt_time(s['topo_max_s'])}</b> on Derecho,
-and this time is nearly <em>independent of destination grid size</em> across the
-tested range (100×100 to 1000×600 points).
-The bottleneck is reading the full global GEBCO_2024 dataset, not the interpolation step itself —
-which is why a 1000×600 grid finishes in roughly the same time as a 100×100 one.
-Memory usage during the operation averages <b>~{mem_str}</b>, dominated by the in-memory
-GEBCO array.</p>"""
+<p>The cost of loading GEBCO bathymetry and regridding it onto a model grid scales with
+<em>domain extent</em>, not destination resolution. Before regridding, the pipeline slices
+GEBCO to the model bounding box — so a larger geographic region means more source data
+to read and interpolate, regardless of how fine the destination grid is.
+{scaling_str} All grids are generated at 0.1° resolution, so larger domains also produce
+larger destination grids.{mem_note}</p>"""
         )
 
     # xESMF / ESMF weight generation
