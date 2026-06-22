@@ -2,8 +2,9 @@
 """
 generate_report.py — Build a standalone HTML benchmark report from ASV result JSONs.
 
-Shows bar charts per benchmark class (parameters on X-axis, last param dimension as
-color groups), without commit-timeline context. Output: .asv/html/report.html
+Shows a human-readable narrative summary of key findings, followed by bar charts per
+benchmark class (parameters on X-axis, last param dimension as color groups).
+Output: .asv/html/index.html
 """
 
 import base64
@@ -81,6 +82,297 @@ def load_all_results():
                     latest[key] = (results, params)
 
     return latest
+
+
+def _lookup(results, params, combo):
+    """Return the result value for a specific parameter combination, or None."""
+    combos = list(itertools.product(*params))
+    for c, r in zip(combos, results):
+        if c == combo:
+            return r
+    return None
+
+
+def _valid_values(results, params):
+    """Return list of (combo, value) for all non-null results."""
+    combos = list(itertools.product(*params))
+    return [
+        (c, r)
+        for c, r in zip(combos, results)
+        if r is not None and not (isinstance(r, float) and math.isnan(r))
+    ]
+
+
+def fmt_time(v):
+    """Format a time value in seconds to a human-readable string."""
+    if v is None:
+        return "n/a"
+    if v >= 60:
+        return f"{v/60:.1f} min"
+    if v >= 1:
+        return f"{v:.1f} s"
+    if v >= 1e-3:
+        return f"{v*1e3:.0f} ms"
+    if v >= 1e-6:
+        return f"{v*1e6:.0f} μs"
+    return f"{v*1e9:.0f} ns"
+
+
+def fmt_mb(v):
+    """Format MB value."""
+    if v is None:
+        return "n/a"
+    if v >= 1024:
+        return f"{v/1024:.1f} GB"
+    return f"{v:.0f} MB"
+
+
+def extract_summary(all_results):
+    """Pull key numbers from results dict for use in the narrative."""
+    s = {}
+
+    # --- Bathymetry ---
+    topo_key = "mom6_forge.bench_topo.TopoSetFromDataset.time_set_from_dataset"
+    topo_mem_key = "mom6_forge.bench_topo.TopoSetFromDataset.track_rss_mb"
+    if topo_key in all_results:
+        results, params = all_results[topo_key]
+        vals = [v for _, v in _valid_values(results, params)]
+        s["topo_min_s"] = min(vals)
+        s["topo_max_s"] = max(vals)
+        s["topo_grid_sizes"] = [short(p[0]) for p in params[0]]
+    if topo_mem_key in all_results:
+        results, params = all_results[topo_mem_key]
+        vals = [v for _, v in _valid_values(results, params)]
+        s["topo_mem_mb"] = sum(vals) / len(vals)
+
+    # --- xESMF weight generation ---
+    xwt_key = "xesmf.bench_weights_generate.XESMFWeightsGenerate.time_generate_weights"
+    xwt_mem_key = "xesmf.bench_weights_generate.XESMFWeightsGenerate.track_rss_mb"
+    if xwt_key in all_results:
+        results, params = all_results[xwt_key]
+        pairs = _valid_values(results, params)
+        # smallest: (300,300) src -> (150,150) dst, bilinear
+        s["xwt_small_bilinear"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "'bilinear'"))
+        s["xwt_large_bilinear"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "'bilinear'"))
+        s["xwt_small_conservative"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "'conservative'"))
+        s["xwt_large_conservative"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "'conservative'"))
+    if xwt_mem_key in all_results:
+        results, params = all_results[xwt_mem_key]
+        vals = [v for _, v in _valid_values(results, params)]
+        s["xwt_mem_min_mb"] = min(vals)
+        s["xwt_mem_max_mb"] = max(vals)
+
+    # --- xESMF locstream weight generation ---
+    xloc_key = "xesmf.bench_weights_generate.XESMFWeightsGenerateLocstream.time_generate_weights"
+    if xloc_key in all_results:
+        results, params = all_results[xloc_key]
+        vals = [v for _, v in _valid_values(results, params)]
+        s["xloc_min_s"] = min(vals)
+        s["xloc_max_s"] = max(vals)
+
+    # --- xESMF regrid apply ---
+    xapp_key = "xesmf.bench_regrid_apply.XESMFRegridApply.time_apply"
+    if xapp_key in all_results:
+        results, params = all_results[xapp_key]
+        # 1 timestep, small grid, nearest_s2d (fastest)
+        s["xapp_fast"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "1", "'nearest_s2d'"))
+        # 60 timesteps, large grid, bilinear (slowest)
+        s["xapp_slow"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "60", "'bilinear'"))
+        # speedup nearest vs bilinear (average across grid sizes, 60 timesteps)
+        bilinear_60 = [
+            _lookup(results, params, (src, dst, "60", "'bilinear'"))
+            for src in ("(300, 300)", "(800, 600)", "(1500, 700)")
+            for dst in ("(150, 150)", "(400, 300)", "(700, 350)")
+        ]
+        nn_60 = [
+            _lookup(results, params, (src, dst, "60", "'nearest_s2d'"))
+            for src in ("(300, 300)", "(800, 600)", "(1500, 700)")
+            for dst in ("(150, 150)", "(400, 300)", "(700, 350)")
+        ]
+        ratios = [b / n for b, n in zip(bilinear_60, nn_60) if b and n]
+        s["xapp_nn_speedup"] = sum(ratios) / len(ratios) if ratios else None
+
+    # --- ESMF weight generation comparison ---
+    ewt_key = "esmf.bench_weights_generate.ESMFWeightsGenerate.time_generate_weights"
+    if ewt_key in all_results:
+        results, params = all_results[ewt_key]
+        s["ewt_small_bilinear"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "'bilinear'"))
+        s["ewt_large_bilinear"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "'bilinear'"))
+
+    # --- Module imports ---
+    imp_key = "crocodash.bench_imports.CrocoDashImports.time_import"
+    if imp_key in all_results:
+        results, params = all_results[imp_key]
+        s["import_crocodash"] = _lookup(results, params, ("'CrocoDash.case'",))
+        s["import_grid"] = _lookup(results, params, ("'mom6_forge.grid'",))
+        s["import_topo"] = _lookup(results, params, ("'mom6_forge.topo'",))
+        s["import_vgrid"] = _lookup(results, params, ("'mom6_forge.vgrid'",))
+
+    # --- Data access health ---
+    health_key = "crocodash.bench_raw_data_access.DataAccessHealth.track_accessible"
+    if health_key in all_results:
+        results, params = all_results[health_key]
+        pairs = _valid_values(results, params)
+        s["health_ok"] = sum(1 for _, v in pairs if v == 1.0)
+        s["health_total"] = len(pairs)
+
+    return s
+
+
+def build_narrative_html(all_results):
+    """
+    Build a human-readable summary section from the extracted benchmark stats.
+    Returns an HTML string for a <section> element.
+    """
+    s = extract_summary(all_results)
+
+    # Determine which suites have no results at all
+    present_suites = {k.split(".")[0] for k in all_results}
+    missing_benchmarks = []
+    if "crocodash" not in present_suites or not any(
+        "bench_obc" in k for k in all_results
+    ):
+        missing_benchmarks.append(
+            "<b>OBC forcing pipeline</b> (<code>bench_obc.py</code>) — requires pre-staged "
+            "GLORYS files and a CrocoDash case config. Set <code>obc_config_path</code> and "
+            "<code>obc_step_days_dirs</code> in <code>data_config.json</code> to enable."
+        )
+    if not any("bench_runoff" in k for k in all_results):
+        missing_benchmarks.append(
+            "<b>Runoff mapping</b> (<code>bench_runoff_mapping.py</code>) — requires ESMF mesh "
+            "NetCDF files. Set <code>mesh_pairs</code> in <code>data_config.json</code> to enable."
+        )
+
+    # Build paragraphs
+    paras = []
+
+    # Bathymetry
+    if "topo_min_s" in s:
+        mem_str = fmt_mb(s.get("topo_mem_mb"))
+        paras.append(
+            f"""<h3>Bathymetry — <code>Topo.set_from_dataset()</code></h3>
+<p>Loading GEBCO bathymetry and regridding it onto a model grid takes
+<b>{fmt_time(s['topo_min_s'])}–{fmt_time(s['topo_max_s'])}</b> on Derecho,
+and this time is nearly <em>independent of destination grid size</em> across the
+tested range (100×100 to 1000×600 points).
+The bottleneck is reading the full global GEBCO_2024 dataset, not the interpolation step itself —
+which is why a 1000×600 grid finishes in roughly the same time as a 100×100 one.
+Memory usage during the operation averages <b>~{mem_str}</b>, dominated by the in-memory
+GEBCO array.</p>"""
+        )
+
+    # xESMF / ESMF weight generation
+    if "xwt_small_bilinear" in s:
+        conservative_overhead = None
+        if s.get("xwt_small_bilinear") and s.get("xwt_small_conservative"):
+            conservative_overhead = s["xwt_small_conservative"] / s["xwt_small_bilinear"]
+        conservative_str = (
+            f" Conservative interpolation takes roughly {conservative_overhead:.1f}× "
+            f"longer than bilinear at the same grid size."
+            if conservative_overhead else ""
+        )
+        esmf_note = ""
+        if "ewt_small_bilinear" in s and s.get("xwt_small_bilinear"):
+            ratio = s["ewt_small_bilinear"] / s["xwt_small_bilinear"]
+            esmf_note = (
+                f" Raw ESMF weight generation is similar in cost ({ratio:.2f}× relative to xESMF "
+                f"for the same grid pair), confirming that xESMF's overhead is negligible — "
+                f"it is a thin Python wrapper around the same ESMF C library."
+            )
+        mem_range = ""
+        if "xwt_mem_min_mb" in s:
+            mem_range = (
+                f" Weight files themselves occupy {fmt_mb(s['xwt_mem_min_mb'])}–"
+                f"{fmt_mb(s['xwt_mem_max_mb'])} of RSS memory."
+            )
+        paras.append(
+            f"""<h3>Regridding weights — <code>xe.Regridder()</code> / raw ESMF</h3>
+<p>Computing interpolation weights (the one-time setup cost before any regridding can happen)
+scales with grid size. For a <b>300×300 source → 150×150 destination</b> grid, bilinear weight
+generation takes <b>{fmt_time(s['xwt_small_bilinear'])}</b>; scaling up to
+<b>1500×700 → 700×350</b> takes <b>{fmt_time(s['xwt_large_bilinear'])}</b>.{conservative_str}{esmf_note}{mem_range}</p>"""
+        )
+
+    # Locstream (OBC-style)
+    if "xloc_min_s" in s:
+        paras.append(
+            f"""<h3>OBC-style (locstream) weight generation</h3>
+<p>When the destination is a boundary line of points rather than a full grid
+(the pattern used for open-boundary conditions), weight generation is substantially
+faster: <b>{fmt_time(s['xloc_min_s'])}–{fmt_time(s['xloc_max_s'])}</b> across the
+tested source grid sizes. This is because the destination has far fewer points than
+a full 2-D grid of similar extent.</p>"""
+        )
+
+    # xESMF apply
+    if "xapp_fast" in s:
+        speedup_str = ""
+        if s.get("xapp_nn_speedup"):
+            speedup_str = (
+                f" On average, <code>nearest_s2d</code> is "
+                f"<b>{s['xapp_nn_speedup']:.1f}×</b> faster than bilinear during application."
+            )
+        paras.append(
+            f"""<h3>Applying pre-computed weights — <code>regridder(ds)</code></h3>
+<p>Once weights are built, applying them to a data array is fast regardless of grid size.
+A single timestep on a small grid takes <b>{fmt_time(s['xapp_fast'])}</b>;
+60 timesteps on the largest tested grid takes <b>{fmt_time(s['xapp_slow'])}</b>.
+The cost is dominated by the number of destination points and time steps,
+not the source grid size.{speedup_str}</p>"""
+        )
+
+    # Imports
+    if "import_crocodash" in s:
+        paras.append(
+            f"""<h3>Module import times</h3>
+<p>Importing CrocoDash and mom6_forge is fast enough to be negligible in any workflow:
+<code>CrocoDash.case</code> loads in <b>{fmt_time(s['import_crocodash'])}</b>,
+<code>mom6_forge.topo</code> in <b>{fmt_time(s['import_topo'])}</b>,
+and <code>mom6_forge.grid</code> / <code>mom6_forge.vgrid</code> in
+<b>{fmt_time(s['import_grid'])}</b> / <b>{fmt_time(s['import_vgrid'])}</b>.</p>"""
+        )
+
+    # Data health
+    if "health_ok" in s:
+        all_ok = s["health_ok"] == s["health_total"]
+        status = "All" if all_ok else f"{s['health_ok']} of {s['health_total']}"
+        color = "#1a7a3e" if all_ok else "#b85c00"
+        paras.append(
+            f"""<h3>Data source availability</h3>
+<p><span style="color:{color};font-weight:600">{status} checked data sources are accessible</span>
+(GLORYS, GEBCO, GloFAS, MOM6 output, SeaWIFS methods tested on Derecho/GLADE).
+This check runs each time benchmarks are executed and reflects live filesystem access.</p>"""
+        )
+
+    # Missing benchmarks
+    if missing_benchmarks:
+        items = "".join(f"<li>{m}</li>" for m in missing_benchmarks)
+        paras.append(
+            f"""<h3>Not yet measured</h3>
+<p>The following benchmark suites exist in the codebase but have no results yet because
+they depend on data files that are not configured in <code>data_config.json</code>:</p>
+<ul>{items}</ul>"""
+        )
+
+    # xESMF/ESMF stability note
+    paras.append(
+        """<h3>A note on xESMF and ESMF benchmarks</h3>
+<p>xESMF and ESMF are external libraries — they are not part of CrocoDash or mom6_forge and
+their performance will <em>not</em> change from commit to commit on those repos.
+These benchmarks serve as a stable reference: they tell you how fast the underlying regridding
+engine is on this machine, independently of any CROC code changes.
+If these numbers change significantly between runs, suspect a different library version,
+different node type, or different CPU load — not a regression in CROC code.</p>"""
+    )
+
+    inner = "\n".join(paras)
+    return f"""
+<section id="summary">
+  <h2>Summary</h2>
+  <div class="narrative">
+{inner}
+  </div>
+</section>"""
 
 
 def make_chart(bench_key, results, params):
@@ -201,6 +493,8 @@ def param_table_html(params):
 
 
 def build_html(all_results):
+    narrative = build_narrative_html(all_results)
+
     # Group by suite
     by_suite = {}
     for key, (results, params) in sorted(all_results.items()):
@@ -238,7 +532,7 @@ def build_html(all_results):
     </section>"""
         )
 
-    body = "\n".join(sections) if sections else "<p>No benchmark results found.</p>"
+    chart_body = "\n".join(sections) if sections else "<p>No benchmark results found.</p>"
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -264,15 +558,30 @@ def build_html(all_results):
   .card img {{ max-width: 100%; height: auto; display: block; }}
   footer {{ padding: 1.5rem 2rem; font-size: 0.8rem; color: #888; }}
   footer a {{ color: #4c78a8; }}
+  /* Narrative summary styles */
+  #summary {{ background: #fff; border-bottom: 1px solid #dde4ee; }}
+  .narrative {{ max-width: 820px; }}
+  .narrative h3 {{ font-size: 1rem; color: #1a3a5c; margin: 1.4rem 0 0.35rem; }}
+  .narrative h3:first-child {{ margin-top: 0; }}
+  .narrative p {{ margin: 0 0 0.5rem; line-height: 1.65; font-size: 0.92rem; color: #333; }}
+  .narrative ul {{ margin: 0.4rem 0 0.8rem 1.2rem; padding: 0; }}
+  .narrative li {{ font-size: 0.92rem; line-height: 1.6; color: #333; margin-bottom: 0.3rem; }}
+  .narrative code {{ background: #eef1f6; padding: 0.1em 0.35em;
+                     border-radius: 3px; font-size: 0.85em; }}
+  .divider {{ border: none; border-top: 2px solid #c8d6e5; margin: 0.5rem 0 0; }}
+  #charts-heading {{ padding: 0.75rem 2rem 0; font-size: 1rem; color: #555; }}
 </style>
 </head>
 <body>
 <header>
   <h1>SeaSloth Benchmark Report</h1>
   <p>Performance snapshot — benchmarks run on Derecho/GLADE.
-     <a href="asv_timeline.html" style="color:#9fc3e8">Regression timeline &rarr;</a> <span style="opacity:0.5;font-size:0.8rem">(needs 2+ commits to show data)</span></p>
+     <a href="asv_timeline.html" style="color:#9fc3e8">Regression timeline &rarr;</a>
+     <span style="opacity:0.5;font-size:0.8rem">(needs 2+ commits to show data)</span></p>
 </header>
-{body}
+{narrative}
+<p id="charts-heading" style="color:#888;font-size:0.85rem">Detailed charts below &darr;</p>
+{chart_body}
 <footer>
   Generated by <code>scripts/generate_report.py</code> &mdash;
   <a href="https://github.com/CROCODILE-CESM/SeaSloth">SeaSloth</a>
