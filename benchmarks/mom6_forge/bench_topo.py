@@ -38,12 +38,21 @@ class TopoSetFromDataset:
     def setup(self, domain_deg):
         import tempfile
 
+        import psutil
         from mom6_forge.grid import Grid
         from mom6_forge.topo import Topo
 
         gebco = get_path("gebco_path")
         if not gebco or not __import__("pathlib").Path(gebco).exists():
             raise NotImplementedError(f"GEBCO not found at {gebco!r} — GLADE only")
+
+        if domain_deg >= 40:
+            available_gb = psutil.virtual_memory().available / 1024**3
+            if available_gb < 50:
+                raise NotImplementedError(
+                    f"domain_deg={domain_deg} needs ~60 GB RAM; "
+                    f"only {available_gb:.0f} GB available — request a high-memory node"
+                )
 
         self._grid = Grid(
             lenx=float(domain_deg),

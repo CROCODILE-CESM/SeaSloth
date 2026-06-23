@@ -73,9 +73,15 @@ class OBCRegridMerge:
         self._tmpdir = tempfile.mkdtemp(prefix="seasloth_obc_")
 
     def teardown(self, step_days):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
+        if hasattr(self, "_tmpdir"):
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def time_regrid_and_merge(self, step_days):
+        for sub in ("regridded", "output"):
+            p = Path(self._tmpdir) / sub
+            if p.exists():
+                shutil.rmtree(p)
+
         import CrocoDash.extract_forcings.case_setup.driver as driver
         import CrocoDash.extract_forcings.regrid_dataset_piecewise as rdp
         import CrocoDash.extract_forcings.merge_piecewise_dataset as mpd
