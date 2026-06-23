@@ -42,8 +42,8 @@ class ESMFWeightsGenerate:
     """
 
     params = [
-        [(300, 300), (800, 600), (1500, 700)],   # src: ~90 K, ~480 K, ~1.05 M pts
-        [(150, 150), (400, 300), (700, 350)],     # dst: ~22 K, ~120 K, ~245 K pts
+        [(300, 300), (800, 600), (1500, 700)],  # src: ~90 K, ~480 K, ~1.05 M pts
+        [(150, 150), (400, 300), (700, 350)],  # dst: ~22 K, ~120 K, ~245 K pts
         ["bilinear", "nearest_s2d"],
     ]
     param_names = ["src_size", "dst_size", "method"]

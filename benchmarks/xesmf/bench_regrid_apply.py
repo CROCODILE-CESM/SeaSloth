@@ -26,9 +26,9 @@ class XESMFRegridApply:
     """
 
     params = [
-        [(300, 300), (800, 600), (1500, 700)],   # src: ~90 K, ~480 K, ~1.05 M pts
-        [(150, 150), (400, 300), (700, 350)],     # dst: ~22 K, ~120 K, ~245 K pts
-        [1, 12, 60],                              # time steps
+        [(300, 300), (800, 600), (1500, 700)],  # src: ~90 K, ~480 K, ~1.05 M pts
+        [(150, 150), (400, 300), (700, 350)],  # dst: ~22 K, ~120 K, ~245 K pts
+        [1, 12, 60],  # time steps
         ["bilinear", "nearest_s2d"],
     ]
     param_names = ["src_size", "dst_size", "ntime", "method"]
@@ -74,8 +74,8 @@ class XESMFRegridApplyLocstream:
     """
 
     params = [
-        [(300, 300), (800, 600), (1500, 700)],   # src: ~90 K, ~480 K, ~1.05 M pts
-        [1_000, 10_000, 100_000],                 # OBC boundary points
+        [(300, 300), (800, 600), (1500, 700)],  # src: ~90 K, ~480 K, ~1.05 M pts
+        [1_000, 10_000, 100_000],  # OBC boundary points
         [1, 12, 60],
     ]
     param_names = ["src_size", "n_boundary_pts", "ntime"]
