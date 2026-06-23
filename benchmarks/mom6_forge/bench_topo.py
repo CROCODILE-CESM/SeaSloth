@@ -47,11 +47,25 @@ class TopoSetFromDataset:
             raise NotImplementedError(f"GEBCO not found at {gebco!r} — GLADE only")
 
         if domain_deg >= 40:
-            available_gb = psutil.virtual_memory().available / 1024**3
-            if available_gb < 50:
+            # Check cgroup memory limit (PBS sets this), falling back to psutil.
+            # domain_deg=40 needs ~60 GB; require >=90 GB headroom.
+            cgroup_limit_gb = None
+            for cgroup_path in (
+                "/sys/fs/cgroup/memory.max",  # cgroup v2
+                "/sys/fs/cgroup/memory/memory.limit_in_bytes",  # cgroup v1
+            ):
+                try:
+                    val = open(cgroup_path).read().strip()
+                    if val != "max":
+                        cgroup_limit_gb = int(val) / 1024**3
+                    break
+                except FileNotFoundError:
+                    continue
+            limit_gb = cgroup_limit_gb if cgroup_limit_gb else psutil.virtual_memory().total / 1024**3
+            if limit_gb < 90:
                 raise NotImplementedError(
                     f"domain_deg={domain_deg} needs ~60 GB RAM; "
-                    f"only {available_gb:.0f} GB available — request a high-memory node"
+                    f"memory limit is {limit_gb:.0f} GB — request a high-memory node (>=90 GB)"
                 )
 
         self._grid = Grid(
@@ -68,7 +82,8 @@ class TopoSetFromDataset:
     def teardown(self, domain_deg):
         import shutil
 
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
+        if hasattr(self, "_tmpdir"):
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def time_set_from_dataset(self, domain_deg):
         self._topo.set_from_dataset(

@@ -81,6 +81,7 @@ class OBCRegridMerge:
             p = Path(self._tmpdir) / sub
             if p.exists():
                 shutil.rmtree(p)
+            p.mkdir(parents=True, exist_ok=True)
 
         import CrocoDash.extract_forcings.case_setup.driver as driver
         import CrocoDash.extract_forcings.regrid_dataset_piecewise as rdp
