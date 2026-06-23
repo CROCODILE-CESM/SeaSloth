@@ -54,3 +54,7 @@ class DataAccessHealth:
             return 0.0
 
     track_accessible.unit = "pass"
+
+    def time_validate(self, product_method):
+        product, method = product_method
+        ProductRegistry.validate_function(product, method)

@@ -61,7 +61,11 @@ class TopoSetFromDataset:
                     break
                 except FileNotFoundError:
                     continue
-            limit_gb = cgroup_limit_gb if cgroup_limit_gb else psutil.virtual_memory().total / 1024**3
+            limit_gb = (
+                cgroup_limit_gb
+                if cgroup_limit_gb
+                else psutil.virtual_memory().total / 1024**3
+            )
             if limit_gb < 90:
                 raise NotImplementedError(
                     f"domain_deg={domain_deg} needs ~60 GB RAM; "

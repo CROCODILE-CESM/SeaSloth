@@ -4,18 +4,25 @@
 
     "mesh_pairs": [
         {
-            "label": "coarse",
+            "label": "coarse_dst",
             "rof_mesh": "/glade/campaign/cesm/cesmdata/inputdata/lnd/dlnd7/JRA55/JRA.v1.4.runoff.1958_ESMFmesh_cdf5_20201020.nc",
-            "ocn_mesh": "/glade/derecho/scratch/manishrv/croc_input/bd.oo.10thdegree/ocnice/ESMF_mesh_open_ocean_nar_10_4ea79c.nc",
+            "ocn_mesh": "/glade/u/home/manishrv/scratch/croc_input/bd.oo.10thdegree/ocnice/ESMF_mesh_open_ocean_nar_10_4ea79c.nc",
             "rmax": 100.0,
             "fold": 25.0
         },
         {
-            "label": "fine",
+            "label": "fine_dst",
             "rof_mesh": "/glade/campaign/cesm/cesmdata/inputdata/lnd/dlnd7/JRA55/JRA.v1.4.runoff.1958_ESMFmesh_cdf5_20201020.nc",
-            "ocn_mesh": "/glade/derecho/scratch/manishrv/croc_input/bd.oo.10thdegree/ocnice/ESMF_mesh_open_ocean_nar_10_4ea79c.nc",
-            "rmax": 50.0,
-            "fold": 12.5
+            "ocn_mesh": "/glade/u/home/manishrv/scratch/croc_input/bd.oo.40thdegree/ocnice/ESMF_mesh_open_ocean_nar_40_9c060e.nc",
+            "rmax": 100.0,
+            "fold": 25.0
+        },
+        {
+            "label": "larger_dst",
+            "rof_mesh": "/glade/campaign/cesm/cesmdata/inputdata/lnd/dlnd7/JRA55/JRA.v1.4.runoff.1958_ESMFmesh_cdf5_20201020.nc",
+            "ocn_mesh": "/glade/work/emilanese/croc_input_oNWA12c20y/ocnice/ESMF_mesh_ocean_hgrid_0b29bd.nc",
+            "rmax": 100.0,
+            "fold": 25.0
         }
     ],
 

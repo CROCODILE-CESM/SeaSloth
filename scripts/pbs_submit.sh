@@ -21,7 +21,7 @@ cd "$REPO_ROOT"
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-bash scripts/run_bench.sh
+bash scripts/run_bench.sh --bench "OBCRegridMerge|TopoSetFromDataset|RunoffMapping|DataAccessHealth"
 
 echo ""
 echo "=== Done: $(date) ==="

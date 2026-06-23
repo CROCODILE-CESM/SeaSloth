@@ -3,28 +3,27 @@ Benchmarks: mom6_forge gen_rof_maps() — runoff-to-ocean mapping.
 
 gen_rof_maps() produces (1) a nearest-neighbour mapping file and (2) a smoothed
 nearest-neighbour mapping file between a river-routing (ROF) ESMF mesh and an
-ocean (OCN) ESMF mesh. Cost scales with mesh sizes and, for the smoothed map,
-with rmax/fold parameters.
+ocean (OCN) ESMF mesh. The ROF mesh is held constant (JRA55); the OCN (destination)
+mesh varies across pairs to show how cost scales with destination grid size.
+
+Cost scales with OCN mesh size (number of destination elements) and, for the
+smoothed map, with rmax/fold parameters.
 
 Requires: pre-existing ESMF mesh NetCDF files listed under "mesh_pairs" in
-data_config.json. Skipped gracefully on machines without the files.
+data_config.json. Skipped gracefully on machines without the files or insufficient
+memory.
 
-data_config.json entry (add manually):
+data_config.json entry:
   "mesh_pairs": [
     {
-      "label": "coarse",
-      "rof_mesh": "/path/to/rof_coarse.nc",
+      "label": "coarse_dst",
+      "rof_mesh": "/path/to/jra55_rof_mesh.nc",   # constant across pairs
       "ocn_mesh": "/path/to/ocn_coarse.nc",
       "rmax": 100.0,
-      "fold": 25.0
+      "fold": 25.0,
+      "min_memory_gb": 8.0                         # optional; skip if below this
     },
-    {
-      "label": "fine",
-      "rof_mesh": "/path/to/rof_fine.nc",
-      "ocn_mesh": "/path/to/ocn_fine.nc",
-      "rmax": 50.0,
-      "fold": 12.5
-    }
+    ...
   ]
 """
 
@@ -47,8 +46,40 @@ def _load_mesh_pairs():
     return cfg.get("mesh_pairs", [])
 
 
+def _check_memory(pair_dict):
+    """Raise NotImplementedError if the job's memory limit is below min_memory_gb."""
+    min_gb = pair_dict.get("min_memory_gb")
+    if not min_gb:
+        return
+    import psutil
+
+    # Prefer cgroup limit (what PBS actually enforces) over system total.
+    cgroup_limit_gb = None
+    for cgroup_path in (
+        "/sys/fs/cgroup/memory.max",
+        "/sys/fs/cgroup/memory/memory.limit_in_bytes",
+    ):
+        try:
+            val = open(cgroup_path).read().strip()
+            if val != "max":
+                cgroup_limit_gb = int(val) / 1024**3
+            break
+        except FileNotFoundError:
+            continue
+    limit_gb = (
+        cgroup_limit_gb if cgroup_limit_gb else psutil.virtual_memory().total / 1024**3
+    )
+    if limit_gb < min_gb:
+        raise NotImplementedError(
+            f"mesh pair '{pair_dict['label']}' needs ~{min_gb:.0f} GB; "
+            f"memory limit is {limit_gb:.0f} GB — request a larger node"
+        )
+
+
 _MESH_PAIRS = _load_mesh_pairs()
-_MESH_LABELS = [p["label"] for p in _MESH_PAIRS] if _MESH_PAIRS else ["(no mesh pairs configured)"]
+_MESH_LABELS = (
+    [p["label"] for p in _MESH_PAIRS] if _MESH_PAIRS else ["(no mesh pairs configured)"]
+)
 
 
 class RunoffMappingNearestNeighbour:
@@ -77,12 +108,14 @@ class RunoffMappingNearestNeighbour:
             raise NotImplementedError(f"ROF mesh not found: {rof}")
         if not ocn.exists():
             raise NotImplementedError(f"OCN mesh not found: {ocn}")
+        _check_memory(p)
         self._rof = rof
         self._ocn = ocn
         self._tmpdir = Path(tempfile.mkdtemp(prefix="seasloth_rof_"))
 
     def teardown(self, mesh_pair):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
+        if hasattr(self, "_tmpdir"):
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def time_gen_rof_maps_nn(self, mesh_pair):
         from mom6_forge.mapping import gen_rof_maps
@@ -123,6 +156,7 @@ class RunoffMappingSmoothed:
             raise NotImplementedError(f"ROF mesh not found: {rof}")
         if not ocn.exists():
             raise NotImplementedError(f"OCN mesh not found: {ocn}")
+        _check_memory(p)
         self._rof = rof
         self._ocn = ocn
         self._rmax = p.get("rmax", 100.0)
@@ -130,7 +164,8 @@ class RunoffMappingSmoothed:
         self._tmpdir = Path(tempfile.mkdtemp(prefix="seasloth_rof_sm_"))
 
     def teardown(self, mesh_pair):
-        shutil.rmtree(self._tmpdir, ignore_errors=True)
+        if hasattr(self, "_tmpdir"):
+            shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def time_gen_rof_maps_smoothed(self, mesh_pair):
         from mom6_forge.mapping import gen_rof_maps

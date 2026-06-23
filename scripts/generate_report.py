@@ -13,6 +13,7 @@ import itertools
 import json
 import math
 import os
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -78,7 +79,10 @@ def load_all_results():
             if isinstance(value, list) and value[0] is not None:
                 results = value[0]
                 params = value[1]
-                if any(v is not None and not (isinstance(v, float) and math.isnan(v)) for v in results):
+                if any(
+                    v is not None and not (isinstance(v, float) and math.isnan(v))
+                    for v in results
+                ):
                     latest[key] = (results, params)
 
     return latest
@@ -162,10 +166,18 @@ def extract_summary(all_results):
         results, params = all_results[xwt_key]
         pairs = _valid_values(results, params)
         # smallest: (300,300) src -> (150,150) dst, bilinear
-        s["xwt_small_bilinear"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "'bilinear'"))
-        s["xwt_large_bilinear"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "'bilinear'"))
-        s["xwt_small_conservative"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "'conservative'"))
-        s["xwt_large_conservative"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "'conservative'"))
+        s["xwt_small_bilinear"] = _lookup(
+            results, params, ("(300, 300)", "(150, 150)", "'bilinear'")
+        )
+        s["xwt_large_bilinear"] = _lookup(
+            results, params, ("(1500, 700)", "(700, 350)", "'bilinear'")
+        )
+        s["xwt_small_conservative"] = _lookup(
+            results, params, ("(300, 300)", "(150, 150)", "'conservative'")
+        )
+        s["xwt_large_conservative"] = _lookup(
+            results, params, ("(1500, 700)", "(700, 350)", "'conservative'")
+        )
     if xwt_mem_key in all_results:
         results, params = all_results[xwt_mem_key]
         vals = [v for _, v in _valid_values(results, params)]
@@ -185,9 +197,13 @@ def extract_summary(all_results):
     if xapp_key in all_results:
         results, params = all_results[xapp_key]
         # 1 timestep, small grid, nearest_s2d (fastest)
-        s["xapp_fast"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "1", "'nearest_s2d'"))
+        s["xapp_fast"] = _lookup(
+            results, params, ("(300, 300)", "(150, 150)", "1", "'nearest_s2d'")
+        )
         # 60 timesteps, large grid, bilinear (slowest)
-        s["xapp_slow"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "60", "'bilinear'"))
+        s["xapp_slow"] = _lookup(
+            results, params, ("(1500, 700)", "(700, 350)", "60", "'bilinear'")
+        )
         # speedup nearest vs bilinear (average across grid sizes, 60 timesteps)
         bilinear_60 = [
             _lookup(results, params, (src, dst, "60", "'bilinear'"))
@@ -206,15 +222,23 @@ def extract_summary(all_results):
     ewt_key = "esmf.bench_weights_generate.ESMFWeightsGenerate.time_generate_weights"
     if ewt_key in all_results:
         results, params = all_results[ewt_key]
-        s["ewt_small_bilinear"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "'bilinear'"))
-        s["ewt_large_bilinear"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "'bilinear'"))
+        s["ewt_small_bilinear"] = _lookup(
+            results, params, ("(300, 300)", "(150, 150)", "'bilinear'")
+        )
+        s["ewt_large_bilinear"] = _lookup(
+            results, params, ("(1500, 700)", "(700, 350)", "'bilinear'")
+        )
 
     # --- ESMF apply (raw, no xarray overhead) ---
     eapp_key = "esmf.bench_regrid_apply.ESMFRegridApply.time_apply"
     if eapp_key in all_results:
         results, params = all_results[eapp_key]
-        s["eapp_fast"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "1", "'nearest_s2d'"))
-        s["eapp_slow"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "60", "'bilinear'"))
+        s["eapp_fast"] = _lookup(
+            results, params, ("(300, 300)", "(150, 150)", "1", "'nearest_s2d'")
+        )
+        s["eapp_slow"] = _lookup(
+            results, params, ("(1500, 700)", "(700, 350)", "60", "'bilinear'")
+        )
 
     # --- Runoff mapping ---
     rof_nn_key = "mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn"
@@ -290,34 +314,37 @@ def build_narrative_html(all_results):
                 f"<b>{fmt_time(t_small)}</b>; "
                 f"a <b>{int(domain_max)}°×{int(domain_max)}°</b> domain takes "
                 f"<b>{fmt_time(t_large)}</b>."
-                if t_small and t_large else
-                f"Times range from <b>{fmt_time(s['topo_min_s'])}</b> to "
+                if t_small and t_large
+                else f"Times range from <b>{fmt_time(s['topo_min_s'])}</b> to "
                 f"<b>{fmt_time(s['topo_max_s'])}</b> across tested domain sizes."
             )
         else:
             scaling_str = (
                 f"Time: <b>{fmt_time(s['topo_min_s'])}–{fmt_time(s['topo_max_s'])}</b>."
             )
-        mem_note = f" Memory usage averages <b>~{mem_str}</b>." if mem_str != "n/a" else ""
-        paras.append(
-            f"""<h3>Bathymetry — <code>Topo.set_from_dataset()</code></h3>
+        mem_note = (
+            f" Memory usage averages <b>~{mem_str}</b>." if mem_str != "n/a" else ""
+        )
+        paras.append(f"""<h3>Bathymetry — <code>Topo.set_from_dataset()</code></h3>
 <p>The cost of loading GEBCO bathymetry and regridding it onto a model grid scales with
 <em>domain extent</em>, not destination resolution. Before regridding, the pipeline slices
 GEBCO to the model bounding box — so a larger geographic region means more source data
 to read and interpolate, regardless of how fine the destination grid is.
 {scaling_str} All grids are generated at 0.1° resolution, so larger domains also produce
-larger destination grids.{mem_note}</p>"""
-        )
+larger destination grids.{mem_note}</p>""")
 
     # xESMF / ESMF weight generation
     if "xwt_small_bilinear" in s:
         conservative_overhead = None
         if s.get("xwt_small_bilinear") and s.get("xwt_small_conservative"):
-            conservative_overhead = s["xwt_small_conservative"] / s["xwt_small_bilinear"]
+            conservative_overhead = (
+                s["xwt_small_conservative"] / s["xwt_small_bilinear"]
+            )
         conservative_str = (
             f" Conservative interpolation takes roughly {conservative_overhead:.1f}× "
             f"longer than bilinear at the same grid size."
-            if conservative_overhead else ""
+            if conservative_overhead
+            else ""
         )
         esmf_note = ""
         if "ewt_small_bilinear" in s and s.get("xwt_small_bilinear"):
@@ -343,14 +370,12 @@ generation takes <b>{fmt_time(s['xwt_small_bilinear'])}</b>; scaling up to
 
     # Locstream (OBC-style)
     if "xloc_min_s" in s:
-        paras.append(
-            f"""<h3>OBC-style (locstream) weight generation</h3>
+        paras.append(f"""<h3>OBC-style (locstream) weight generation</h3>
 <p>When the destination is a boundary line of points rather than a full grid
 (the pattern used for open-boundary conditions), weight generation is substantially
 faster: <b>{fmt_time(s['xloc_min_s'])}–{fmt_time(s['xloc_max_s'])}</b> across the
 tested source grid sizes. This is because the destination has far fewer points than
-a full 2-D grid of similar extent.</p>"""
-        )
+a full 2-D grid of similar extent.</p>""")
 
     # xESMF / ESMF apply comparison
     if "xapp_fast" in s:
@@ -362,8 +387,12 @@ a full 2-D grid of similar extent.</p>"""
             )
         esmf_apply_str = ""
         if s.get("eapp_fast") and s.get("eapp_slow"):
-            xesmf_overhead_fast = s["xapp_fast"] / s["eapp_fast"] if s["eapp_fast"] else None
-            xesmf_overhead_slow = s["xapp_slow"] / s["eapp_slow"] if s["eapp_slow"] else None
+            xesmf_overhead_fast = (
+                s["xapp_fast"] / s["eapp_fast"] if s["eapp_fast"] else None
+            )
+            xesmf_overhead_slow = (
+                s["xapp_slow"] / s["eapp_slow"] if s["eapp_slow"] else None
+            )
             if xesmf_overhead_fast and xesmf_overhead_slow:
                 esmf_apply_str = (
                     f" Raw ESMF (no xarray) applies the same pre-computed weights considerably "
@@ -404,58 +433,50 @@ not the source grid size.{speedup_str}{esmf_apply_str}</p>"""
         if s.get("rof_nn_coarse") and s.get("rof_sm_coarse"):
             r = s["rof_sm_coarse"] / s["rof_nn_coarse"]
             ratio_str = f" The smoothing step roughly doubles the wall time ({r:.1f}×)."
-        paras.append(
-            f"""<h3>Runoff mapping — <code>gen_rof_maps()</code></h3>
+        paras.append(f"""<h3>Runoff mapping — <code>gen_rof_maps()</code></h3>
 <p><code>gen_rof_maps()</code> builds ESMF regridding weight files that map river runoff from
 a land-model (ROF) mesh onto the ocean (OCN) model mesh. These weight files are computed once
-and reused for every model run. {nn_str}{sm_str}{ratio_str}
-Note that coarse and fine mesh pairs take similar time here because both pairs use the same
-underlying ESMF mesh resolution — the labels reflect the ocean grid extent, not the ROF source density.</p>"""
-        )
+and reused for every model run. The ROF source mesh is held constant (JRA55) across all pairs;
+only the OCN destination grid varies — from coarse (1/10°) through fine (1/40°) to a larger
+regional domain — so timing directly reflects how destination grid size drives cost.
+{nn_str}{sm_str}{ratio_str}</p>""")
 
     # Imports
     if "import_crocodash" in s:
-        paras.append(
-            f"""<h3>Module import times</h3>
+        paras.append(f"""<h3>Module import times</h3>
 <p>Importing CrocoDash and mom6_forge is fast enough to be negligible in any workflow:
 <code>CrocoDash.case</code> loads in <b>{fmt_time(s['import_crocodash'])}</b>,
 <code>mom6_forge.topo</code> in <b>{fmt_time(s['import_topo'])}</b>,
 and <code>mom6_forge.grid</code> / <code>mom6_forge.vgrid</code> in
-<b>{fmt_time(s['import_grid'])}</b> / <b>{fmt_time(s['import_vgrid'])}</b>.</p>"""
-        )
+<b>{fmt_time(s['import_grid'])}</b> / <b>{fmt_time(s['import_vgrid'])}</b>.</p>""")
 
     # Data health
     if "health_ok" in s:
         all_ok = s["health_ok"] == s["health_total"]
         status = "All" if all_ok else f"{s['health_ok']} of {s['health_total']}"
         color = "#1a7a3e" if all_ok else "#b85c00"
-        paras.append(
-            f"""<h3>Data source availability</h3>
-<p><span style="color:{color};font-weight:600">{status} checked data sources are accessible</span>
-(GLORYS, GEBCO, GloFAS, MOM6 output, SeaWIFS methods tested on Derecho/GLADE).
-This check runs each time benchmarks are executed and reflects live filesystem access.</p>"""
-        )
+        paras.append(f"""<h3>Data source availability</h3>
+<p><span style="color:{color};font-weight:600">{status} checked data sources are accessible.</span>
+Each method is validated on every benchmark run; the chart below shows pass/fail status and
+how long each validation took. Bar length is validation wall time (log scale); bar colour is
+green for working, red for failing or timed out.</p>""")
 
     # Missing benchmarks
     if missing_benchmarks:
         items = "".join(f"<li>{m}</li>" for m in missing_benchmarks)
-        paras.append(
-            f"""<h3>Not yet measured</h3>
+        paras.append(f"""<h3>Not yet measured</h3>
 <p>The following benchmark suites exist in the codebase but have no results yet because
 they depend on data files that are not configured in <code>data_config.json</code>:</p>
-<ul>{items}</ul>"""
-        )
+<ul>{items}</ul>""")
 
     # xESMF/ESMF stability note
-    paras.append(
-        """<h3>A note on xESMF and ESMF benchmarks</h3>
+    paras.append("""<h3>A note on xESMF and ESMF benchmarks</h3>
 <p>xESMF and ESMF are external libraries — they are not part of CrocoDash or mom6_forge and
 their performance will <em>not</em> change from commit to commit on those repos.
 These benchmarks serve as a stable reference: they tell you how fast the underlying regridding
 engine is on this machine, independently of any CROC code changes.
 If these numbers change significantly between runs, suspect a different library version,
-different node type, or different CPU load — not a regression in CROC code.</p>"""
-    )
+different node type, or different CPU load — not a regression in CROC code.</p>""")
 
     inner = "\n".join(paras)
     return f"""
@@ -465,6 +486,104 @@ different node type, or different CPU load — not a regression in CROC code.</p
 {inner}
   </div>
 </section>"""
+
+
+_HEALTH_KEYS = {
+    "accessible": "crocodash.bench_raw_data_access.DataAccessHealth.track_accessible",
+    "timing": "crocodash.bench_raw_data_access.DataAccessHealth.time_validate",
+}
+
+
+def _parse_pm(param_str):
+    """'('glorys', 'get_data')' → ('glorys', 'get_data')"""
+    m = re.findall(r"'([^']+)'", param_str)
+    return (m[0], m[1]) if len(m) >= 2 else (param_str, "")
+
+
+def make_health_chart(all_results):
+    """
+    Horizontal bar chart: one row per (product, method).
+    Bar length = validation time (log scale). Green = pass, red = fail/timeout.
+    """
+    h_key = _HEALTH_KEYS["accessible"]
+    t_key = _HEALTH_KEYS["timing"]
+    if h_key not in all_results:
+        return None
+
+    h_results, h_params = all_results[h_key]
+    h_combos = list(itertools.product(*h_params))
+
+    # Build timing lookup
+    time_lookup = {}
+    if t_key in all_results:
+        t_results, t_params = all_results[t_key]
+        for combo, t in zip(itertools.product(*t_params), t_results):
+            time_lookup[combo] = t
+
+    rows = []
+    for combo, h in zip(h_combos, h_results):
+        if h is None:
+            continue
+        product, method = _parse_pm(combo[0])
+        label = f"{product} / {method.replace('_', ' ')}"
+        ok = h == 1.0
+        t = time_lookup.get(combo)
+        valid_t = (
+            t
+            if (t is not None and not (isinstance(t, float) and math.isnan(t)))
+            else None
+        )
+        rows.append((label, ok, valid_t))
+
+    if not rows:
+        return None
+
+    TIMEOUT = 120.0
+    STUB = 0.05  # seconds — stub bar for failed/no-time rows
+
+    n = len(rows)
+    fig, ax = plt.subplots(figsize=(7, max(3, n * 0.5 + 0.8)))
+
+    for i, (label, ok, t) in enumerate(rows):
+        color = "#2a9d5c" if ok else "#c0392b"
+        bar_len = t if (ok and t) else STUB
+        ax.barh(i, bar_len, color=color, alpha=0.85, height=0.55)
+        if ok and t:
+            txt = f"✓  {fmt_time(t)}"
+            txt_color = "#155a30"
+        elif ok:
+            txt = "✓"
+            txt_color = "#155a30"
+        else:
+            txt = "✗  timeout" if (t is None) else "✗"
+            txt_color = "#7b1e1e"
+        ax.text(bar_len * 1.15, i, txt, va="center", fontsize=8, color=txt_color)
+
+    ax.set_yticks(range(n))
+    ax.set_yticklabels([r[0] for r in rows], fontsize=8)
+    ax.set_xlabel("validation time (s, log scale)")
+    ax.set_xscale("log")
+    ax.axvline(TIMEOUT, color="#aaa", linewidth=0.8, linestyle="--")
+    ax.text(
+        TIMEOUT,
+        n - 0.5,
+        f" {TIMEOUT:.0f}s\n timeout",
+        fontsize=7,
+        color="#999",
+        va="top",
+    )
+    ax.invert_yaxis()
+    ax.set_xlim(left=STUB * 0.5)
+    ax.yaxis.grid(False)
+    ax.xaxis.grid(True, alpha=0.25)
+    ax.set_axisbelow(True)
+
+    plt.tight_layout()
+    buf = io.BytesIO()
+    fig.savefig(buf, format="png", dpi=130, bbox_inches="tight")
+    plt.close(fig)
+    buf.seek(0)
+    return base64.b64encode(buf.read()).decode()
 
 
 def make_chart(bench_key, results, params):
@@ -489,7 +608,9 @@ def make_chart(bench_key, results, params):
     unit = infer_unit(bench_key)
 
     all_values = [r for _, r in valid_pairs]
-    finite = [v for v in all_values if v and not (isinstance(v, float) and math.isnan(v))]
+    finite = [
+        v for v in all_values if v and not (isinstance(v, float) and math.isnan(v))
+    ]
     use_log = len(finite) > 1 and max(finite) / min(finite) > 100
 
     def fmt_val(v):
@@ -543,8 +664,17 @@ def make_chart(bench_key, results, params):
         for i, g in enumerate(group_vals):
             offsets = [j + i * width for j in range(n_x)]
             values = [lookup.get((xc, g), np.nan) for xc in x_combos]
-            bars = ax.bar(offsets, values, width=width, label=short(g), color=colors[i], alpha=0.88)
-            ax.bar_label(bars, labels=[fmt_val(v) for v in values], padding=2, fontsize=7)
+            bars = ax.bar(
+                offsets,
+                values,
+                width=width,
+                label=short(g),
+                color=colors[i],
+                alpha=0.88,
+            )
+            ax.bar_label(
+                bars, labels=[fmt_val(v) for v in values], padding=2, fontsize=7
+            )
 
         center = (n_g - 1) * width / 2
         x_labels = [" × ".join(short(v) for v in xc) for xc in x_combos]
@@ -593,38 +723,55 @@ def build_html(all_results):
         suite = key.split(".")[0]
         by_suite.setdefault(suite, {})[key] = (results, params)
 
+    # Build combined health chart once; its keys are skipped in the generic loop.
+    health_b64 = make_health_chart(all_results)
+    health_card = ""
+    if health_b64:
+        health_card = f"""
+        <div class="card">
+          <h3>DataAccessHealth — all products</h3>
+          <div class="params">green = accessible &nbsp;|&nbsp; red = failed / timed out &nbsp;|&nbsp; bar = validation time</div>
+          <img src="data:image/png;base64,{health_b64}" alt="DataAccessHealth">
+        </div>"""
+
     sections = []
     for suite, benchmarks in sorted(by_suite.items()):
         suite_label = SUITE_LABELS.get(suite, suite)
         cards = []
+
+        # Insert the combined health card in the crocodash section.
+        if suite == "crocodash" and health_card:
+            cards.append(health_card)
+
         for key, (results, params) in sorted(benchmarks.items()):
+            # Health keys are handled by make_health_chart above — skip individual charts.
+            if key in _HEALTH_KEYS.values():
+                continue
             b64 = make_chart(key, results, params)
             if b64 is None:
                 continue
             name = bench_display_name(key)
             param_info = param_table_html(params)
-            cards.append(
-                f"""
+            cards.append(f"""
         <div class="card">
           <h3>{name}</h3>
           <div class="params">{param_info}</div>
           <img src="data:image/png;base64,{b64}" alt="{name}">
-        </div>"""
-            )
+        </div>""")
 
         if not cards:
             continue
 
-        sections.append(
-            f"""
+        sections.append(f"""
     <section>
       <h2>{suite_label}</h2>
       <div class="grid">{"".join(cards)}
       </div>
-    </section>"""
-        )
+    </section>""")
 
-    chart_body = "\n".join(sections) if sections else "<p>No benchmark results found.</p>"
+    chart_body = (
+        "\n".join(sections) if sections else "<p>No benchmark results found.</p>"
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
