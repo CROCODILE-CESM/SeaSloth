@@ -1023,3 +1023,1039 @@ Running: asv run --set-commit-hash a90e282a108983c5f01b357214d6b9e647762a0e
                (1500, 700)       100000       nearest_s2d   166.52734375 
               ============= ================ ============= ==============
 
+=== SeaSloth HPC benchmarks: Mon Jun 22 01:19:39 PM MDT 2026 ===
+Node: crhtc70
+CrocoDash: a90e282a108983c5f01b357214d6b9e647762a0e
+Running: asv run --set-commit-hash a90e282a108983c5f01b357214d6b9e647762a0e 
+
+· Fetching recent changes
+· Discovering benchmarks
+· Running 18 total benchmarks (1 commits * 1 environments * 18 benchmarks)
+[ 0.00%] · For SeaSloth commit a90e282a <main>:
+[ 0.00%] ·· Building for existing-py_glade_work_manishrv_conda-envs_CrocoDash_bin_python
+[ 0.00%] ·· Benchmarking existing-py_glade_work_manishrv_conda-envs_CrocoDash_bin_python
+[ 2.78%] ··· Running (crocodash.bench_imports.CrocoDashImports.time_import--)...
+[16.67%] ··· Running (esmf.bench_weights_generate.ESMFWeightsGenerate.time_generate_weights--).
+[22.22%] ··· Running (mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn--).
+[25.00%] ··· Running (mom6_forge.bench_runoff_mapping.RunoffMappingSmoothed.time_gen_rof_maps_smoothed--).
+[27.78%] ··· Running (mom6_forge.bench_topo.TopoSetFromDataset.time_set_from_dataset--).
+[33.33%] ··· Running (xesmf.bench_regrid_apply.XESMFRegridApply.time_apply--).
+[38.89%] ··· Running (xesmf.bench_regrid_apply.XESMFRegridApplyLocstream.time_apply--).
+[41.67%] ··· Running (xesmf.bench_weights_generate.XESMFWeightsGenerate.time_generate_weights--).
+[47.22%] ··· Running (xesmf.bench_weights_generate.XESMFWeightsGenerateLocstream.time_generate_weights--).
+[52.78%] ··· ...h.bench_imports.CrocoDashImports.time_import                 ok
+[52.78%] ··· ================== =============
+                   module                    
+             ------------------ -------------
+               CrocoDash.case     6.99±0.7ms 
+              mom6_forge.grid    1.69±0.02ms 
+              mom6_forge.topo    3.59±0.04ms 
+              mom6_forge.vgrid   1.23±0.01ms 
+             ================== =============
+
+[55.56%] ··· ...nch_obc.OBCRegridMerge.time_regrid_and_merge             failed
+[55.56%] ··· =========== ========
+              step_days          
+             ----------- --------
+                  5       failed 
+                  15      failed 
+                  30      failed 
+             =========== ========
+             For parameters: 5
+             Traceback (most recent call last):
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/server.py", line 179, in _run_server
+                 _run(run_args)
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/run.py", line 79, in _run
+                 benchmark.do_teardown()
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/benchmarks/_base.py", line 651, in do_teardown
+                 teardown(*self._current_params)
+               File "/glade/u/home/manishrv/documents/croc/dev/SeaSloth/benchmarks/crocodash/bench_obc.py", line 76, in teardown
+                 shutil.rmtree(self._tmpdir, ignore_errors=True)
+                               ^^^^^^^^^^^^
+             AttributeError: 'OBCRegridMerge' object has no attribute '_tmpdir'
+             asv: skipped: NotImplementedError('obc_step_days_dirs[5] not set or missing — pre-stage GLORYS chunks and set in data_config.json')
+             
+             For parameters: 15
+             Traceback (most recent call last):
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/server.py", line 179, in _run_server
+                 _run(run_args)
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/run.py", line 79, in _run
+                 benchmark.do_teardown()
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/benchmarks/_base.py", line 651, in do_teardown
+                 teardown(*self._current_params)
+               File "/glade/u/home/manishrv/documents/croc/dev/SeaSloth/benchmarks/crocodash/bench_obc.py", line 76, in teardown
+                 shutil.rmtree(self._tmpdir, ignore_errors=True)
+                               ^^^^^^^^^^^^
+             AttributeError: 'OBCRegridMerge' object has no attribute '_tmpdir'
+             asv: skipped: NotImplementedError('obc_step_days_dirs[15] not set or missing — pre-stage GLORYS chunks and set in data_config.json')
+             
+             For parameters: 30
+             2026-06-22 19:20:56,023 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - Parsing Raw Data Folder
+             2026-06-22 19:20:56,028 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - All boundaries continuous and non-overlapping.
+             2026-06-22 19:20:56,028 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - Setting up required information
+             2026-06-22 19:20:56,031 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - Starting regridding
+             No arakawa_grid provided, assuming the variable mapping for your data product is already in correct format.
+             Arakawa A grid detected in variable mapping
+             2026-06-22 19:21:01,971 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - Saving regridding file as forcing_obc_segment_003_20000101_20000130.nc
+             No arakawa_grid provided, assuming the variable mapping for your data product is already in correct format.
+             Arakawa A grid detected in variable mapping
+             2026-06-22 19:21:02,504 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - Saving regridding file as forcing_obc_segment_001_20000101_20000130.nc
+             No arakawa_grid provided, assuming the variable mapping for your data product is already in correct format.
+             Arakawa A grid detected in variable mapping
+             2026-06-22 19:21:02,920 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - Saving regridding file as forcing_obc_segment_004_20000101_20000130.nc
+             No arakawa_grid provided, assuming the variable mapping for your data product is already in correct format.
+             Arakawa A grid detected in variable mapping
+             2026-06-22 19:21:03,456 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - Saving regridding file as forcing_obc_segment_002_20000101_20000130.nc
+             2026-06-22 19:21:03,457 - CrocoDash.extract_forcings.regrid_dataset_piecewise.regrid_dataset_piecewise - INFO - Finished regridding
+             2026-06-22 19:21:03,457 - CrocoDash.extract_forcings.merge_piecewise_dataset.merge_piecewise_dataset - INFO - Parsing Regridded Data Folder
+             2026-06-22 19:21:03,458 - CrocoDash.extract_forcings.merge_piecewise_dataset.merge_piecewise_dataset - INFO - All boundaries continuous and non-overlapping.
+             2026-06-22 19:21:03,458 - CrocoDash.extract_forcings.merge_piecewise_dataset.merge_piecewise_dataset - INFO - Merging Files
+             Traceback (most recent call last):
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/file_manager.py", line 219, in _acquire_with_cache_info
+                 file = self._cache[self._key]
+                        ~~~~~~~~~~~^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/lru_cache.py", line 56, in __getitem__
+                 value = self._cache[key]
+                         ~~~~~~~~~~~^^^^^
+             KeyError: [<class 'netCDF4._netCDF4.Dataset'>, ('/glade/derecho/scratch/manishrv/tmp/seasloth_obc_n0uoor0f/output/forcing_obc_segment_001.nc',), 'a', (('clobber', True), ('diskless', False), ('format', 'NETCDF4'), ('persist', False)), 'ad2cbb2f-7cd5-4a96-9a98-43bc1db5c98a']
+             
+             During handling of the above exception, another exception occurred:
+             
+             Traceback (most recent call last):
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/server.py", line 179, in _run_server
+                 _run(run_args)
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/run.py", line 72, in _run
+                 result = benchmark.do_run()
+                          ^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/benchmarks/_base.py", line 661, in do_run
+                 return self.run(*self._current_params)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/benchmarks/time.py", line 165, in run
+                 samples, number = self.benchmark_timing(
+                                   ^^^^^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/benchmarks/time.py", line 258, in benchmark_timing
+                 timing = timer.timeit(number)
+                          ^^^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/timeit.py", line 180, in timeit
+                 timing = self.inner(it, self.timer)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+               File "<timeit-src>", line 6, in inner
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/asv_runner/benchmarks/time.py", line 90, in func
+                 self.func(*param)
+               File "/glade/u/home/manishrv/documents/croc/dev/SeaSloth/benchmarks/crocodash/bench_obc.py", line 102, in time_regrid_and_merge
+                 mpd.merge_piecewise_dataset(
+               File "/glade/u/home/manishrv/documents/croc/regional_mom_workflows/CrocoDash/CrocoDash/extract_forcings/merge_piecewise_dataset.py", line 110, in merge_piecewise_dataset
+                 ds.to_netcdf(output_path)
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/core/dataset.py", line 2123, in to_netcdf
+                 return to_netcdf(  # type: ignore[return-value]  # mypy cannot resolve the overloads:(
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/writers.py", line 422, in to_netcdf
+                 store = get_writable_netcdf_store(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/writers.py", line 78, in get_writable_netcdf_store
+                 return store_open(target, mode=mode, format=format, **kwargs)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/netCDF4_.py", line 529, in open
+                 return cls(manager, group=group, mode=mode, lock=lock, autoclose=autoclose)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/netCDF4_.py", line 429, in __init__
+                 self.format = self.ds.data_model
+                               ^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/netCDF4_.py", line 538, in ds
+                 return self._acquire()
+                        ^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/netCDF4_.py", line 532, in _acquire
+                 with self._manager.acquire_context(needs_lock) as root:
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/contextlib.py", line 137, in __enter__
+                 return next(self.gen)
+                        ^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/file_manager.py", line 207, in acquire_context
+                 file, cached = self._acquire_with_cache_info(needs_lock)
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               File "/glade/work/manishrv/conda-envs/CrocoDash/lib/python3.11/site-packages/xarray/backends/file_manager.py", line 225, in _acquire_with_cache_info
+                 file = self._opener(*self._args, **kwargs)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               File "src/netCDF4/_netCDF4.pyx", line 2521, in netCDF4._netCDF4.Dataset.__init__
+               File "src/netCDF4/_netCDF4.pyx", line 2158, in netCDF4._netCDF4._ensure_nc_success
+             PermissionError: [Errno 13] Permission denied: '/glade/derecho/scratch/manishrv/tmp/seasloth_obc_n0uoor0f/output/forcing_obc_segment_001.nc'
+
+[58.33%] ··· ...ata_access.DataAccessHealth.track_accessible        1/10 failed
+[58.33%] ··· ============================================================ ========
+                                    product_method                                
+             ------------------------------------------------------------ --------
+                       ('gebco', 'get_gebco_data_with_python')             failed 
+                          ('gebco', 'get_gebco_data_script')                1.0   
+                      ('glofas', 'get_global_data_with_python')             1.0   
+               ('glofas', 'get_processed_global_glofas_script_for_cli')     1.0   
+                        ('glorys', 'get_glorys_data_from_rda')              1.0   
+                      ('glorys', 'get_glorys_data_from_cds_api')            1.0   
+                     ('glorys', 'get_glorys_data_script_for_cli')           1.0   
+                           ('mom6_output', 'get_mom6_data')                 1.0   
+                   ('seawifs', 'get_global_seawifs_script_for_cli')         1.0   
+              ('seawifs', 'get_processed_global_seawifs_script_for_cli')    1.0   
+             ============================================================ ========
+             For parameters: ('gebco', 'get_gebco_data_with_python')
+             
+             
+             asv: benchmark timed out (timeout 120s)
+             
+             For parameters: ('glofas', 'get_global_data_with_python')
+             2026-06-22 20:26:02,831 - GLOFAS.validate_method - ERROR - Validation failed for glofas.get_global_data_with_python: unsupported operand type(s) for /: 'str' and 'str'
+             
+             For parameters: ('glorys', 'get_glorys_data_from_rda')
+             2026-06-22 20:26:03,055 - GLORYS.get_glorys_data_from_rda - INFO - Downloading Glorys data from RDA to /glade/derecho/scratch/manishrv/tmp/tmpyzgeyu_g/test_file.notreal
+             
+             For parameters: ('glorys', 'get_glorys_data_from_cds_api')
+             INFO - 2026-06-22T20:26:12Z - Selected dataset version: "202311"
+             INFO - 2026-06-22T20:26:12Z - Selected dataset part: "default"
+             INFO - 2026-06-22T20:26:24Z - Starting download. Please wait...
+             
+               0%|          | 0/7239 [00:00<?, ?it/s]
+               0%|          | 1/7239 [00:00<54:52,  2.20it/s]
+               0%|          | 12/7239 [00:00<04:42, 25.55it/s]
+               0%|          | 20/7239 [00:00<03:24, 35.33it/s]
+               0%|          | 26/7239 [00:01<06:05, 19.74it/s]
+               0%|          | 33/7239 [00:01<04:41, 25.56it/s]
+               1%|          | 72/7239 [00:01<01:32, 77.55it/s]
+               1%|▏         | 94/7239 [00:01<01:14, 96.53it/s]
+               1%|▏         | 108/7239 [00:01<01:16, 92.67it/s]
+               2%|▏         | 120/7239 [00:01<01:13, 96.31it/s]
+               2%|▏         | 135/7239 [00:02<01:08, 103.19it/s]
+               2%|▏         | 161/7239 [00:02<00:54, 128.85it/s]
+               3%|▎         | 199/7239 [00:02<00:43, 161.92it/s]
+               3%|▎         | 228/7239 [00:02<00:37, 188.51it/s]
+               4%|▎         | 261/7239 [00:02<00:34, 204.86it/s]
+               4%|▍         | 297/7239 [00:02<00:32, 216.61it/s]
+               4%|▍         | 324/7239 [00:02<00:31, 218.09it/s]
+               5%|▍         | 357/7239 [00:03<00:30, 223.38it/s]
+               5%|▌         | 388/7239 [00:03<00:30, 225.00it/s]
+               6%|▌         | 424/7239 [00:03<00:29, 233.80it/s]
+               6%|▌         | 449/7239 [00:03<00:30, 222.08it/s]
+               7%|▋         | 485/7239 [00:03<00:29, 230.01it/s]
+               7%|▋         | 508/7239 [00:03<00:31, 214.58it/s]
+               7%|▋         | 540/7239 [00:03<00:32, 208.32it/s]
+               8%|▊         | 561/7239 [00:04<00:36, 181.57it/s]
+               8%|▊         | 581/7239 [00:04<00:36, 183.25it/s]
+               8%|▊         | 603/7239 [00:04<00:34, 190.66it/s]
+               9%|▊         | 623/7239 [00:04<00:36, 181.99it/s]
+               9%|▉         | 653/7239 [00:04<00:34, 192.15it/s]
+               9%|▉         | 673/7239 [00:04<00:35, 184.84it/s]
+              10%|▉         | 692/7239 [00:04<00:38, 172.20it/s]
+              10%|▉         | 710/7239 [00:04<00:38, 169.22it/s]
+              10%|█         | 737/7239 [00:05<00:36, 179.15it/s]
+              11%|█         | 764/7239 [00:05<00:37, 173.75it/s]
+              11%|█         | 792/7239 [00:05<00:32, 196.10it/s]
+              11%|█         | 814/7239 [00:05<00:34, 185.77it/s]
+              12%|█▏        | 833/7239 [00:05<00:35, 180.02it/s]
+              12%|█▏        | 852/7239 [00:05<00:35, 180.35it/s]
+              12%|█▏        | 872/7239 [00:05<00:36, 172.75it/s]
+              12%|█▏        | 898/7239 [00:05<00:32, 194.28it/s]
+              13%|█▎        | 918/7239 [00:06<00:42, 149.04it/s]
+              13%|█▎        | 948/7239 [00:06<00:39, 159.34it/s]
+              13%|█▎        | 977/7239 [00:06<00:35, 178.00it/s]
+              14%|█▍        | 997/7239 [00:06<00:37, 166.07it/s]
+              14%|█▍        | 1025/7239 [00:06<00:34, 178.15it/s]
+              15%|█▍        | 1052/7239 [00:06<00:35, 172.23it/s]
+              15%|█▍        | 1080/7239 [00:06<00:32, 189.66it/s]
+              15%|█▌        | 1100/7239 [00:07<00:32, 186.86it/s]
+              15%|█▌        | 1121/7239 [00:07<00:32, 186.44it/s]
+              16%|█▌        | 1141/7239 [00:07<00:36, 167.15it/s]
+              16%|█▌        | 1160/7239 [00:07<00:38, 159.54it/s]
+              16%|█▋        | 1186/7239 [00:07<00:32, 183.59it/s]
+              17%|█▋        | 1206/7239 [00:07<00:33, 177.66it/s]
+              17%|█▋        | 1229/7239 [00:07<00:31, 190.88it/s]
+              17%|█▋        | 1249/7239 [00:07<00:37, 160.58it/s]
+              18%|█▊        | 1267/7239 [00:08<00:39, 152.54it/s]
+              18%|█▊        | 1296/7239 [00:08<00:35, 169.43it/s]
+              18%|█▊        | 1318/7239 [00:08<00:35, 167.22it/s]
+              18%|█▊        | 1336/7239 [00:08<00:40, 146.42it/s]
+              19%|█▉        | 1368/7239 [00:08<00:34, 171.28it/s]
+              19%|█▉        | 1390/7239 [00:08<00:34, 168.73it/s]
+              19%|█▉        | 1408/7239 [00:09<00:40, 144.49it/s]
+              20%|█▉        | 1440/7239 [00:09<00:34, 168.16it/s]
+              20%|██        | 1462/7239 [00:09<00:34, 166.87it/s]
+              20%|██        | 1480/7239 [00:09<00:39, 145.71it/s]
+              21%|██        | 1512/7239 [00:09<00:34, 167.57it/s]
+              21%|██        | 1534/7239 [00:09<00:34, 166.48it/s]
+              21%|██▏       | 1551/7239 [00:09<00:38, 146.06it/s]
+              22%|██▏       | 1584/7239 [00:10<00:34, 163.41it/s]
+              22%|██▏       | 1606/7239 [00:10<00:34, 163.76it/s]
+              22%|██▏       | 1623/7239 [00:10<00:39, 141.37it/s]
+              23%|██▎       | 1656/7239 [00:10<00:33, 166.22it/s]
+              23%|██▎       | 1678/7239 [00:10<00:33, 165.93it/s]
+              23%|██▎       | 1695/7239 [00:10<00:37, 147.88it/s]
+              24%|██▎       | 1717/7239 [00:10<00:34, 162.34it/s]
+              24%|██▍       | 1734/7239 [00:11<00:36, 152.65it/s]
+              24%|██▍       | 1764/7239 [00:11<00:32, 170.97it/s]
+              25%|██▍       | 1782/7239 [00:11<00:34, 158.90it/s]
+              25%|██▍       | 1800/7239 [00:11<00:33, 162.39it/s]
+              25%|██▌       | 1817/7239 [00:11<00:33, 163.11it/s]
+              25%|██▌       | 1837/7239 [00:11<00:33, 162.07it/s]
+              26%|██▌       | 1854/7239 [00:11<00:35, 150.51it/s]
+              26%|██▌       | 1873/7239 [00:11<00:34, 156.06it/s]
+              26%|██▌       | 1889/7239 [00:12<00:35, 151.75it/s]
+              26%|██▋       | 1909/7239 [00:12<00:32, 161.79it/s]
+              27%|██▋       | 1926/7239 [00:12<00:33, 159.76it/s]
+              27%|██▋       | 1948/7239 [00:12<00:39, 133.48it/s]
+              28%|██▊       | 1997/7239 [00:12<00:27, 193.93it/s]
+              28%|██▊       | 2017/7239 [00:12<00:28, 183.54it/s]
+              28%|██▊       | 2059/7239 [00:12<00:23, 218.47it/s]
+              29%|██▉       | 2086/7239 [00:13<00:24, 212.58it/s]
+              29%|██▉       | 2117/7239 [00:13<00:23, 217.01it/s]
+              30%|██▉       | 2153/7239 [00:13<00:22, 225.25it/s]
+              30%|███       | 2178/7239 [00:13<00:23, 219.05it/s]
+              31%|███       | 2214/7239 [00:13<00:22, 224.23it/s]
+              31%|███       | 2245/7239 [00:13<00:21, 232.54it/s]
+              31%|███▏      | 2278/7239 [00:13<00:21, 236.01it/s]
+              32%|███▏      | 2305/7239 [00:13<00:22, 216.09it/s]
+              32%|███▏      | 2338/7239 [00:14<00:23, 212.90it/s]
+              33%|███▎      | 2360/7239 [00:14<00:26, 187.56it/s]
+              33%|███▎      | 2384/7239 [00:14<00:24, 195.59it/s]
+              33%|███▎      | 2410/7239 [00:14<00:24, 200.10it/s]
+              34%|███▎      | 2431/7239 [00:14<00:28, 170.09it/s]
+              34%|███▍      | 2457/7239 [00:14<00:27, 172.88it/s]
+              34%|███▍      | 2485/7239 [00:14<00:24, 190.26it/s]
+              35%|███▍      | 2507/7239 [00:15<00:25, 182.24it/s]
+              35%|███▍      | 2529/7239 [00:15<00:28, 166.19it/s]
+              35%|███▌      | 2562/7239 [00:15<00:25, 184.02it/s]
+              36%|███▌      | 2582/7239 [00:15<00:25, 179.73it/s]
+              36%|███▌      | 2601/7239 [00:15<00:25, 181.52it/s]
+              36%|███▋      | 2625/7239 [00:15<00:23, 196.28it/s]
+              37%|███▋      | 2646/7239 [00:15<00:25, 179.07it/s]
+              37%|███▋      | 2670/7239 [00:16<00:24, 183.06it/s]
+              37%|███▋      | 2690/7239 [00:16<00:25, 179.54it/s]
+              37%|███▋      | 2709/7239 [00:16<00:27, 165.72it/s]
+              38%|███▊      | 2737/7239 [00:16<00:25, 178.93it/s]
+              38%|███▊      | 2756/7239 [00:16<00:26, 169.50it/s]
+              38%|███▊      | 2781/7239 [00:16<00:27, 161.49it/s]
+              39%|███▉      | 2814/7239 [00:16<00:23, 185.55it/s]
+              39%|███▉      | 2833/7239 [00:16<00:25, 175.27it/s]
+              39%|███▉      | 2851/7239 [00:17<00:26, 167.45it/s]
+              40%|███▉      | 2870/7239 [00:17<00:25, 171.04it/s]
+              40%|███▉      | 2889/7239 [00:17<00:26, 161.62it/s]
+              40%|████      | 2922/7239 [00:17<00:23, 183.23it/s]
+              41%|████      | 2942/7239 [00:17<00:23, 179.99it/s]
+              41%|████      | 2961/7239 [00:17<00:24, 171.16it/s]
+              41%|████▏     | 2992/7239 [00:17<00:20, 206.13it/s]
+              42%|████▏     | 3014/7239 [00:17<00:24, 174.11it/s]
+              42%|████▏     | 3033/7239 [00:18<00:25, 164.65it/s]
+              42%|████▏     | 3061/7239 [00:18<00:23, 177.81it/s]
+              43%|████▎     | 3080/7239 [00:18<00:23, 179.42it/s]
+              43%|████▎     | 3099/7239 [00:18<00:23, 172.78it/s]
+              43%|████▎     | 3119/7239 [00:18<00:24, 165.48it/s]
+              43%|████▎     | 3136/7239 [00:18<00:27, 150.14it/s]
+              44%|████▎     | 3158/7239 [00:18<00:25, 160.06it/s]
+              44%|████▍     | 3175/7239 [00:18<00:26, 151.54it/s]
+              44%|████▍     | 3205/7239 [00:19<00:23, 171.84it/s]
+              45%|████▍     | 3223/7239 [00:19<00:24, 163.59it/s]
+              45%|████▍     | 3241/7239 [00:19<00:24, 165.22it/s]
+              45%|████▌     | 3258/7239 [00:19<00:26, 151.89it/s]
+              45%|████▌     | 3280/7239 [00:19<00:26, 147.26it/s]
+              46%|████▌     | 3313/7239 [00:19<00:24, 161.03it/s]
+              46%|████▌     | 3330/7239 [00:19<00:24, 161.78it/s]
+              46%|████▋     | 3349/7239 [00:20<00:23, 165.01it/s]
+              46%|████▋     | 3366/7239 [00:20<00:23, 164.70it/s]
+              47%|████▋     | 3385/7239 [00:20<00:23, 161.03it/s]
+              47%|████▋     | 3402/7239 [00:20<00:24, 156.98it/s]
+              47%|████▋     | 3421/7239 [00:20<00:24, 157.06it/s]
+              48%|████▊     | 3443/7239 [00:20<00:22, 168.50it/s]
+              48%|████▊     | 3460/7239 [00:20<00:26, 144.82it/s]
+              48%|████▊     | 3482/7239 [00:20<00:24, 155.90it/s]
+              48%|████▊     | 3499/7239 [00:21<00:24, 150.25it/s]
+              49%|████▊     | 3526/7239 [00:21<00:20, 177.80it/s]
+              49%|████▉     | 3545/7239 [00:21<00:23, 155.74it/s]
+              49%|████▉     | 3565/7239 [00:21<00:23, 154.08it/s]
+              49%|████▉     | 3581/7239 [00:21<00:24, 151.98it/s]
+              50%|████▉     | 3601/7239 [00:21<00:22, 161.72it/s]
+              50%|████▉     | 3618/7239 [00:21<00:23, 151.37it/s]
+              50%|█████     | 3638/7239 [00:21<00:23, 150.99it/s]
+              51%|█████     | 3660/7239 [00:22<00:23, 154.97it/s]
+              51%|█████     | 3677/7239 [00:22<00:25, 142.29it/s]
+              51%|█████▏    | 3710/7239 [00:22<00:21, 163.77it/s]
+              52%|█████▏    | 3732/7239 [00:22<00:21, 164.27it/s]
+              52%|█████▏    | 3749/7239 [00:22<00:25, 139.29it/s]
+              52%|█████▏    | 3798/7239 [00:22<00:17, 199.26it/s]
+              53%|█████▎    | 3819/7239 [00:22<00:18, 189.21it/s]
+              53%|█████▎    | 3860/7239 [00:23<00:15, 219.09it/s]
+              54%|█████▎    | 3887/7239 [00:23<00:15, 214.35it/s]
+              54%|█████▍    | 3918/7239 [00:23<00:15, 215.25it/s]
+              55%|█████▍    | 3954/7239 [00:23<00:14, 228.54it/s]
+              55%|█████▍    | 3979/7239 [00:23<00:15, 217.32it/s]
+              55%|█████▌    | 4015/7239 [00:23<00:14, 228.52it/s]
+              56%|█████▌    | 4046/7239 [00:23<00:13, 230.83it/s]
+              56%|█████▋    | 4079/7239 [00:24<00:13, 235.62it/s]
+              57%|█████▋    | 4106/7239 [00:24<00:14, 221.89it/s]
+              57%|█████▋    | 4130/7239 [00:24<00:14, 220.49it/s]
+              57%|█████▋    | 4153/7239 [00:24<00:16, 189.58it/s]
+              58%|█████▊    | 4173/7239 [00:24<00:15, 191.69it/s]
+              58%|█████▊    | 4202/7239 [00:24<00:14, 210.55it/s]
+              58%|█████▊    | 4224/7239 [00:24<00:16, 184.71it/s]
+              59%|█████▊    | 4244/7239 [00:24<00:16, 184.80it/s]
+              59%|█████▉    | 4267/7239 [00:25<00:15, 187.85it/s]
+              59%|█████▉    | 4291/7239 [00:25<00:14, 198.39it/s]
+              60%|█████▉    | 4312/7239 [00:25<00:16, 176.96it/s]
+              60%|█████▉    | 4339/7239 [00:25<00:15, 183.50it/s]
+              60%|██████    | 4366/7239 [00:25<00:15, 185.08it/s]
+              61%|██████    | 4387/7239 [00:25<00:14, 191.07it/s]
+              61%|██████    | 4407/7239 [00:25<00:15, 188.19it/s]
+              61%|██████    | 4430/7239 [00:25<00:14, 197.83it/s]
+              61%|██████▏   | 4451/7239 [00:26<00:14, 193.68it/s]
+              62%|██████▏   | 4474/7239 [00:26<00:15, 180.92it/s]
+              62%|██████▏   | 4493/7239 [00:26<00:15, 173.93it/s]
+              62%|██████▏   | 4511/7239 [00:26<00:16, 169.39it/s]
+              63%|██████▎   | 4538/7239 [00:26<00:15, 177.31it/s]
+              63%|██████▎   | 4556/7239 [00:26<00:16, 162.81it/s]
+              63%|██████▎   | 4591/7239 [00:26<00:14, 188.54it/s]
+              64%|██████▎   | 4613/7239 [00:26<00:14, 181.37it/s]
+              64%|██████▍   | 4635/7239 [00:27<00:14, 176.25it/s]
+              64%|██████▍   | 4654/7239 [00:27<00:15, 166.08it/s]
+              65%|██████▍   | 4687/7239 [00:27<00:13, 190.36it/s]
+              65%|██████▌   | 4707/7239 [00:27<00:14, 174.92it/s]
+              65%|██████▌   | 4726/7239 [00:27<00:15, 164.37it/s]
+              66%|██████▌   | 4748/7239 [00:27<00:14, 174.56it/s]
+              66%|██████▌   | 4771/7239 [00:27<00:13, 184.99it/s]
+              66%|██████▋   | 4798/7239 [00:28<00:13, 175.08it/s]
+              67%|██████▋   | 4826/7239 [00:28<00:12, 197.30it/s]
+              67%|██████▋   | 4847/7239 [00:28<00:12, 184.27it/s]
+              67%|██████▋   | 4866/7239 [00:28<00:14, 166.38it/s]
+              68%|██████▊   | 4895/7239 [00:28<00:12, 185.94it/s]
+              68%|██████▊   | 4915/7239 [00:28<00:13, 166.18it/s]
+              68%|██████▊   | 4934/7239 [00:28<00:13, 167.99it/s]
+              68%|██████▊   | 4952/7239 [00:28<00:14, 157.60it/s]
+              69%|██████▊   | 4973/7239 [00:29<00:15, 148.17it/s]
+              69%|██████▉   | 5006/7239 [00:29<00:12, 173.34it/s]
+              69%|██████▉   | 5024/7239 [00:29<00:13, 166.13it/s]
+              70%|██████▉   | 5042/7239 [00:29<00:13, 157.93it/s]
+              70%|██████▉   | 5064/7239 [00:29<00:13, 159.53it/s]
+              70%|███████   | 5081/7239 [00:29<00:15, 142.85it/s]
+              71%|███████   | 5114/7239 [00:29<00:12, 168.76it/s]
+              71%|███████   | 5131/7239 [00:30<00:13, 162.02it/s]
+              71%|███████   | 5153/7239 [00:30<00:14, 144.16it/s]
+              72%|███████▏  | 5186/7239 [00:30<00:12, 166.80it/s]
+              72%|███████▏  | 5203/7239 [00:30<00:12, 162.77it/s]
+              72%|███████▏  | 5225/7239 [00:30<00:13, 153.48it/s]
+              73%|███████▎  | 5258/7239 [00:30<00:11, 165.97it/s]
+              73%|███████▎  | 5275/7239 [00:30<00:12, 162.82it/s]
+              73%|███████▎  | 5294/7239 [00:31<00:12, 157.58it/s]
+              73%|███████▎  | 5316/7239 [00:31<00:12, 160.07it/s]
+              74%|███████▎  | 5333/7239 [00:31<00:12, 147.98it/s]
+              74%|███████▍  | 5366/7239 [00:31<00:10, 174.77it/s]
+              74%|███████▍  | 5386/7239 [00:31<00:11, 167.73it/s]
+              75%|███████▍  | 5405/7239 [00:31<00:13, 134.08it/s]
+              75%|███████▍  | 5428/7239 [00:31<00:12, 142.03it/s]
+              75%|███████▌  | 5456/7239 [00:32<00:11, 156.58it/s]
+              76%|███████▌  | 5478/7239 [00:32<00:11, 154.92it/s]
+              76%|███████▌  | 5511/7239 [00:32<00:10, 166.03it/s]
+              76%|███████▋  | 5528/7239 [00:32<00:11, 155.43it/s]
+              77%|███████▋  | 5550/7239 [00:32<00:11, 142.57it/s]
+              77%|███████▋  | 5599/7239 [00:32<00:08, 197.60it/s]
+              78%|███████▊  | 5620/7239 [00:33<00:08, 186.82it/s]
+              78%|███████▊  | 5661/7239 [00:33<00:07, 218.32it/s]
+              79%|███████▊  | 5688/7239 [00:33<00:07, 213.39it/s]
+              79%|███████▉  | 5719/7239 [00:33<00:06, 219.21it/s]
+              79%|███████▉  | 5744/7239 [00:33<00:06, 225.40it/s]
+              80%|███████▉  | 5772/7239 [00:33<00:06, 228.69it/s]
+              80%|████████  | 5799/7239 [00:33<00:06, 237.55it/s]
+              80%|████████  | 5824/7239 [00:33<00:05, 237.72it/s]
+              81%|████████  | 5848/7239 [00:33<00:06, 230.72it/s]
+              81%|████████  | 5878/7239 [00:34<00:05, 249.34it/s]
+              82%|████████▏ | 5904/7239 [00:34<00:05, 230.94it/s]
+              82%|████████▏ | 5928/7239 [00:34<00:06, 212.79it/s]
+              82%|████████▏ | 5950/7239 [00:34<00:07, 173.41it/s]
+              83%|████████▎ | 5977/7239 [00:34<00:06, 195.45it/s]
+              83%|████████▎ | 5999/7239 [00:34<00:06, 196.33it/s]
+              83%|████████▎ | 6020/7239 [00:34<00:06, 197.43it/s]
+              83%|████████▎ | 6041/7239 [00:35<00:06, 171.21it/s]
+              84%|████████▎ | 6060/7239 [00:35<00:06, 170.74it/s]
+              84%|████████▍ | 6087/7239 [00:35<00:05, 192.33it/s]
+              84%|████████▍ | 6109/7239 [00:35<00:06, 181.66it/s]
+              85%|████████▍ | 6131/7239 [00:35<00:06, 167.72it/s]
+              85%|████████▌ | 6164/7239 [00:35<00:05, 189.30it/s]
+              85%|████████▌ | 6184/7239 [00:35<00:06, 174.32it/s]
+              86%|████████▌ | 6212/7239 [00:35<00:05, 183.67it/s]
+              86%|████████▌ | 6239/7239 [00:36<00:05, 171.74it/s]
+              87%|████████▋ | 6272/7239 [00:36<00:05, 192.51it/s]
+              87%|████████▋ | 6292/7239 [00:36<00:05, 180.92it/s]
+              87%|████████▋ | 6311/7239 [00:36<00:05, 179.17it/s]
+              87%|████████▋ | 6330/7239 [00:36<00:05, 181.12it/s]
+              88%|████████▊ | 6349/7239 [00:36<00:05, 170.09it/s]
+              88%|████████▊ | 6369/7239 [00:36<00:05, 163.22it/s]
+              88%|████████▊ | 6397/7239 [00:36<00:04, 186.74it/s]
+              89%|████████▊ | 6416/7239 [00:37<00:04, 182.19it/s]
+              89%|████████▉ | 6435/7239 [00:37<00:04, 168.09it/s]
+              89%|████████▉ | 6455/7239 [00:37<00:04, 160.81it/s]
+              90%|████████▉ | 6488/7239 [00:37<00:04, 186.96it/s]
+              90%|████████▉ | 6508/7239 [00:37<00:04, 168.85it/s]
+              90%|█████████ | 6527/7239 [00:37<00:04, 171.46it/s]
+              90%|█████████ | 6549/7239 [00:37<00:03, 182.43it/s]
+              91%|█████████ | 6568/7239 [00:37<00:03, 173.94it/s]
+              91%|█████████ | 6596/7239 [00:38<00:03, 186.78it/s]
+              91%|█████████▏| 6616/7239 [00:38<00:03, 171.79it/s]
+              92%|█████████▏| 6635/7239 [00:38<00:03, 169.75it/s]
+              92%|█████████▏| 6663/7239 [00:38<00:03, 180.16it/s]
+              92%|█████████▏| 6682/7239 [00:38<00:03, 179.61it/s]
+              93%|█████████▎| 6700/7239 [00:38<00:03, 177.21it/s]
+              93%|█████████▎| 6718/7239 [00:38<00:02, 174.64it/s]
+              93%|█████████▎| 6736/7239 [00:38<00:03, 163.44it/s]
+              93%|█████████▎| 6753/7239 [00:39<00:03, 151.57it/s]
+              94%|█████████▎| 6771/7239 [00:39<00:02, 158.85it/s]
+              94%|█████████▍| 6788/7239 [00:39<00:02, 150.96it/s]
+              94%|█████████▍| 6810/7239 [00:39<00:02, 150.55it/s]
+              94%|█████████▍| 6832/7239 [00:39<00:02, 163.41it/s]
+              95%|█████████▍| 6849/7239 [00:39<00:02, 149.97it/s]
+              95%|█████████▌| 6879/7239 [00:39<00:02, 158.11it/s]
+              95%|█████████▌| 6896/7239 [00:40<00:02, 159.50it/s]
+              96%|█████████▌| 6918/7239 [00:40<00:02, 145.77it/s]
+              96%|█████████▌| 6940/7239 [00:40<00:01, 161.97it/s]
+              96%|█████████▌| 6957/7239 [00:40<00:01, 153.76it/s]
+              96%|█████████▋| 6978/7239 [00:40<00:01, 167.66it/s]
+              97%|█████████▋| 6996/7239 [00:40<00:01, 150.16it/s]
+              97%|█████████▋| 7023/7239 [00:40<00:01, 164.92it/s]
+              97%|█████████▋| 7040/7239 [00:40<00:01, 163.41it/s]
+              98%|█████████▊| 7059/7239 [00:41<00:01, 160.73it/s]
+              98%|█████████▊| 7076/7239 [00:41<00:01, 160.20it/s]
+              98%|█████████▊| 7095/7239 [00:41<00:00, 154.90it/s]
+              98%|█████████▊| 7117/7239 [00:41<00:00, 158.01it/s]
+              99%|█████████▊| 7134/7239 [00:41<00:00, 144.95it/s]
+              99%|█████████▉| 7156/7239 [00:41<00:00, 159.61it/s]
+              99%|█████████▉| 7173/7239 [00:41<00:00, 147.73it/s]
+              99%|█████████▉| 7200/7239 [00:41<00:00, 178.20it/s]
+             100%|█████████▉| 7219/7239 [00:42<00:00, 115.83it/s]
+             100%|██████████| 7239/7239 [00:42<00:00, 171.28it/s]
+             INFO - 2026-06-22T20:27:19Z - Successfully downloaded to /glade/derecho/scratch/manishrv/tmp/tmp0cnanjkw/test_file.notreal.nc
+             
+             For parameters: ('glorys', 'get_glorys_data_script_for_cli')
+             2026-06-22 20:27:19,603 - GLORYS.get_glorys_data_script_for_cli - INFO - This data access method retuns a script at path /glade/derecho/scratch/manishrv/tmp/tmp_kxdfm3p/get_glorys_data.sh to run to get access data
+             
+             For parameters: ('mom6_output', 'get_mom6_data')
+             Parsing dataset...
+             1 file(s) found for variable 'SSH'
+             1 file(s) found for variable 'TEMP'
+             1 file(s) found for variable 'SALT'
+             1 file(s) found for variable 'VVEL'
+             1 file(s) found for variable 'UVEL'
+             Subsetted dataset for variable 'SSH' saved to /glade/derecho/scratch/manishrv/tmp/tmp84h8pdn0/SSH_subset_28.5_31.6_28.5_31.6_20000101_20000102.nc
+             Subsetted dataset for variable 'TEMP' saved to /glade/derecho/scratch/manishrv/tmp/tmp84h8pdn0/TEMP_subset_28.5_31.6_28.5_31.6_20000101_20000102.nc
+             Subsetted dataset for variable 'SALT' saved to /glade/derecho/scratch/manishrv/tmp/tmp84h8pdn0/SALT_subset_28.5_31.6_28.5_31.6_20000101_20000102.nc
+             Subsetted dataset for variable 'VVEL' saved to /glade/derecho/scratch/manishrv/tmp/tmp84h8pdn0/VVEL_subset_28.5_31.6_28.5_31.6_20000101_20000102.nc
+             Subsetted dataset for variable 'UVEL' saved to /glade/derecho/scratch/manishrv/tmp/tmp84h8pdn0/UVEL_subset_28.5_31.6_28.5_31.6_20000101_20000102.nc
+             Merging the files since output file is specified, into /glade/derecho/scratch/manishrv/tmp/tmp84h8pdn0/test_file.notreal
+
+[61.11%] ··· ...ench_regrid_apply.ESMFRegridApply.time_apply                 ok
+[61.11%] ··· ============= ============ ======= ============= =============
+                src_size     dst_size    ntime      method                 
+             ------------- ------------ ------- ------------- -------------
+               (300, 300)   (150, 150)     1       bilinear      93.3±3μs  
+               (300, 300)   (150, 150)     1     nearest_s2d    36.7±0.2μs 
+               (300, 300)   (150, 150)     12      bilinear    1.13±0.04ms 
+               (300, 300)   (150, 150)     12    nearest_s2d     438±2μs   
+               (300, 300)   (150, 150)     60      bilinear     5.43±0.1ms 
+               (300, 300)   (150, 150)     60    nearest_s2d   2.18±0.02ms 
+               (300, 300)   (400, 300)     1       bilinear      401±2μs   
+               (300, 300)   (400, 300)     1     nearest_s2d    113±0.6μs  
+               (300, 300)   (400, 300)     12      bilinear    4.81±0.04ms 
+               (300, 300)   (400, 300)     12    nearest_s2d   1.34±0.01ms 
+               (300, 300)   (400, 300)     60      bilinear     24.0±0.1ms 
+               (300, 300)   (400, 300)     60    nearest_s2d   6.73±0.05ms 
+               (300, 300)   (700, 350)     1       bilinear      808±3μs   
+               (300, 300)   (700, 350)     1     nearest_s2d    211±0.8μs  
+               (300, 300)   (700, 350)     12      bilinear    9.60±0.02ms 
+               (300, 300)   (700, 350)     12    nearest_s2d   2.54±0.01ms 
+               (300, 300)   (700, 350)     60      bilinear     47.9±0.2ms 
+               (300, 300)   (700, 350)     60    nearest_s2d   12.6±0.05ms 
+               (800, 600)   (150, 150)     1       bilinear     101±0.8μs  
+               (800, 600)   (150, 150)     1     nearest_s2d     43.4±1μs  
+               (800, 600)   (150, 150)     12      bilinear    1.23±0.02ms 
+               (800, 600)   (150, 150)     12    nearest_s2d     516±4μs   
+               (800, 600)   (150, 150)     60      bilinear    6.02±0.03ms 
+               (800, 600)   (150, 150)     60    nearest_s2d   2.60±0.04ms 
+               (800, 600)   (400, 300)     1       bilinear      477±9μs   
+               (800, 600)   (400, 300)     1     nearest_s2d    184±0.5μs  
+               (800, 600)   (400, 300)     12      bilinear     5.83±0.2ms 
+               (800, 600)   (400, 300)     12    nearest_s2d   2.20±0.01ms 
+               (800, 600)   (400, 300)     60      bilinear     28.0±0.2ms 
+               (800, 600)   (400, 300)     60    nearest_s2d   11.0±0.06ms 
+               (800, 600)   (700, 350)     1       bilinear      915±8μs   
+               (800, 600)   (700, 350)     1     nearest_s2d     275±1μs   
+               (800, 600)   (700, 350)     12      bilinear    10.7±0.05ms 
+               (800, 600)   (700, 350)     12    nearest_s2d   3.29±0.02ms 
+               (800, 600)   (700, 350)     60      bilinear     52.2±0.1ms 
+               (800, 600)   (700, 350)     60    nearest_s2d   16.4±0.06ms 
+              (1500, 700)   (150, 150)     1       bilinear     100±0.4μs  
+              (1500, 700)   (150, 150)     1     nearest_s2d    44.9±0.3μs 
+              (1500, 700)   (150, 150)     12      bilinear    1.20±0.01ms 
+              (1500, 700)   (150, 150)     12    nearest_s2d     533±6μs   
+              (1500, 700)   (150, 150)     60      bilinear    5.97±0.01ms 
+              (1500, 700)   (150, 150)     60    nearest_s2d   2.68±0.02ms 
+              (1500, 700)   (400, 300)     1       bilinear      513±3μs   
+              (1500, 700)   (400, 300)     1     nearest_s2d    220±0.7μs  
+              (1500, 700)   (400, 300)     12      bilinear    6.12±0.02ms 
+              (1500, 700)   (400, 300)     12    nearest_s2d   2.65±0.03ms 
+              (1500, 700)   (400, 300)     60      bilinear    30.2±0.08ms 
+              (1500, 700)   (400, 300)     60    nearest_s2d    13.1±0.1ms 
+              (1500, 700)   (700, 350)     1       bilinear    1.04±0.04ms 
+              (1500, 700)   (700, 350)     1     nearest_s2d     394±2μs   
+              (1500, 700)   (700, 350)     12      bilinear     12.4±0.4ms 
+              (1500, 700)   (700, 350)     12    nearest_s2d   4.72±0.02ms 
+              (1500, 700)   (700, 350)     60      bilinear      57.5±2ms  
+              (1500, 700)   (700, 350)     60    nearest_s2d   23.5±0.09ms 
+             ============= ============ ======= ============= =============
+
+[63.89%] ··· ...ch_regrid_apply.ESMFRegridApply.track_rss_mb                 ok
+[63.89%] ··· ============= ============ ======= ========== =============
+             --                                          method         
+             ---------------------------------- ------------------------
+                src_size     dst_size    ntime   bilinear   nearest_s2d 
+             ============= ============ ======= ========== =============
+               (300, 300)   (150, 150)     1       0.0          0.0     
+               (300, 300)   (150, 150)     12      0.0          0.0     
+               (300, 300)   (150, 150)     60      0.0          0.0     
+               (300, 300)   (400, 300)     1       0.0          0.0     
+               (300, 300)   (400, 300)     12      0.0          0.0     
+               (300, 300)   (400, 300)     60      0.0          0.0     
+               (300, 300)   (700, 350)     1       0.0          0.0     
+               (300, 300)   (700, 350)     12      1.0          0.0     
+               (300, 300)   (700, 350)     60      0.0          0.0     
+               (800, 600)   (150, 150)     1       0.0          0.0     
+               (800, 600)   (150, 150)     12      0.0          0.0     
+               (800, 600)   (150, 150)     60      0.0          0.0     
+               (800, 600)   (400, 300)     1       0.0          0.0     
+               (800, 600)   (400, 300)     12      0.0          0.0     
+               (800, 600)   (400, 300)     60      0.0          0.0     
+               (800, 600)   (700, 350)     1       0.0          0.0     
+               (800, 600)   (700, 350)     12      0.0          0.0     
+               (800, 600)   (700, 350)     60      0.0          0.0     
+              (1500, 700)   (150, 150)     1       0.0          0.0     
+              (1500, 700)   (150, 150)     12      0.0          0.0     
+              (1500, 700)   (150, 150)     60      0.0          0.0     
+              (1500, 700)   (400, 300)     1       0.0          0.0     
+              (1500, 700)   (400, 300)     12      0.0          0.0     
+              (1500, 700)   (400, 300)     60      0.0          0.0     
+              (1500, 700)   (700, 350)     1       0.0          0.0     
+              (1500, 700)   (700, 350)     12      0.0          1.0     
+              (1500, 700)   (700, 350)     60      0.0          0.0     
+             ============= ============ ======= ========== =============
+
+[66.67%] ··· ...te.ESMFWeightsGenerate.time_generate_weights                 ok
+[66.67%] ··· ============= ============ ============ =============
+             --                                   method          
+             -------------------------- --------------------------
+                src_size     dst_size     bilinear    nearest_s2d 
+             ============= ============ ============ =============
+               (300, 300)   (150, 150)    603±3ms       108±3ms   
+               (300, 300)   (400, 300)   1.47±0.01s     358±8ms   
+               (300, 300)   (700, 350)   2.56±0.03s     679±20ms  
+               (800, 600)   (150, 150)   2.51±0.02s     476±30ms  
+               (800, 600)   (400, 300)   3.85±0.02s    926±200ms  
+               (800, 600)   (700, 350)   5.01±0.02s    1.25±0.2s  
+              (1500, 700)   (150, 150)   5.47±0.07s    1.27±0.2s  
+              (1500, 700)   (400, 300)   6.95±0.04s    1.70±0.3s  
+              (1500, 700)   (700, 350)   8.59±0.03s    2.42±0.6s  
+             ============= ============ ============ =============
+
+[69.44%] ··· ...ts_generate.ESMFWeightsGenerate.track_rss_mb                 ok
+[69.44%] ··· ============= ============ ============== ==============
+             --                                     method           
+             -------------------------- -----------------------------
+                src_size     dst_size      bilinear     nearest_s2d  
+             ============= ============ ============== ==============
+               (300, 300)   (150, 150)       87.0       21.03515625  
+               (300, 300)   (400, 300)   228.0390625    55.71484375  
+               (300, 300)   (700, 350)   311.7421875      101.3125   
+               (800, 600)   (150, 150)   310.5078125    10.95703125  
+               (800, 600)   (400, 300)   509.48046875    73.5546875  
+               (800, 600)   (700, 350)   721.0546875     112.21875   
+              (1500, 700)   (150, 150)   711.05078125    15.0390625  
+              (1500, 700)   (400, 300)    806.34375     59.01953125  
+              (1500, 700)   (700, 350)    1019.59375    108.57421875 
+             ============= ============ ============== ==============
+
+[72.22%] ··· ...MappingNearestNeighbour.time_gen_rof_maps_nn                 ok
+[72.22%] ··· =========== =========
+              mesh_pair           
+             ----------- ---------
+                coarse    29.6±3s 
+                 fine     23.7±2s 
+             =========== =========
+
+[75.00%] ··· ...ffMappingSmoothed.time_gen_rof_maps_smoothed                 ok
+[75.00%] ··· =========== =========
+              mesh_pair           
+             ----------- ---------
+                coarse    48.3±4s 
+                 fine     47.4±3s 
+             =========== =========
+
+[77.78%] ··· ...opo.TopoSetFromDataset.time_set_from_dataset         1/4 failed
+[77.78%] ··· ============ ============
+              domain_deg              
+             ------------ ------------
+                  5        11.6±0.1s  
+                  10       47.8±0.3s  
+                  20       3.56±0.01m 
+                  40         failed   
+             ============ ============
+             For parameters: 5
+             **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 5.0) x (0.0, 5.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 4.17 Mb
+             Regridded size: 0.08 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels... **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 5.0) x (0.0, 5.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 4.17 Mb
+             Regridded size: 0.08 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels...
+             
+             For parameters: 10
+             **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 10.0) x (0.0, 10.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 13.98 Mb
+             Regridded size: 0.32 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels... **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 10.0) x (0.0, 10.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 13.98 Mb
+             Regridded size: 0.32 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels...
+             
+             For parameters: 20
+             **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 20.0) x (0.0, 20.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 50.88 Mb
+             Regridded size: 1.28 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels... **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 20.0) x (0.0, 20.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 50.88 Mb
+             Regridded size: 1.28 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels...
+
+[80.56%] ··· ...e.bench_topo.TopoSetFromDataset.track_rss_mb         1/4 failed
+[80.56%] ··· ============ ================
+              domain_deg                  
+             ------------ ----------------
+                  5           1678.25     
+                  10        4313.2265625  
+                  20       14939.19140625 
+                  40           failed     
+             ============ ================
+             For parameters: 5
+             **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 5.0) x (0.0, 5.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 4.17 Mb
+             Regridded size: 0.08 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels...
+             
+             For parameters: 10
+             **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 10.0) x (0.0, 10.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 13.98 Mb
+             Regridded size: 0.32 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels...
+             
+             For parameters: 20
+             **NOTE**
+                         If bathymetry setup fails (e.g. kernel crashes), restart the kernel and edit this cell.
+                         Call ``[topo_object_name].mpi_set_from_dataset()`` instead. Follow the given instructions for using mpi
+                         and ESMF_Regrid outside of a python environment. This breaks up the process, so be sure to call
+                         ``[topo_object_name].tidy_dataset() after regridding with mpi.
+             Slicing source bathymetry to domain: (0.0, 20.0) x (0.0, 20.0) with buffer 0.5
+             Begin regridding dataset...
+             
+             Original dataset size: 50.88 Mb
+             Regridded size: 1.28 Mb
+             
+             Generating regridding weights using xESMF with method 'bilinear'...
+             Tidy bathymetry: Reading in regridded bathymetry to fix up metadata...done. Filling in inland lakes and channels...
+
+[83.33%] ··· ...nch_regrid_apply.XESMFRegridApply.time_apply                 ok
+[83.33%] ··· ============= ============ ======= ============= =============
+                src_size     dst_size    ntime      method                 
+             ------------- ------------ ------- ------------- -------------
+               (300, 300)   (150, 150)     1       bilinear    5.35±0.06ms 
+               (300, 300)   (150, 150)     1     nearest_s2d   1.67±0.05ms 
+               (300, 300)   (150, 150)     12      bilinear    6.43±0.06ms 
+               (300, 300)   (150, 150)     12    nearest_s2d   2.39±0.08ms 
+               (300, 300)   (150, 150)     60      bilinear     11.6±0.2ms 
+               (300, 300)   (150, 150)     60    nearest_s2d    5.81±0.6ms 
+               (300, 300)   (400, 300)     1       bilinear     26.8±0.1ms 
+               (300, 300)   (400, 300)     1     nearest_s2d   4.70±0.03ms 
+               (300, 300)   (400, 300)     12      bilinear     33.1±0.3ms 
+               (300, 300)   (400, 300)     12    nearest_s2d   6.85±0.04ms 
+               (300, 300)   (400, 300)     60      bilinear     65.2±0.8ms 
+               (300, 300)   (400, 300)     60    nearest_s2d    22.8±0.9ms 
+               (300, 300)   (700, 350)     1       bilinear     54.6±0.5ms 
+               (300, 300)   (700, 350)     1     nearest_s2d    11.9±0.1ms 
+               (300, 300)   (700, 350)     12      bilinear     66.6±0.5ms 
+               (300, 300)   (700, 350)     12    nearest_s2d    16.5±0.2ms 
+               (300, 300)   (700, 350)     60      bilinear      131±1ms   
+               (300, 300)   (700, 350)     60    nearest_s2d    51.4±0.4ms 
+               (800, 600)   (150, 150)     1       bilinear    5.38±0.04ms 
+               (800, 600)   (150, 150)     1     nearest_s2d   1.75±0.04ms 
+               (800, 600)   (150, 150)     12      bilinear    7.20±0.05ms 
+               (800, 600)   (150, 150)     12    nearest_s2d   2.53±0.07ms 
+               (800, 600)   (150, 150)     60      bilinear     15.6±0.9ms 
+               (800, 600)   (150, 150)     60    nearest_s2d    6.16±0.1ms 
+               (800, 600)   (400, 300)     1       bilinear     25.6±0.4ms 
+               (800, 600)   (400, 300)     1     nearest_s2d   4.82±0.05ms 
+               (800, 600)   (400, 300)     12      bilinear     31.3±0.3ms 
+               (800, 600)   (400, 300)     12    nearest_s2d    7.89±0.1ms 
+               (800, 600)   (400, 300)     60      bilinear      57.2±1ms  
+               (800, 600)   (400, 300)     60    nearest_s2d    25.6±0.7ms 
+               (800, 600)   (700, 350)     1       bilinear     51.6±0.5ms 
+               (800, 600)   (700, 350)     1     nearest_s2d   8.77±0.07ms 
+               (800, 600)   (700, 350)     12      bilinear     64.1±0.3ms 
+               (800, 600)   (700, 350)     12    nearest_s2d    14.0±0.1ms 
+               (800, 600)   (700, 350)     60      bilinear      122±6ms   
+               (800, 600)   (700, 350)     60    nearest_s2d     49.4±3ms  
+              (1500, 700)   (150, 150)     1       bilinear    5.44±0.06ms 
+              (1500, 700)   (150, 150)     1     nearest_s2d   1.72±0.04ms 
+              (1500, 700)   (150, 150)     12      bilinear     7.61±0.2ms 
+              (1500, 700)   (150, 150)     12    nearest_s2d   2.57±0.05ms 
+              (1500, 700)   (150, 150)     60      bilinear      17.2±1ms  
+              (1500, 700)   (150, 150)     60    nearest_s2d    8.23±0.2ms 
+              (1500, 700)   (400, 300)     1       bilinear     25.3±0.1ms 
+              (1500, 700)   (400, 300)     1     nearest_s2d   4.84±0.03ms 
+              (1500, 700)   (400, 300)     12      bilinear     31.7±0.2ms 
+              (1500, 700)   (400, 300)     12    nearest_s2d    7.95±0.1ms 
+              (1500, 700)   (400, 300)     60      bilinear     61.2±0.6ms 
+              (1500, 700)   (400, 300)     60    nearest_s2d    26.6±0.5ms 
+              (1500, 700)   (700, 350)     1       bilinear    50.4±0.05ms 
+              (1500, 700)   (700, 350)     1     nearest_s2d   12.5±0.03ms 
+              (1500, 700)   (700, 350)     12      bilinear     63.5±0.1ms 
+              (1500, 700)   (700, 350)     12    nearest_s2d    18.2±0.2ms 
+              (1500, 700)   (700, 350)     60      bilinear     115±0.4ms  
+              (1500, 700)   (700, 350)     60    nearest_s2d    55.3±0.2ms 
+             ============= ============ ======= ============= =============
+
+[86.11%] ··· ...h_regrid_apply.XESMFRegridApply.track_rss_mb                 ok
+[86.11%] ··· ============= ============ ======= ============= =============
+                src_size     dst_size    ntime      method                 
+             ------------- ------------ ------- ------------- -------------
+               (300, 300)   (150, 150)     1       bilinear    21.58203125 
+               (300, 300)   (150, 150)     1     nearest_s2d       36.0    
+               (300, 300)   (150, 150)     12      bilinear     21.3359375 
+               (300, 300)   (150, 150)     12    nearest_s2d    38.5234375 
+               (300, 300)   (150, 150)     60      bilinear    21.22265625 
+               (300, 300)   (150, 150)     60    nearest_s2d   38.26171875 
+               (300, 300)   (400, 300)     1       bilinear        35.0    
+               (300, 300)   (400, 300)     1     nearest_s2d       36.0    
+               (300, 300)   (400, 300)     12      bilinear        35.0    
+               (300, 300)   (400, 300)     12    nearest_s2d       36.0    
+               (300, 300)   (400, 300)     60      bilinear        33.0    
+               (300, 300)   (400, 300)     60    nearest_s2d     36.90625  
+               (300, 300)   (700, 350)     1       bilinear        36.0    
+               (300, 300)   (700, 350)     1     nearest_s2d       36.0    
+               (300, 300)   (700, 350)     12      bilinear        35.0    
+               (300, 300)   (700, 350)     12    nearest_s2d       37.0    
+               (300, 300)   (700, 350)     60      bilinear      36.90625  
+               (300, 300)   (700, 350)     60    nearest_s2d   35.79296875 
+               (800, 600)   (150, 150)     1       bilinear        35.0    
+               (800, 600)   (150, 150)     1     nearest_s2d       37.0    
+               (800, 600)   (150, 150)     12      bilinear        36.0    
+               (800, 600)   (150, 150)     12    nearest_s2d       36.0    
+               (800, 600)   (150, 150)     60      bilinear        35.0    
+               (800, 600)   (150, 150)     60    nearest_s2d      42.375   
+               (800, 600)   (400, 300)     1       bilinear        36.0    
+               (800, 600)   (400, 300)     1     nearest_s2d       35.0    
+               (800, 600)   (400, 300)     12      bilinear        36.0    
+               (800, 600)   (400, 300)     12    nearest_s2d       37.0    
+               (800, 600)   (400, 300)     60      bilinear        36.0    
+               (800, 600)   (400, 300)     60    nearest_s2d   36.66796875 
+               (800, 600)   (700, 350)     1       bilinear        35.0    
+               (800, 600)   (700, 350)     1     nearest_s2d       36.0    
+               (800, 600)   (700, 350)     12      bilinear        37.0    
+               (800, 600)   (700, 350)     12    nearest_s2d       35.0    
+               (800, 600)   (700, 350)     60      bilinear        36.0    
+               (800, 600)   (700, 350)     60    nearest_s2d    36.0078125 
+              (1500, 700)   (150, 150)     1       bilinear        35.0    
+              (1500, 700)   (150, 150)     1     nearest_s2d       37.0    
+              (1500, 700)   (150, 150)     12      bilinear        37.0    
+              (1500, 700)   (150, 150)     12    nearest_s2d       40.0    
+              (1500, 700)   (150, 150)     60      bilinear        37.0    
+              (1500, 700)   (150, 150)     60    nearest_s2d     42.78125  
+              (1500, 700)   (400, 300)     1       bilinear        36.0    
+              (1500, 700)   (400, 300)     1     nearest_s2d       36.0    
+              (1500, 700)   (400, 300)     12      bilinear        35.0    
+              (1500, 700)   (400, 300)     12    nearest_s2d       36.0    
+              (1500, 700)   (400, 300)     60      bilinear        36.0    
+              (1500, 700)   (400, 300)     60    nearest_s2d   36.90234375 
+              (1500, 700)   (700, 350)     1       bilinear        36.0    
+              (1500, 700)   (700, 350)     1     nearest_s2d       36.0    
+              (1500, 700)   (700, 350)     12      bilinear        36.0    
+              (1500, 700)   (700, 350)     12    nearest_s2d       36.0    
+              (1500, 700)   (700, 350)     60      bilinear        36.0    
+              (1500, 700)   (700, 350)     60    nearest_s2d    37.6484375 
+             ============= ============ ======= ============= =============
+
+[88.89%] ··· ...d_apply.XESMFRegridApplyLocstream.time_apply                 ok
+[88.89%] ··· ============= ================ ======= =============
+                src_size    n_boundary_pts   ntime               
+             ------------- ---------------- ------- -------------
+               (300, 300)        1000          1     1.21±0.03ms 
+               (300, 300)        1000          12    1.44±0.05ms 
+               (300, 300)        1000          60    2.43±0.05ms 
+               (300, 300)       10000          1     3.15±0.03ms 
+               (300, 300)       10000          12    3.83±0.04ms 
+               (300, 300)       10000          60     6.81±0.2ms 
+               (300, 300)       100000         1      22.9±0.2ms 
+               (300, 300)       100000         12     27.6±0.2ms 
+               (300, 300)       100000         60      53.4±3ms  
+               (800, 600)        1000          1     1.26±0.04ms 
+               (800, 600)        1000          12    1.51±0.04ms 
+               (800, 600)        1000          60    2.69±0.06ms 
+               (800, 600)       10000          1     3.19±0.06ms 
+               (800, 600)       10000          12    4.07±0.08ms 
+               (800, 600)       10000          60     8.18±0.1ms 
+               (800, 600)       100000         1      22.6±0.2ms 
+               (800, 600)       100000         12    28.2±0.09ms 
+               (800, 600)       100000         60     52.3±0.6ms 
+              (1500, 700)        1000          1     1.24±0.05ms 
+              (1500, 700)        1000          12    1.56±0.03ms 
+              (1500, 700)        1000          60    2.86±0.09ms 
+              (1500, 700)       10000          1     3.16±0.04ms 
+              (1500, 700)       10000          12    4.12±0.02ms 
+              (1500, 700)       10000          60     8.41±0.1ms 
+              (1500, 700)       100000         1     22.6±0.04ms 
+              (1500, 700)       100000         12     28.0±0.2ms 
+              (1500, 700)       100000         60     52.3±0.3ms 
+             ============= ================ ======= =============
+
+[91.67%] ··· ...e.XESMFWeightsGenerate.time_generate_weights                 ok
+[91.67%] ··· ============= ============ ============ ==============
+             --                                    method          
+             -------------------------- ---------------------------
+                src_size     dst_size     bilinear    conservative 
+             ============= ============ ============ ==============
+               (300, 300)   (150, 150)    649±2ms      1.07±0.01s  
+               (300, 300)   (400, 300)    1.67±0s      2.86±0.01s  
+               (300, 300)   (700, 350)   2.78±0.02s    4.31±0.01s  
+               (800, 600)   (150, 150)   2.67±0.01s    5.56±0.01s  
+               (800, 600)   (400, 300)   4.35±0.01s    6.76±0.03s  
+               (800, 600)   (700, 350)   5.80±0.01s    9.80±0.02s  
+              (1500, 700)   (150, 150)   6.16±0.03s    11.8±0.02s  
+              (1500, 700)   (400, 300)   7.95±0.03s    14.4±0.07s  
+              (1500, 700)   (700, 350)   10.4±0.05s    18.9±0.07s  
+             ============= ============ ============ ==============
+
+[94.44%] ··· ...s_generate.XESMFWeightsGenerate.track_rss_mb                 ok
+[94.44%] ··· ============= ============ ============== ===============
+             --                                     method            
+             -------------------------- ------------------------------
+                src_size     dst_size      bilinear      conservative 
+             ============= ============ ============== ===============
+               (300, 300)   (150, 150)   228.10546875     269.734375  
+               (300, 300)   (400, 300)   331.8359375       489.125    
+               (300, 300)   (700, 350)    461.296875     614.86328125 
+               (800, 600)   (150, 150)   455.91015625      630.4375   
+               (800, 600)   (400, 300)   550.5234375      712.09375   
+               (800, 600)   (700, 350)   685.1328125     1109.2265625 
+              (1500, 700)   (150, 150)   842.0234375    1093.20703125 
+              (1500, 700)   (400, 300)   795.63671875    1344.2578125 
+              (1500, 700)   (700, 350)   1006.796875     1872.1171875 
+             ============= ============ ============== ===============
+
+[97.22%] ··· ...ightsGenerateLocstream.time_generate_weights                 ok
+[97.22%] ··· ============= ================ ============ =============
+             --                                       method          
+             ------------------------------ --------------------------
+                src_size    n_boundary_pts    bilinear    nearest_s2d 
+             ============= ================ ============ =============
+               (300, 300)        1000         386±4ms      45.4±0.8ms 
+               (300, 300)       10000         445±4ms      68.3±0.6ms 
+               (300, 300)       100000       1.14±0.01s    289±0.9ms  
+               (800, 600)        1000        2.28±0.03s     328±4ms   
+               (800, 600)       10000        2.32±0.01s     354±4ms   
+               (800, 600)       100000       3.23±0.02s     571±8ms   
+              (1500, 700)        1000        5.30±0.02s     969±6ms   
+              (1500, 700)       10000         5.40±0s       996±10ms  
+              (1500, 700)       100000       6.12±0.02s     1.22±0s   
+             ============= ================ ============ =============
+
+[100.00%] ··· ...e.XESMFWeightsGenerateLocstream.track_rss_mb                 ok
+[100.00%] ··· ============= ================ ============= ==============
+                 src_size    n_boundary_pts      method                  
+              ------------- ---------------- ------------- --------------
+                (300, 300)        1000          bilinear    191.80078125 
+                (300, 300)        1000        nearest_s2d   142.68359375 
+                (300, 300)       10000          bilinear    201.49609375 
+                (300, 300)       10000        nearest_s2d   144.9296875  
+                (300, 300)       100000         bilinear    298.62109375 
+                (300, 300)       100000       nearest_s2d   181.1796875  
+                (800, 600)        1000          bilinear    462.2890625  
+                (800, 600)        1000        nearest_s2d    146.328125  
+                (800, 600)       10000          bilinear    462.89453125 
+                (800, 600)       10000        nearest_s2d    147.734375  
+                (800, 600)       100000         bilinear     495.078125  
+                (800, 600)       100000       nearest_s2d   196.6953125  
+               (1500, 700)        1000          bilinear      836.5625   
+               (1500, 700)        1000        nearest_s2d   142.1328125  
+               (1500, 700)       10000          bilinear    834.14453125 
+               (1500, 700)       10000        nearest_s2d      138.5     
+               (1500, 700)       100000         bilinear     831.859375  
+               (1500, 700)       100000       nearest_s2d    172.296875  
+              ============= ================ ============= ==============
+
+Cgroup memsw limit exceeded: oom-kill:constraint=CONSTRAINT_MEMCG,nodemask=(null),cpuset=4800268.casper-pbs,mems_allowed=0,oom_memcg=/pbs_jobs.service/jobid/4800268.casper-pbs,task_memcg=/pbs_jobs.service/jobid/4800268.casper-pbs,task=python,pid=17993,uid=44953

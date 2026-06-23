@@ -260,19 +260,19 @@
         "warmup_time": -1
     },
     "mom6_forge.bench_topo.TopoSetFromDataset.time_set_from_dataset": {
-        "code": "class TopoSetFromDataset:\n    def time_set_from_dataset(self, dst_size):\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n\n    def setup(self, dst_size):\n        import tempfile\n    \n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        nx, ny = dst_size\n        self._grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_topo_\")",
+        "code": "class TopoSetFromDataset:\n    def time_set_from_dataset(self, domain_deg):\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n\n    def setup(self, domain_deg):\n        import tempfile\n    \n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        self._grid = Grid(\n            lenx=float(domain_deg),\n            leny=float(domain_deg),\n            resolution=0.1,\n            xstart=0.0,\n            ystart=0.0,\n        )\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_topo_\")",
         "min_run_count": 2,
         "name": "mom6_forge.bench_topo.TopoSetFromDataset.time_set_from_dataset",
         "number": 0,
         "param_names": [
-            "dst_size"
+            "domain_deg"
         ],
         "params": [
             [
-                "(100, 100)",
-                "(300, 300)",
-                "(600, 400)",
-                "(1000, 600)"
+                "5",
+                "10",
+                "20",
+                "40"
             ]
         ],
         "repeat": 0,
@@ -281,27 +281,27 @@
         "timeout": 3600,
         "type": "time",
         "unit": "seconds",
-        "version": "47c1e661b6ae5fecba03ee8effcecba76d6db25211689bd54553cbba163ec608",
+        "version": "1bf9d4ad41531b523e2fe3b845e03ac375d24d513da5860b76144a31bdea47b3",
         "warmup_time": -1
     },
     "mom6_forge.bench_topo.TopoSetFromDataset.track_rss_mb": {
-        "code": "class TopoSetFromDataset:\n    def track_rss_mb(self, dst_size):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, dst_size):\n        import tempfile\n    \n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        nx, ny = dst_size\n        self._grid = Grid(lenx=10.0, leny=10.0, nx=nx, ny=ny, xstart=0.0, ystart=0.0)\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_topo_\")",
+        "code": "class TopoSetFromDataset:\n    def track_rss_mb(self, domain_deg):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, domain_deg):\n        import tempfile\n    \n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        self._grid = Grid(\n            lenx=float(domain_deg),\n            leny=float(domain_deg),\n            resolution=0.1,\n            xstart=0.0,\n            ystart=0.0,\n        )\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_topo_\")",
         "name": "mom6_forge.bench_topo.TopoSetFromDataset.track_rss_mb",
         "param_names": [
-            "dst_size"
+            "domain_deg"
         ],
         "params": [
             [
-                "(100, 100)",
-                "(300, 300)",
-                "(600, 400)",
-                "(1000, 600)"
+                "5",
+                "10",
+                "20",
+                "40"
             ]
         ],
         "timeout": 3600,
         "type": "track",
         "unit": "MB",
-        "version": "84a7ac420e92dfd94139087c26e42651b83f6121e319e181f7d8fcd0a663d3b6"
+        "version": "38a3bd65d4ff852fbc9279e22182a17b35a3b2eb332cfb02794812dbf73482c6"
     },
     "version": 2,
     "xesmf.bench_regrid_apply.XESMFRegridApply.time_apply": {
