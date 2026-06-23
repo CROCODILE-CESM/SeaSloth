@@ -209,6 +209,25 @@ def extract_summary(all_results):
         s["ewt_small_bilinear"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "'bilinear'"))
         s["ewt_large_bilinear"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "'bilinear'"))
 
+    # --- ESMF apply (raw, no xarray overhead) ---
+    eapp_key = "esmf.bench_regrid_apply.ESMFRegridApply.time_apply"
+    if eapp_key in all_results:
+        results, params = all_results[eapp_key]
+        s["eapp_fast"] = _lookup(results, params, ("(300, 300)", "(150, 150)", "1", "'nearest_s2d'"))
+        s["eapp_slow"] = _lookup(results, params, ("(1500, 700)", "(700, 350)", "60", "'bilinear'"))
+
+    # --- Runoff mapping ---
+    rof_nn_key = "mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn"
+    rof_sm_key = "mom6_forge.bench_runoff_mapping.RunoffMappingSmoothed.time_gen_rof_maps_smoothed"
+    if rof_nn_key in all_results:
+        results, params = all_results[rof_nn_key]
+        s["rof_nn_coarse"] = _lookup(results, params, ("'coarse'",))
+        s["rof_nn_fine"] = _lookup(results, params, ("'fine'",))
+    if rof_sm_key in all_results:
+        results, params = all_results[rof_sm_key]
+        s["rof_sm_coarse"] = _lookup(results, params, ("'coarse'",))
+        s["rof_sm_fine"] = _lookup(results, params, ("'fine'",))
+
     # --- Module imports ---
     imp_key = "crocodash.bench_imports.CrocoDashImports.time_import"
     if imp_key in all_results:
@@ -333,7 +352,7 @@ tested source grid sizes. This is because the destination has far fewer points t
 a full 2-D grid of similar extent.</p>"""
         )
 
-    # xESMF apply
+    # xESMF / ESMF apply comparison
     if "xapp_fast" in s:
         speedup_str = ""
         if s.get("xapp_nn_speedup"):
@@ -341,13 +360,57 @@ a full 2-D grid of similar extent.</p>"""
                 f" On average, <code>nearest_s2d</code> is "
                 f"<b>{s['xapp_nn_speedup']:.1f}×</b> faster than bilinear during application."
             )
+        esmf_apply_str = ""
+        if s.get("eapp_fast") and s.get("eapp_slow"):
+            xesmf_overhead_fast = s["xapp_fast"] / s["eapp_fast"] if s["eapp_fast"] else None
+            xesmf_overhead_slow = s["xapp_slow"] / s["eapp_slow"] if s["eapp_slow"] else None
+            if xesmf_overhead_fast and xesmf_overhead_slow:
+                esmf_apply_str = (
+                    f" Raw ESMF (no xarray) applies the same pre-computed weights considerably "
+                    f"faster: <b>{fmt_time(s['eapp_fast'])}</b> and <b>{fmt_time(s['eapp_slow'])}</b> "
+                    f"for the same two cases — roughly <b>{xesmf_overhead_fast:.0f}×</b> and "
+                    f"<b>{xesmf_overhead_slow:.1f}×</b> faster respectively. The gap is largest for "
+                    f"single timesteps, where xESMF's xarray Dataset → numpy conversion and index "
+                    f"alignment dominate; it narrows for many timesteps on large grids where the "
+                    f"actual interpolation work takes over. In practice xESMF is used because it "
+                    f"handles multi-variable, dask-backed arrays transparently — the overhead is a "
+                    f"deliberate trade-off for API convenience."
+                )
         paras.append(
             f"""<h3>Applying pre-computed weights — <code>regridder(ds)</code></h3>
 <p>Once weights are built, applying them to a data array is fast regardless of grid size.
-A single timestep on a small grid takes <b>{fmt_time(s['xapp_fast'])}</b>;
+Using xESMF, a single timestep on a small grid takes <b>{fmt_time(s['xapp_fast'])}</b>;
 60 timesteps on the largest tested grid takes <b>{fmt_time(s['xapp_slow'])}</b>.
 The cost is dominated by the number of destination points and time steps,
-not the source grid size.{speedup_str}</p>"""
+not the source grid size.{speedup_str}{esmf_apply_str}</p>"""
+        )
+
+    # Runoff mapping
+    if "rof_nn_coarse" in s or "rof_sm_coarse" in s:
+        nn_str = ""
+        sm_str = ""
+        ratio_str = ""
+        if s.get("rof_nn_coarse") and s.get("rof_nn_fine"):
+            nn_str = (
+                f"Nearest-neighbour mapping takes <b>{fmt_time(s['rof_nn_coarse'])}</b> (coarse mesh) "
+                f"and <b>{fmt_time(s['rof_nn_fine'])}</b> (fine mesh)."
+            )
+        if s.get("rof_sm_coarse") and s.get("rof_sm_fine"):
+            sm_str = (
+                f" Smoothed nearest-neighbour — which runs NN first then spreads point sources "
+                f"across neighbouring ocean cells — takes <b>{fmt_time(s['rof_sm_coarse'])}</b> "
+                f"and <b>{fmt_time(s['rof_sm_fine'])}</b> for the same mesh pairs."
+            )
+        if s.get("rof_nn_coarse") and s.get("rof_sm_coarse"):
+            r = s["rof_sm_coarse"] / s["rof_nn_coarse"]
+            ratio_str = f" The smoothing step roughly doubles the wall time ({r:.1f}×)."
+        paras.append(
+            f"""<h3>Runoff mapping — <code>gen_rof_maps()</code></h3>
+<p><code>gen_rof_maps()</code> builds ESMF regridding weight files that map river runoff from
+a land-model (ROF) mesh onto the ocean (OCN) model mesh. These weight files are computed once
+and reused for every model run. {nn_str}{sm_str}{ratio_str}
+Note that coarse and fine mesh pairs take similar time here because both pairs use the same
+underlying ESMF mesh resolution — the labels reflect the ocean grid extent, not the ROF source density.</p>"""
         )
 
     # Imports
