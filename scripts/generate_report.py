@@ -490,6 +490,7 @@ different node type, or different CPU load — not a regression in CROC code.</p
 _HEALTH_KEYS = {
     "accessible": "crocodash.bench_raw_data_access.DataAccessHealth.track_accessible",
     "timing": "crocodash.bench_raw_data_access.DataAccessHealth.time_validate",
+    "link": "crocodash.bench_raw_data_access.DataAccessLinkCheck.track_link_ok",
 }
 
 
@@ -519,6 +520,16 @@ def make_health_table(all_results):
         for combo, t in zip(itertools.product(*t_params), t_results):
             time_lookup[combo] = t
 
+    # Link check is per-product — build lookup keyed by product name string
+    link_lookup = {}
+    l_key = _HEALTH_KEYS["link"]
+    if l_key in all_results:
+        l_results, l_params = all_results[l_key]
+        for combo, lv in zip(itertools.product(*l_params), l_results):
+            # combo[0] is the product name param string, e.g. "'glorys'"
+            prod_name = combo[0].strip("'\"")
+            link_lookup[prod_name] = lv
+
     rows = []
     for combo, h in zip(h_combos, h_results):
         product, method = _parse_pm(combo[0])
@@ -528,24 +539,30 @@ def make_health_table(all_results):
         valid_t = (
             t if (t is not None and not (isinstance(t, float) and math.isnan(t))) else None
         )
-        rows.append((label, ok, valid_t))
+        link_val = link_lookup.get(product)
+        rows.append((label, ok, valid_t, link_val))
 
     if not rows:
         return None
 
-    tr_rows = []
-    for i, (label, ok, t) in enumerate(rows):
-        bg = ' style="background:#f7f9fc"' if i % 2 == 0 else ""
-        status_html = (
+    def _yn(val):
+        if val is None:
+            return '<span style="color:#999">—</span>'
+        return (
             '<span style="color:#1a7a3e;font-weight:600">Yes</span>'
-            if ok
+            if val == 1.0
             else '<span style="color:#b30000;font-weight:600">No</span>'
         )
+
+    tr_rows = []
+    for i, (label, ok, t, link_val) in enumerate(rows):
+        bg = ' style="background:#f7f9fc"' if i % 2 == 0 else ""
         time_html = fmt_time(t) if t is not None else '<span style="color:#999">—</span>'
         tr_rows.append(
             f"<tr{bg}>"
             f"<td style='padding:0.3rem 0.5rem'>{label}</td>"
-            f"<td style='text-align:center;padding:0.3rem 0.5rem'>{status_html}</td>"
+            f"<td style='text-align:center;padding:0.3rem 0.5rem'>{_yn(1.0 if ok else 0.0)}</td>"
+            f"<td style='text-align:center;padding:0.3rem 0.5rem'>{_yn(link_val)}</td>"
             f"<td style='text-align:right;padding:0.3rem 0.5rem;font-variant-numeric:tabular-nums'>{time_html}</td>"
             f"</tr>"
         )
@@ -555,6 +572,7 @@ def make_health_table(all_results):
         '<thead><tr style="border-bottom:2px solid #c8d6e5;color:#555;font-weight:600">'
         '<th style="text-align:left;padding:0.35rem 0.5rem">Product / Method</th>'
         '<th style="text-align:center;padding:0.35rem 0.5rem">Working?</th>'
+        '<th style="text-align:center;padding:0.35rem 0.5rem">Link?</th>'
         '<th style="text-align:right;padding:0.35rem 0.5rem">Validation time</th>'
         f"</tr></thead><tbody>{''.join(tr_rows)}</tbody></table>"
     )
@@ -717,7 +735,7 @@ def build_html(all_results):
             cards.append(health_card)
 
         for key, (results, params) in sorted(benchmarks.items()):
-            # Health keys are handled by make_health_chart above — skip individual charts.
+            # Health keys are handled by make_health_table above — skip individual charts.
             if key in _HEALTH_KEYS.values():
                 continue
             b64 = make_chart(key, results, params)
