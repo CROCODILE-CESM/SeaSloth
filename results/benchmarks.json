@@ -73,7 +73,7 @@
         "repeat": 0,
         "rounds": 2,
         "sample_time": 0.01,
-        "timeout": 120,
+        "timeout": 600,
         "type": "time",
         "unit": "seconds",
         "version": "ab3d1e2fb3aa4b2668812fdea145c01323dd9a149a1705f6c5fbc3c52aafa527",
@@ -99,7 +99,7 @@
                 "('seawifs', 'get_processed_global_seawifs_script_for_cli')"
             ]
         ],
-        "timeout": 120,
+        "timeout": 600,
         "type": "track",
         "unit": "pass",
         "version": "fbe1dff27c188df36dc3f21e8e617321fcb826645d4f369373ce289b385ecd8a"
