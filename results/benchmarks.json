@@ -104,6 +104,56 @@
         "unit": "pass",
         "version": "fbe1dff27c188df36dc3f21e8e617321fcb826645d4f369373ce289b385ecd8a"
     },
+    "crocodash.bench_raw_data_access.DataAccessLinkCheck.time_link_check": {
+        "code": "class DataAccessLinkCheck:\n    def time_link_check(self, product):\n        _check_link(self._link)\n\n    def setup(self, product):\n        if not _CROCODASH_AVAILABLE:\n            raise NotImplementedError(\n                \"CrocoDash not importable \u2014 install it or activate the CrocoDash env\"\n            )\n        link = getattr(ProductRegistry.products.get(product), \"link\", None)\n        if not link or not link.strip():\n            raise NotImplementedError(f\"No link registered for product '{product}'\")\n        self._link = link",
+        "min_run_count": 2,
+        "name": "crocodash.bench_raw_data_access.DataAccessLinkCheck.time_link_check",
+        "number": 0,
+        "param_names": [
+            "product"
+        ],
+        "params": [
+            [
+                "'tpxo'",
+                "'cesm inputdata'",
+                "'gebco'",
+                "'glofas'",
+                "'glorys'",
+                "'mom6_output'",
+                "'seawifs'"
+            ]
+        ],
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "timeout": 30,
+        "type": "time",
+        "unit": "seconds",
+        "version": "721c56168bb47fcf5276509ea98d0122f1a0209862c447f1b05be257607ff825",
+        "warmup_time": -1
+    },
+    "crocodash.bench_raw_data_access.DataAccessLinkCheck.track_link_ok": {
+        "code": "class DataAccessLinkCheck:\n    def track_link_ok(self, product):\n        return 1.0 if _check_link(self._link) else 0.0\n\n    def setup(self, product):\n        if not _CROCODASH_AVAILABLE:\n            raise NotImplementedError(\n                \"CrocoDash not importable \u2014 install it or activate the CrocoDash env\"\n            )\n        link = getattr(ProductRegistry.products.get(product), \"link\", None)\n        if not link or not link.strip():\n            raise NotImplementedError(f\"No link registered for product '{product}'\")\n        self._link = link",
+        "name": "crocodash.bench_raw_data_access.DataAccessLinkCheck.track_link_ok",
+        "param_names": [
+            "product"
+        ],
+        "params": [
+            [
+                "'tpxo'",
+                "'cesm inputdata'",
+                "'gebco'",
+                "'glofas'",
+                "'glorys'",
+                "'mom6_output'",
+                "'seawifs'"
+            ]
+        ],
+        "timeout": 30,
+        "type": "track",
+        "unit": "pass",
+        "version": "83d017a616d900fa772496a91fb70f98949a1f8bef5817db487491c74d97003b"
+    },
     "esmf.bench_regrid_apply.ESMFRegridApply.time_apply": {
         "code": "class ESMFRegridApply:\n    def time_apply(self, src_size, dst_size, ntime, method):\n        for _ in range(self._ntime):\n            self._regrid(self._src_field, self._dst_field)\n\n    def setup(self, src_size, dst_size, ntime, method):\n        import esmpy\n    \n        snlon, snlat = src_size\n        dnlon, dnlat = dst_size\n    \n        self._src_grid = _make_esmpy_grid(snlon, snlat)\n        self._dst_grid = _make_esmpy_grid(\n            dnlon, dnlat, lon0=-100.0, lon1=100.0, lat0=-45.0, lat1=45.0\n        )\n        self._src_field = esmpy.Field(self._src_grid, name=\"src\")\n        self._dst_field = esmpy.Field(self._dst_grid, name=\"dst\")\n        self._src_field.data[...] = np.random.default_rng(0).uniform(\n            0, 1, self._src_field.data.shape\n        )\n    \n        method_map = {\n            \"bilinear\": esmpy.RegridMethod.BILINEAR,\n            \"nearest_s2d\": esmpy.RegridMethod.NEAREST_STOD,\n        }\n        self._regrid = esmpy.Regrid(\n            self._src_field,\n            self._dst_field,\n            regrid_method=method_map[method],\n            unmapped_action=esmpy.UnmappedAction.IGNORE,\n        )\n        self._ntime = ntime",
         "min_run_count": 2,
