@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #PBS -N seasloth_bench
-#PBS -l select=1:ncpus=8:mem=64GB
+#PBS -l select=1:ncpus=8:mem=128GB
 #PBS -l walltime=04:00:00
 #PBS -q casper
 #PBS -A NCGD0011
@@ -21,7 +21,7 @@ cd "$REPO_ROOT"
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-bash scripts/run_bench.sh --bench "OBCRegridMerge|TopoSetFromDataset|RunoffMapping|DataAccessHealth"
+bash scripts/run_bench.sh --bench "TopoSetFromDataset|DataAccessHealth"
 
 echo ""
 echo "=== Done: $(date) ==="
