@@ -702,7 +702,7 @@ def build_html(all_results):
     health_card = ""
     if health_html:
         health_card = f"""
-        <div class="card">
+        <div class="card" id="data-access-health">
           <h3>DataAccessHealth — all products</h3>
           {health_html}
         </div>"""
