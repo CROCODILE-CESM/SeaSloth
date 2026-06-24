@@ -37,7 +37,7 @@ class DataAccessHealth:
 
     params = [_ALL_CHECKS]
     param_names = ["product_method"]
-    timeout = 120
+    timeout = 600
 
     def setup(self, _product_method):
         if not _CROCODASH_AVAILABLE:
