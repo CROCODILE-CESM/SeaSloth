@@ -457,9 +457,8 @@ and <code>mom6_forge.grid</code> / <code>mom6_forge.vgrid</code> in
         color = "#1a7a3e" if all_ok else "#b85c00"
         paras.append(f"""<h3>Data source availability</h3>
 <p><span style="color:{color};font-weight:600">{status} checked data sources are accessible.</span>
-Each method is validated on every benchmark run; the chart below shows pass/fail status and
-how long each validation took. Bar length is validation wall time (log scale); bar colour is
-green for working, red for failing or timed out.</p>""")
+Each method is validated on every benchmark run; the table below shows pass/fail status and
+how long each validation took.</p>""")
 
     # Missing benchmarks
     if missing_benchmarks:
@@ -500,10 +499,11 @@ def _parse_pm(param_str):
     return (m[0], m[1]) if len(m) >= 2 else (param_str, "")
 
 
-def make_health_chart(all_results):
+def make_health_table(all_results):
     """
-    Horizontal bar chart: one row per (product, method).
-    Bar length = validation time (log scale). Green = pass, red = fail/timeout.
+    HTML table: one row per (product, method).
+    Columns: product/method | Working? (Yes/No) | Validation time.
+    Returns an HTML string or None.
     """
     h_key = _HEALTH_KEYS["accessible"]
     t_key = _HEALTH_KEYS["timing"]
@@ -513,7 +513,6 @@ def make_health_chart(all_results):
     h_results, h_params = all_results[h_key]
     h_combos = list(itertools.product(*h_params))
 
-    # Build timing lookup
     time_lookup = {}
     if t_key in all_results:
         t_results, t_params = all_results[t_key]
@@ -522,68 +521,43 @@ def make_health_chart(all_results):
 
     rows = []
     for combo, h in zip(h_combos, h_results):
-        if h is None:
-            continue
         product, method = _parse_pm(combo[0])
         label = f"{product} / {method.replace('_', ' ')}"
-        ok = h == 1.0
+        ok = (h == 1.0) if h is not None else False
         t = time_lookup.get(combo)
         valid_t = (
-            t
-            if (t is not None and not (isinstance(t, float) and math.isnan(t)))
-            else None
+            t if (t is not None and not (isinstance(t, float) and math.isnan(t))) else None
         )
         rows.append((label, ok, valid_t))
 
     if not rows:
         return None
 
-    TIMEOUT = 120.0
-    STUB = 0.05  # seconds — stub bar for failed/no-time rows
-
-    n = len(rows)
-    fig, ax = plt.subplots(figsize=(7, max(3, n * 0.5 + 0.8)))
-
+    tr_rows = []
     for i, (label, ok, t) in enumerate(rows):
-        color = "#2a9d5c" if ok else "#c0392b"
-        bar_len = t if (ok and t) else STUB
-        ax.barh(i, bar_len, color=color, alpha=0.85, height=0.55)
-        if ok and t:
-            txt = f"✓  {fmt_time(t)}"
-            txt_color = "#155a30"
-        elif ok:
-            txt = "✓"
-            txt_color = "#155a30"
-        else:
-            txt = "✗  timeout" if (t is None) else "✗"
-            txt_color = "#7b1e1e"
-        ax.text(bar_len * 1.15, i, txt, va="center", fontsize=8, color=txt_color)
+        bg = ' style="background:#f7f9fc"' if i % 2 == 0 else ""
+        status_html = (
+            '<span style="color:#1a7a3e;font-weight:600">Yes</span>'
+            if ok
+            else '<span style="color:#b30000;font-weight:600">No</span>'
+        )
+        time_html = fmt_time(t) if t is not None else '<span style="color:#999">—</span>'
+        tr_rows.append(
+            f"<tr{bg}>"
+            f"<td style='padding:0.3rem 0.5rem'>{label}</td>"
+            f"<td style='text-align:center;padding:0.3rem 0.5rem'>{status_html}</td>"
+            f"<td style='text-align:right;padding:0.3rem 0.5rem;font-variant-numeric:tabular-nums'>{time_html}</td>"
+            f"</tr>"
+        )
 
-    ax.set_yticks(range(n))
-    ax.set_yticklabels([r[0] for r in rows], fontsize=8)
-    ax.set_xlabel("validation time (s, log scale)")
-    ax.set_xscale("log")
-    ax.axvline(TIMEOUT, color="#aaa", linewidth=0.8, linestyle="--")
-    ax.text(
-        TIMEOUT,
-        n - 0.5,
-        f" {TIMEOUT:.0f}s\n timeout",
-        fontsize=7,
-        color="#999",
-        va="top",
+    return (
+        '<table style="width:100%;border-collapse:collapse;font-size:0.88rem">'
+        '<thead><tr style="border-bottom:2px solid #c8d6e5;color:#555;font-weight:600">'
+        '<th style="text-align:left;padding:0.35rem 0.5rem">Product / Method</th>'
+        '<th style="text-align:center;padding:0.35rem 0.5rem">Working?</th>'
+        '<th style="text-align:right;padding:0.35rem 0.5rem">Validation time</th>'
+        f"</tr></thead><tbody>{''.join(tr_rows)}</tbody></table>"
     )
-    ax.invert_yaxis()
-    ax.set_xlim(left=STUB * 0.5)
-    ax.yaxis.grid(False)
-    ax.xaxis.grid(True, alpha=0.25)
-    ax.set_axisbelow(True)
-
-    plt.tight_layout()
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=130, bbox_inches="tight")
-    plt.close(fig)
-    buf.seek(0)
-    return base64.b64encode(buf.read()).decode()
 
 
 def make_chart(bench_key, results, params):
@@ -723,15 +697,14 @@ def build_html(all_results):
         suite = key.split(".")[0]
         by_suite.setdefault(suite, {})[key] = (results, params)
 
-    # Build combined health chart once; its keys are skipped in the generic loop.
-    health_b64 = make_health_chart(all_results)
+    # Build combined health table once; its keys are skipped in the generic loop.
+    health_html = make_health_table(all_results)
     health_card = ""
-    if health_b64:
+    if health_html:
         health_card = f"""
         <div class="card">
           <h3>DataAccessHealth — all products</h3>
-          <div class="params">green = accessible &nbsp;|&nbsp; red = failed / timed out &nbsp;|&nbsp; bar = validation time</div>
-          <img src="data:image/png;base64,{health_b64}" alt="DataAccessHealth">
+          {health_html}
         </div>"""
 
     sections = []
