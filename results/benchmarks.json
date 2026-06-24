@@ -25,7 +25,7 @@
         "warmup_time": -1
     },
     "crocodash.bench_obc.OBCRegridMerge.time_regrid_and_merge": {
-        "code": "class OBCRegridMerge:\n    def time_regrid_and_merge(self, step_days):\n        for sub in (\"regridded\", \"output\"):\n            p = Path(self._tmpdir) / sub\n            if p.exists():\n                shutil.rmtree(p)\n    \n        import CrocoDash.extract_forcings.case_setup.driver as driver\n        import CrocoDash.extract_forcings.regrid_dataset_piecewise as rdp\n        import CrocoDash.extract_forcings.merge_piecewise_dataset as mpd\n        import CrocoDash.extract_forcings.utils as utils\n    \n        config = utils.Config(self._obc_config)\n    \n        rdp.regrid_dataset_piecewise(\n            self._raw_dir,\n            config[\"basic\"][\"file_regex\"][\"raw_dataset_pattern\"],\n            config[\"basic\"][\"dates\"][\"format\"],\n            config[\"basic\"][\"dates\"][\"start\"],\n            config[\"basic\"][\"dates\"][\"end\"],\n            config[\"basic\"][\"paths\"][\"hgrid_path\"],\n            config[\"basic\"][\"paths\"][\"bathymetry_path\"],\n            config[\"basic\"][\"forcing\"][\"information\"],\n            Path(self._tmpdir) / \"regridded\",\n            config[\"basic\"][\"general\"][\"boundary_number_conversion\"],\n            run_initial_condition=False,\n            run_boundary_conditions=True,\n            vgrid_path=config[\"basic\"][\"paths\"].get(\"vgrid_path\"),\n        )\n    \n        mpd.merge_piecewise_dataset(\n            Path(self._tmpdir) / \"regridded\",\n            config[\"basic\"][\"file_regex\"][\"regridded_dataset_pattern\"],\n            config[\"basic\"][\"dates\"][\"format\"],\n            config[\"basic\"][\"dates\"][\"start\"],\n            config[\"basic\"][\"dates\"][\"end\"],\n            config[\"basic\"][\"general\"][\"boundary_number_conversion\"],\n            Path(self._tmpdir) / \"output\",\n            run_initial_condition=False,\n            run_boundary_conditions=True,\n        )\n\n    def setup(self, step_days):\n        import json\n    \n        config_path = Path(__file__).parent.parent / \"data_config.json\"\n        with open(config_path) as f:\n            cfg = json.load(f)\n    \n        obc_cfg = cfg.get(\"obc_config_path\", \"\")\n        step_dirs = cfg.get(\"obc_step_days_dirs\", {})\n        raw_dir = step_dirs.get(str(step_days), \"\")\n    \n        if not obc_cfg or not Path(obc_cfg).exists():\n            raise NotImplementedError(\n                \"obc_config_path not set or file missing \u2014 set in data_config.json\"\n            )\n        if not raw_dir or not Path(raw_dir).exists():\n            raise NotImplementedError(\n                f\"obc_step_days_dirs[{step_days!r}] not set or missing \u2014 \"\n                \"pre-stage GLORYS chunks and set in data_config.json\"\n            )\n    \n        self._obc_config = obc_cfg\n        self._raw_dir = raw_dir\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_obc_\")",
+        "code": "class OBCRegridMerge:\n    def time_regrid_and_merge(self, step_days):\n        for sub in (\"regridded\", \"output\"):\n            p = Path(self._tmpdir) / sub\n            if p.exists():\n                shutil.rmtree(p)\n            p.mkdir(parents=True, exist_ok=True)\n    \n        import CrocoDash.extract_forcings.case_setup.driver as driver\n        import CrocoDash.extract_forcings.regrid_dataset_piecewise as rdp\n        import CrocoDash.extract_forcings.merge_piecewise_dataset as mpd\n        import CrocoDash.extract_forcings.utils as utils\n    \n        config = utils.Config(self._obc_config)\n    \n        rdp.regrid_dataset_piecewise(\n            self._raw_dir,\n            config[\"basic\"][\"file_regex\"][\"raw_dataset_pattern\"],\n            config[\"basic\"][\"dates\"][\"format\"],\n            config[\"basic\"][\"dates\"][\"start\"],\n            config[\"basic\"][\"dates\"][\"end\"],\n            config[\"basic\"][\"paths\"][\"hgrid_path\"],\n            config[\"basic\"][\"paths\"][\"bathymetry_path\"],\n            config[\"basic\"][\"forcing\"][\"information\"],\n            Path(self._tmpdir) / \"regridded\",\n            config[\"basic\"][\"general\"][\"boundary_number_conversion\"],\n            run_initial_condition=False,\n            run_boundary_conditions=True,\n            vgrid_path=config[\"basic\"][\"paths\"].get(\"vgrid_path\"),\n        )\n    \n        mpd.merge_piecewise_dataset(\n            Path(self._tmpdir) / \"regridded\",\n            config[\"basic\"][\"file_regex\"][\"regridded_dataset_pattern\"],\n            config[\"basic\"][\"dates\"][\"format\"],\n            config[\"basic\"][\"dates\"][\"start\"],\n            config[\"basic\"][\"dates\"][\"end\"],\n            config[\"basic\"][\"general\"][\"boundary_number_conversion\"],\n            Path(self._tmpdir) / \"output\",\n            run_initial_condition=False,\n            run_boundary_conditions=True,\n        )\n\n    def setup(self, step_days):\n        import json\n    \n        config_path = Path(__file__).parent.parent / \"data_config.json\"\n        with open(config_path) as f:\n            cfg = json.load(f)\n    \n        obc_cfg = cfg.get(\"obc_config_path\", \"\")\n        step_dirs = cfg.get(\"obc_step_days_dirs\", {})\n        raw_dir = step_dirs.get(str(step_days), \"\")\n    \n        if not obc_cfg or not Path(obc_cfg).exists():\n            raise NotImplementedError(\n                \"obc_config_path not set or file missing \u2014 set in data_config.json\"\n            )\n        if not raw_dir or not Path(raw_dir).exists():\n            raise NotImplementedError(\n                f\"obc_step_days_dirs[{step_days!r}] not set or missing \u2014 \"\n                \"pre-stage GLORYS chunks and set in data_config.json\"\n            )\n    \n        self._obc_config = obc_cfg\n        self._raw_dir = raw_dir\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_obc_\")",
         "min_run_count": 2,
         "name": "crocodash.bench_obc.OBCRegridMerge.time_regrid_and_merge",
         "number": 0,
@@ -45,7 +45,38 @@
         "timeout": 7200,
         "type": "time",
         "unit": "seconds",
-        "version": "e6726f70476538b3bc171f6338c1f1f7f1dd576fa3cf16616ae4e986bb671af1",
+        "version": "0f3ebae078b8559d30039834fd0fcfffa347262751fdf3c56629f561666c6539",
+        "warmup_time": -1
+    },
+    "crocodash.bench_raw_data_access.DataAccessHealth.time_validate": {
+        "code": "class DataAccessHealth:\n    def time_validate(self, product_method):\n        product, method = product_method\n        ProductRegistry.validate_function(product, method)\n\n    def setup(self, _product_method):\n        if not _CROCODASH_AVAILABLE:\n            raise NotImplementedError(\n                \"CrocoDash not importable \u2014 install it or activate the CrocoDash env\"\n            )",
+        "min_run_count": 2,
+        "name": "crocodash.bench_raw_data_access.DataAccessHealth.time_validate",
+        "number": 0,
+        "param_names": [
+            "product_method"
+        ],
+        "params": [
+            [
+                "('gebco', 'get_gebco_data_with_python')",
+                "('gebco', 'get_gebco_data_script')",
+                "('glofas', 'get_global_data_with_python')",
+                "('glofas', 'get_processed_global_glofas_script_for_cli')",
+                "('glorys', 'get_glorys_data_from_rda')",
+                "('glorys', 'get_glorys_data_from_cds_api')",
+                "('glorys', 'get_glorys_data_script_for_cli')",
+                "('mom6_output', 'get_mom6_data')",
+                "('seawifs', 'get_global_seawifs_script_for_cli')",
+                "('seawifs', 'get_processed_global_seawifs_script_for_cli')"
+            ]
+        ],
+        "repeat": 0,
+        "rounds": 2,
+        "sample_time": 0.01,
+        "timeout": 120,
+        "type": "time",
+        "unit": "seconds",
+        "version": "ab3d1e2fb3aa4b2668812fdea145c01323dd9a149a1705f6c5fbc3c52aafa527",
         "warmup_time": -1
     },
     "crocodash.bench_raw_data_access.DataAccessHealth.track_accessible": {
@@ -214,7 +245,7 @@
         "version": "af22f17fc0027dc5f30a1e2ce3f9328c2d66888042352e107fb15ca6617deef4"
     },
     "mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn": {
-        "code": "class RunoffMappingNearestNeighbour:\n    def time_gen_rof_maps_nn(self, mesh_pair):\n        from mom6_forge.mapping import gen_rof_maps\n    \n        gen_rof_maps(\n            rof_mesh_path=self._rof,\n            ocn_mesh_path=self._ocn,\n            output_dir=self._tmpdir,\n            mapping_file_prefix=f\"bench_{mesh_pair}_nn\",\n            rmax=None,\n            fold=None,\n        )\n\n    def setup(self, mesh_pair):\n        pairs = {p[\"label\"]: p for p in _load_mesh_pairs()}\n        if mesh_pair not in pairs:\n            raise NotImplementedError(\n                f\"Mesh pair {mesh_pair!r} not in data_config.json \u2014 add 'mesh_pairs' entries\"\n            )\n        p = pairs[mesh_pair]\n        rof = Path(p[\"rof_mesh\"])\n        ocn = Path(p[\"ocn_mesh\"])\n        if not rof.exists():\n            raise NotImplementedError(f\"ROF mesh not found: {rof}\")\n        if not ocn.exists():\n            raise NotImplementedError(f\"OCN mesh not found: {ocn}\")\n        self._rof = rof\n        self._ocn = ocn\n        self._tmpdir = Path(tempfile.mkdtemp(prefix=\"seasloth_rof_\"))",
+        "code": "class RunoffMappingNearestNeighbour:\n    def time_gen_rof_maps_nn(self, mesh_pair):\n        from mom6_forge.mapping import gen_rof_maps\n    \n        gen_rof_maps(\n            rof_mesh_path=self._rof,\n            ocn_mesh_path=self._ocn,\n            output_dir=self._tmpdir,\n            mapping_file_prefix=f\"bench_{mesh_pair}_nn\",\n            rmax=None,\n            fold=None,\n        )\n\n    def setup(self, mesh_pair):\n        pairs = {p[\"label\"]: p for p in _load_mesh_pairs()}\n        if mesh_pair not in pairs:\n            raise NotImplementedError(\n                f\"Mesh pair {mesh_pair!r} not in data_config.json \u2014 add 'mesh_pairs' entries\"\n            )\n        p = pairs[mesh_pair]\n        rof = Path(p[\"rof_mesh\"])\n        ocn = Path(p[\"ocn_mesh\"])\n        if not rof.exists():\n            raise NotImplementedError(f\"ROF mesh not found: {rof}\")\n        if not ocn.exists():\n            raise NotImplementedError(f\"OCN mesh not found: {ocn}\")\n        _check_memory(p)\n        self._rof = rof\n        self._ocn = ocn\n        self._tmpdir = Path(tempfile.mkdtemp(prefix=\"seasloth_rof_\"))",
         "min_run_count": 2,
         "name": "mom6_forge.bench_runoff_mapping.RunoffMappingNearestNeighbour.time_gen_rof_maps_nn",
         "number": 0,
@@ -223,8 +254,9 @@
         ],
         "params": [
             [
-                "'coarse'",
-                "'fine'"
+                "'coarse_dst'",
+                "'fine_dst'",
+                "'larger_dst'"
             ]
         ],
         "repeat": 0,
@@ -233,11 +265,11 @@
         "timeout": 3600,
         "type": "time",
         "unit": "seconds",
-        "version": "18ae597b4a8da268f626eda72111407a8b070e1aa69d815208a5a57d196b3756",
+        "version": "f1d75715d2b54c83db3757c490531ae4d0b3f1369a255a88bacaeba22354c7a5",
         "warmup_time": -1
     },
     "mom6_forge.bench_runoff_mapping.RunoffMappingSmoothed.time_gen_rof_maps_smoothed": {
-        "code": "class RunoffMappingSmoothed:\n    def time_gen_rof_maps_smoothed(self, mesh_pair):\n        from mom6_forge.mapping import gen_rof_maps\n    \n        gen_rof_maps(\n            rof_mesh_path=self._rof,\n            ocn_mesh_path=self._ocn,\n            output_dir=self._tmpdir,\n            mapping_file_prefix=f\"bench_{mesh_pair}_sm\",\n            rmax=self._rmax,\n            fold=self._fold,\n        )\n\n    def setup(self, mesh_pair):\n        pairs = {p[\"label\"]: p for p in _load_mesh_pairs()}\n        if mesh_pair not in pairs:\n            raise NotImplementedError(\n                f\"Mesh pair {mesh_pair!r} not in data_config.json \u2014 add 'mesh_pairs' entries\"\n            )\n        p = pairs[mesh_pair]\n        rof = Path(p[\"rof_mesh\"])\n        ocn = Path(p[\"ocn_mesh\"])\n        if not rof.exists():\n            raise NotImplementedError(f\"ROF mesh not found: {rof}\")\n        if not ocn.exists():\n            raise NotImplementedError(f\"OCN mesh not found: {ocn}\")\n        self._rof = rof\n        self._ocn = ocn\n        self._rmax = p.get(\"rmax\", 100.0)\n        self._fold = p.get(\"fold\", 25.0)\n        self._tmpdir = Path(tempfile.mkdtemp(prefix=\"seasloth_rof_sm_\"))",
+        "code": "class RunoffMappingSmoothed:\n    def time_gen_rof_maps_smoothed(self, mesh_pair):\n        from mom6_forge.mapping import gen_rof_maps\n    \n        gen_rof_maps(\n            rof_mesh_path=self._rof,\n            ocn_mesh_path=self._ocn,\n            output_dir=self._tmpdir,\n            mapping_file_prefix=f\"bench_{mesh_pair}_sm\",\n            rmax=self._rmax,\n            fold=self._fold,\n        )\n\n    def setup(self, mesh_pair):\n        pairs = {p[\"label\"]: p for p in _load_mesh_pairs()}\n        if mesh_pair not in pairs:\n            raise NotImplementedError(\n                f\"Mesh pair {mesh_pair!r} not in data_config.json \u2014 add 'mesh_pairs' entries\"\n            )\n        p = pairs[mesh_pair]\n        rof = Path(p[\"rof_mesh\"])\n        ocn = Path(p[\"ocn_mesh\"])\n        if not rof.exists():\n            raise NotImplementedError(f\"ROF mesh not found: {rof}\")\n        if not ocn.exists():\n            raise NotImplementedError(f\"OCN mesh not found: {ocn}\")\n        _check_memory(p)\n        self._rof = rof\n        self._ocn = ocn\n        self._rmax = p.get(\"rmax\", 100.0)\n        self._fold = p.get(\"fold\", 25.0)\n        self._tmpdir = Path(tempfile.mkdtemp(prefix=\"seasloth_rof_sm_\"))",
         "min_run_count": 2,
         "name": "mom6_forge.bench_runoff_mapping.RunoffMappingSmoothed.time_gen_rof_maps_smoothed",
         "number": 0,
@@ -246,8 +278,9 @@
         ],
         "params": [
             [
-                "'coarse'",
-                "'fine'"
+                "'coarse_dst'",
+                "'fine_dst'",
+                "'larger_dst'"
             ]
         ],
         "repeat": 0,
@@ -256,11 +289,11 @@
         "timeout": 7200,
         "type": "time",
         "unit": "seconds",
-        "version": "1b0a86b5fafd204c48b01c8058102e14acc5e7f6b52d7b48d6dade2b91147a75",
+        "version": "804ebdf99fcbaade2d056e17e1f6bc98ead1613facc66706e8dd2e4d6576646f",
         "warmup_time": -1
     },
     "mom6_forge.bench_topo.TopoSetFromDataset.time_set_from_dataset": {
-        "code": "class TopoSetFromDataset:\n    def time_set_from_dataset(self, domain_deg):\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n\n    def setup(self, domain_deg):\n        import tempfile\n    \n        import psutil\n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        if domain_deg >= 40:\n            available_gb = psutil.virtual_memory().available / 1024**3\n            if available_gb < 50:\n                raise NotImplementedError(\n                    f\"domain_deg={domain_deg} needs ~60 GB RAM; \"\n                    f\"only {available_gb:.0f} GB available \u2014 request a high-memory node\"\n                )\n    \n        self._grid = Grid(\n            lenx=float(domain_deg),\n            leny=float(domain_deg),\n            resolution=0.1,\n            xstart=0.0,\n            ystart=0.0,\n        )\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_topo_\")",
+        "code": "class TopoSetFromDataset:\n    def time_set_from_dataset(self, domain_deg):\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n\n    def setup(self, domain_deg):\n        import tempfile\n    \n        import psutil\n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        if domain_deg >= 40:\n            # Check cgroup memory limit (PBS sets this), falling back to psutil.\n            # domain_deg=40 needs ~60 GB; require >=90 GB headroom.\n            cgroup_limit_gb = None\n            for cgroup_path in (\n                \"/sys/fs/cgroup/memory.max\",  # cgroup v2\n                \"/sys/fs/cgroup/memory/memory.limit_in_bytes\",  # cgroup v1\n            ):\n                try:\n                    val = open(cgroup_path).read().strip()\n                    if val != \"max\":\n                        cgroup_limit_gb = int(val) / 1024**3\n                    break\n                except FileNotFoundError:\n                    continue\n            limit_gb = (\n                cgroup_limit_gb\n                if cgroup_limit_gb\n                else psutil.virtual_memory().total / 1024**3\n            )\n            if limit_gb < 90:\n                raise NotImplementedError(\n                    f\"domain_deg={domain_deg} needs ~60 GB RAM; \"\n                    f\"memory limit is {limit_gb:.0f} GB \u2014 request a high-memory node (>=90 GB)\"\n                )\n    \n        self._grid = Grid(\n            lenx=float(domain_deg),\n            leny=float(domain_deg),\n            resolution=0.1,\n            xstart=0.0,\n            ystart=0.0,\n        )\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_topo_\")",
         "min_run_count": 2,
         "name": "mom6_forge.bench_topo.TopoSetFromDataset.time_set_from_dataset",
         "number": 0,
@@ -281,11 +314,11 @@
         "timeout": 3600,
         "type": "time",
         "unit": "seconds",
-        "version": "984c3907bf6f9e985009b0398edbb9560417b8d23b94e61c7ff282970ed0c81d",
+        "version": "90c4fdc9f10d57f35eb099090791b80731179b51c3b4e3901a2138d23c28b745",
         "warmup_time": -1
     },
     "mom6_forge.bench_topo.TopoSetFromDataset.track_rss_mb": {
-        "code": "class TopoSetFromDataset:\n    def track_rss_mb(self, domain_deg):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, domain_deg):\n        import tempfile\n    \n        import psutil\n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        if domain_deg >= 40:\n            available_gb = psutil.virtual_memory().available / 1024**3\n            if available_gb < 50:\n                raise NotImplementedError(\n                    f\"domain_deg={domain_deg} needs ~60 GB RAM; \"\n                    f\"only {available_gb:.0f} GB available \u2014 request a high-memory node\"\n                )\n    \n        self._grid = Grid(\n            lenx=float(domain_deg),\n            leny=float(domain_deg),\n            resolution=0.1,\n            xstart=0.0,\n            ystart=0.0,\n        )\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_topo_\")",
+        "code": "class TopoSetFromDataset:\n    def track_rss_mb(self, domain_deg):\n        import os\n    \n        import psutil\n    \n        proc = psutil.Process(os.getpid())\n        before = proc.memory_info().rss\n        self._topo.set_from_dataset(\n            bathymetry_path=self._gebco,\n            longitude_coordinate_name=\"lon\",\n            latitude_coordinate_name=\"lat\",\n            vertical_coordinate_name=\"elevation\",\n            write_to_file=False,\n            output_dir=self._tmpdir,\n        )\n        return (proc.memory_info().rss - before) / 1024**2\n\n    def setup(self, domain_deg):\n        import tempfile\n    \n        import psutil\n        from mom6_forge.grid import Grid\n        from mom6_forge.topo import Topo\n    \n        gebco = get_path(\"gebco_path\")\n        if not gebco or not __import__(\"pathlib\").Path(gebco).exists():\n            raise NotImplementedError(f\"GEBCO not found at {gebco!r} \u2014 GLADE only\")\n    \n        if domain_deg >= 40:\n            # Check cgroup memory limit (PBS sets this), falling back to psutil.\n            # domain_deg=40 needs ~60 GB; require >=90 GB headroom.\n            cgroup_limit_gb = None\n            for cgroup_path in (\n                \"/sys/fs/cgroup/memory.max\",  # cgroup v2\n                \"/sys/fs/cgroup/memory/memory.limit_in_bytes\",  # cgroup v1\n            ):\n                try:\n                    val = open(cgroup_path).read().strip()\n                    if val != \"max\":\n                        cgroup_limit_gb = int(val) / 1024**3\n                    break\n                except FileNotFoundError:\n                    continue\n            limit_gb = (\n                cgroup_limit_gb\n                if cgroup_limit_gb\n                else psutil.virtual_memory().total / 1024**3\n            )\n            if limit_gb < 90:\n                raise NotImplementedError(\n                    f\"domain_deg={domain_deg} needs ~60 GB RAM; \"\n                    f\"memory limit is {limit_gb:.0f} GB \u2014 request a high-memory node (>=90 GB)\"\n                )\n    \n        self._grid = Grid(\n            lenx=float(domain_deg),\n            leny=float(domain_deg),\n            resolution=0.1,\n            xstart=0.0,\n            ystart=0.0,\n        )\n        self._topo = Topo(self._grid, min_depth=10.0, git=False)\n        self._gebco = gebco\n        self._tmpdir = tempfile.mkdtemp(prefix=\"seasloth_topo_\")",
         "name": "mom6_forge.bench_topo.TopoSetFromDataset.track_rss_mb",
         "param_names": [
             "domain_deg"
@@ -301,7 +334,7 @@
         "timeout": 3600,
         "type": "track",
         "unit": "MB",
-        "version": "23ed37eb3e6cfdb5fb67ef485ee9dd9c16e6c197f3de167ac4acc50701bcef4b"
+        "version": "42556bcaf934ddc2f22760af26063799b1d1d56be8fbaefd2cc37f8156334984"
     },
     "version": 2,
     "xesmf.bench_regrid_apply.XESMFRegridApply.time_apply": {
