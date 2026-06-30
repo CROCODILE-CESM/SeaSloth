@@ -33,6 +33,9 @@ jobs:
       - name: Generate benchmark report
         run: python scripts/generate_report.py
 
+      - name: Generate data access health page
+        run: python scripts/generate_health_page.py
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

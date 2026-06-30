@@ -9,9 +9,11 @@ cd "$REPO_ROOT"
 
 python -m asv publish
 python scripts/generate_report.py
+python scripts/generate_health_page.py
 
 echo ""
-echo "Dashboard: $REPO_ROOT/.asv/html/index.html"
+echo "Dashboard:    $REPO_ROOT/.asv/html/index.html"
+echo "Health page:  $REPO_ROOT/.asv/html/health.html"
 echo "ASV timeline: $REPO_ROOT/.asv/html/asv_timeline.html"
 echo ""
 echo "To preview in a browser:"

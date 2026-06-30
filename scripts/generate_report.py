@@ -807,7 +807,9 @@ def build_html(all_results):
   <h1>SeaSloth Benchmark Report</h1>
   <p>Performance snapshot — benchmarks run on Derecho/GLADE.
      <a href="asv_timeline.html" style="color:#9fc3e8">Regression timeline &rarr;</a>
-     <span style="opacity:0.5;font-size:0.8rem">(needs 2+ commits to show data)</span></p>
+     <span style="opacity:0.5;font-size:0.8rem">(needs 2+ commits to show data)</span>
+     &nbsp;|&nbsp;
+     <a href="health.html" style="color:#9fc3e8">Data access health &rarr;</a></p>
 </header>
 {narrative}
 <p id="charts-heading" style="color:#888;font-size:0.85rem">Detailed charts below &darr;</p>
