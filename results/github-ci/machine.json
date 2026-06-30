@@ -1,0 +1,8 @@
+{
+  "arch": "x86_64",
+  "cpu": "GitHub Actions",
+  "machine": "github-ci",
+  "num_cpu": 2,
+  "os": "Linux",
+  "ram": 7
+}

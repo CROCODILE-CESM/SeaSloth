@@ -1,0 +1,36 @@
+{
+  "commit_hash": "ci-20260630",
+  "date": 1782836237340,
+  "params": {},
+  "python": "github-actions",
+  "requirements": {},
+  "results": {
+    "crocodash.bench_raw_data_access.DataAccessLinkCheck.track_link_ok": [
+      [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      [
+        [
+          "'cesm inputdata'",
+          "'gebco'",
+          "'glofas'",
+          "'glorys'",
+          "'mom6_output'",
+          "'seawifs'",
+          "'tpxo'"
+        ]
+      ],
+      "ci-link-20260630",
+      1782836237340,
+      4.447130743999999
+    ]
+  },
+  "env_name": "github-actions-link-check",
+  "version": 2
+}
