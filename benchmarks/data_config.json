@@ -2,30 +2,6 @@
     "gebco_path": "/glade/derecho/scratch/manishrv/ice/croc/gebco/GEBCO_2024.nc",
     "glorys_rda_path": "/glade/campaign/collections/rda/data/d010049/",
 
-    "mesh_pairs": [
-        {
-            "label": "coarse_dst",
-            "rof_mesh": "/glade/campaign/cesm/cesmdata/inputdata/lnd/dlnd7/JRA55/JRA.v1.4.runoff.1958_ESMFmesh_cdf5_20201020.nc",
-            "ocn_mesh": "/glade/u/home/manishrv/scratch/croc_input/bd.oo.10thdegree/ocnice/ESMF_mesh_open_ocean_nar_10_4ea79c.nc",
-            "rmax": 100.0,
-            "fold": 25.0
-        },
-        {
-            "label": "fine_dst",
-            "rof_mesh": "/glade/campaign/cesm/cesmdata/inputdata/lnd/dlnd7/JRA55/JRA.v1.4.runoff.1958_ESMFmesh_cdf5_20201020.nc",
-            "ocn_mesh": "/glade/u/home/manishrv/scratch/croc_input/bd.oo.40thdegree/ocnice/ESMF_mesh_open_ocean_nar_40_9c060e.nc",
-            "rmax": 100.0,
-            "fold": 25.0
-        },
-        {
-            "label": "larger_dst",
-            "rof_mesh": "/glade/campaign/cesm/cesmdata/inputdata/lnd/dlnd7/JRA55/JRA.v1.4.runoff.1958_ESMFmesh_cdf5_20201020.nc",
-            "ocn_mesh": "/glade/work/emilanese/croc_input_oNWA12c20y/ocnice/ESMF_mesh_ocean_hgrid_0b29bd.nc",
-            "rmax": 100.0,
-            "fold": 25.0
-        }
-    ],
-
     "obc_config_path": "/glade/u/home/manishrv/scratch/croc_input/bd.oo.10thdegree/extract_forcings/config.json",
     "obc_step_days_dirs": {
         "5":  "",

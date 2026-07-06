@@ -16,82 +16,78 @@ files. The total date range is held constant so total data volume is fixed.
 
 Required setup in data_config.json:
   "obc_config_path": "/path/to/CrocoDash/case/config.yaml"
-    → must point to a valid CrocoDash case config whose raw_dataset_path
-      already contains pre-downloaded GLORYS files.
+    -> must point to a valid CrocoDash case config whose raw_dataset_path
+       already contains pre-downloaded GLORYS files.
 
   "obc_step_days_dirs": {
     "5":  "/path/to/cached_glorys_step5/",
     "15": "/path/to/cached_glorys_step15/",
     "30": "/path/to/cached_glorys_step30/"
   }
-    → pre-staged raw GLORYS folders, each chunked at that step_days value.
-      The benchmark swaps the raw_dataset_path for each run.
+    -> pre-staged raw GLORYS folders, each chunked at that step_days value.
+       The benchmark swaps the raw_dataset_path for each run.
 
-HPC only — skip gracefully on machines without the data.
+HPC only — skipped gracefully on machines without the data.
 """
 
-import shutil
-import tempfile
 from pathlib import Path
 
+import pytest
 
-class OBCRegridMerge:
-    """
-    REGRID + MERGE phases of process_conditions() with pre-cached GLORYS data.
+from benchmarks.common.config import get_path
+
+OBC_CONFIG_PATH = get_path("obc_config_path")
+OBC_STEP_DAYS_DIRS = {}
+try:
+    import json
+
+    _cfg_path = Path(__file__).parent.parent / "data_config.json"
+    OBC_STEP_DAYS_DIRS = json.loads(_cfg_path.read_text()).get("obc_step_days_dirs", {})
+except FileNotFoundError:
+    pass
+
+
+def _raw_dir_for(step_days):
+    return OBC_STEP_DAYS_DIRS.get(str(step_days), "")
+
+
+def _obc_available(step_days):
+    if not OBC_CONFIG_PATH or not Path(OBC_CONFIG_PATH).exists():
+        return False
+    raw_dir = _raw_dir_for(step_days)
+    return bool(raw_dir) and Path(raw_dir).exists()
+
+
+@pytest.mark.heavy  # needs pre-staged GLORYS data + a real regrid+merge pass at every size
+@pytest.mark.parametrize("step_days", [5, 15, 30])
+def test_regrid_and_merge(benchmark, step_days, tmp_path):
+    """REGRID + MERGE phases of process_conditions() with pre-cached GLORYS data.
 
     step_days determines the number of raw-data chunks the regrid loop
     iterates over — smaller = more iterations, larger = fewer but bigger.
     """
+    if not _obc_available(step_days):
+        pytest.skip(
+            f"obc_config_path/obc_step_days_dirs[{step_days}] not configured — GLADE only"
+        )
 
-    params = [[5, 15, 30]]
-    param_names = ["step_days"]
-    timeout = 7200
+    raw_dir = _raw_dir_for(step_days)
 
-    def setup(self, step_days):
-        import json
-
-        config_path = Path(__file__).parent.parent / "data_config.json"
-        with open(config_path) as f:
-            cfg = json.load(f)
-
-        obc_cfg = cfg.get("obc_config_path", "")
-        step_dirs = cfg.get("obc_step_days_dirs", {})
-        raw_dir = step_dirs.get(str(step_days), "")
-
-        if not obc_cfg or not Path(obc_cfg).exists():
-            raise NotImplementedError(
-                "obc_config_path not set or file missing — set in data_config.json"
-            )
-        if not raw_dir or not Path(raw_dir).exists():
-            raise NotImplementedError(
-                f"obc_step_days_dirs[{step_days!r}] not set or missing — "
-                "pre-stage GLORYS chunks and set in data_config.json"
-            )
-
-        self._obc_config = obc_cfg
-        self._raw_dir = raw_dir
-        self._tmpdir = tempfile.mkdtemp(prefix="seasloth_obc_")
-
-    def teardown(self, step_days):
-        if hasattr(self, "_tmpdir"):
-            shutil.rmtree(self._tmpdir, ignore_errors=True)
-
-    def time_regrid_and_merge(self, step_days):
-        for sub in ("regridded", "output"):
-            p = Path(self._tmpdir) / sub
-            if p.exists():
-                shutil.rmtree(p)
-            p.mkdir(parents=True, exist_ok=True)
-
-        import CrocoDash.extract_forcings.case_setup.driver as driver
-        import CrocoDash.extract_forcings.regrid_dataset_piecewise as rdp
+    def run():
+        import CrocoDash.extract_forcings.case_setup.driver as driver  # noqa: F401
         import CrocoDash.extract_forcings.merge_piecewise_dataset as mpd
+        import CrocoDash.extract_forcings.regrid_dataset_piecewise as rdp
         import CrocoDash.extract_forcings.utils as utils
 
-        config = utils.Config(self._obc_config)
+        regridded_dir = tmp_path / "regridded"
+        output_dir = tmp_path / "output"
+        regridded_dir.mkdir(exist_ok=True)
+        output_dir.mkdir(exist_ok=True)
+
+        config = utils.Config(OBC_CONFIG_PATH)
 
         rdp.regrid_dataset_piecewise(
-            self._raw_dir,
+            raw_dir,
             config["basic"]["file_regex"]["raw_dataset_pattern"],
             config["basic"]["dates"]["format"],
             config["basic"]["dates"]["start"],
@@ -99,7 +95,7 @@ class OBCRegridMerge:
             config["basic"]["paths"]["hgrid_path"],
             config["basic"]["paths"]["bathymetry_path"],
             config["basic"]["forcing"]["information"],
-            Path(self._tmpdir) / "regridded",
+            regridded_dir,
             config["basic"]["general"]["boundary_number_conversion"],
             run_initial_condition=False,
             run_boundary_conditions=True,
@@ -107,13 +103,15 @@ class OBCRegridMerge:
         )
 
         mpd.merge_piecewise_dataset(
-            Path(self._tmpdir) / "regridded",
+            regridded_dir,
             config["basic"]["file_regex"]["regridded_dataset_pattern"],
             config["basic"]["dates"]["format"],
             config["basic"]["dates"]["start"],
             config["basic"]["dates"]["end"],
             config["basic"]["general"]["boundary_number_conversion"],
-            Path(self._tmpdir) / "output",
+            output_dir,
             run_initial_condition=False,
             run_boundary_conditions=True,
         )
+
+    benchmark.pedantic(run, rounds=1, iterations=1, warmup_rounds=0)

@@ -1,11 +1,13 @@
-name: Benchmark Dashboard
+name: Publish Report
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
+  schedule:
+    # 06:00 UTC daily — after the PBS data-health job on GLADE typically finishes.
+    - cron: "0 6 * * *"
 
 permissions:
+  contents: read
   pages: write
   id-token: write
 
@@ -16,31 +18,23 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
-
-      - name: Install dependencies
-        run: pip install asv matplotlib numpy
-
-      - name: Build dashboard
-        run: asv publish
+          python-version: "3.11"
 
       - name: Generate benchmark report
         run: python scripts/generate_report.py
 
-      - name: Generate data access health page
-        run: python scripts/generate_health_page.py
+      - name: Generate data access health report
+        run: python scripts/generate_health_report.py
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .asv/html
+          path: report
 
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4

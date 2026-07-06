@@ -1,7 +1,7 @@
 # How SeaSloth Benchmarking Works
 
 This document explains what actually happens when you run a benchmark — from invocation
-through timing to the dashboard. No ASV prior knowledge assumed.
+through timing to the report pages. No ASV knowledge needed; SeaSloth no longer uses it.
 
 ---
 
@@ -9,228 +9,181 @@ through timing to the dashboard. No ASV prior knowledge assumed.
 
 ```
 conda activate CrocoDash
-bash scripts/run_bench.sh   # discovers CrocoDash commit → asv run --set-commit-hash <hash>
+bash scripts/run_benchmarks.sh
       │
       ▼
-ASV reads asv.conf.json
+pytest discovers benchmarks/**/test_*.py
       │
-      ├─ "environment_type": "existing"  → use the currently active Python (CrocoDash env)
-      ├─ "repo": "/path/to/CrocoDash"    → validate HEAD against CrocoDash git history
-      │
-      ├─ 1. Discover benchmarks (import every bench_*.py, find time_/track_/mem_ classes)
-      ├─ 2. For each (class, method, param combo):
-      │       spawn a subprocess in the active Python env
-      │       → run benchmarks/__init__.py  (sets ESMFMKFILE)
-      │       → call setup()               (excluded from timing)
-      │       → time the method            (recorded)
-      └─ 3. Write results/derecho/<croco-commit>-existing-py_<env>....json
+      ├─ 1. Collect every test_* function, expand pytest.mark.parametrize combinations
+      ├─ 2. For each parameter combination:
+      │       call it with the `benchmark` fixture in-process (no subprocess spawn)
+      │       → benchmark(fn) or benchmark.pedantic(fn, rounds=1, ...) times the call
+      │       → benchmark.extra_info["rss_mb"] records memory, if tracked
+      └─ 3. --benchmark-json=results/latest.json writes ALL results to one file,
+             overwriting whatever was there before (a snapshot, not a history)
 ```
 
-**No conda env building.** `environment_type: "existing"` means ASV uses whatever Python
-is currently active — it never creates or manages its own env. This is why you must
-`conda activate CrocoDash` first.
+There's no commit-hash bookkeeping, no `environment_type`, no ASV conda-env matrix.
+pytest-benchmark just runs the currently-active environment's code and times it.
 
-**Results are tagged to CrocoDash commits**, not SeaSloth commits. The `"repo"` field in
-`asv.conf.json` points to the CrocoDash git repository. ASV resolves `HEAD` and validates
-commit hashes against CrocoDash's git history. The regression timeline on the dashboard
-links back to CrocoDash commits on GitHub.
+**Results are a snapshot, not a timeline.** `results/latest.json` is fully overwritten by
+every `run_benchmarks.sh` run. SeaSloth doesn't track how these numbers change over commits
+— xESMF/ESMF are external libraries that don't change with CROC's code, and the mom6_forge/
+CrocoDash pipelines that *do* change per-commit are benchmarked with pytest-benchmark
+commit tracking in their own repos, not here.
 
 ---
 
 ## First-time setup
 
-No path configuration needed. `asv.conf.json` uses the public CrocoDash GitHub URL:
-
-```json
-"repo": "https://github.com/CROCODILE-CESM/CrocoDash"
-```
-
-This works on GLADE and in CI without any local path setup. Run `bash scripts/configure.sh`
-to verify that CrocoDash and mom6_forge are importable in the active environment.
-
----
-
-## `--set-commit-hash` — why it's required
-
-With `environment_type: "existing"`, ASV has no git worktree to determine which commit
-is being benchmarked. Without `--set-commit-hash`, ASV silently skips writing the result
-file — benchmarks run but results are discarded.
-
-Use `scripts/run_bench.sh` — it handles this automatically:
 ```bash
 conda activate CrocoDash
-bash scripts/run_bench.sh          # detects CrocoDash commit, passes --set-commit-hash
-bash scripts/run_bench.sh --quick --bench "CrocoDashImports"
+bash scripts/configure.sh
 ```
 
-The script discovers the CrocoDash commit from your active editable install via
-`CrocoDash.__file__` and runs `git rev-parse HEAD` there — so if you've checked out
-an older CrocoDash commit locally, it tags the result to that commit, not GitHub's main.
+Verifies that `pytest`, `pytest-benchmark`, `CrocoDash`, `mom6_forge`, and `xesmf` are all
+importable in the active environment.
 
 ---
 
-## Params: the Cartesian product
+## Parametrization
 
-Every benchmark class can have a `params` attribute — a list of lists. ASV computes the
-full Cartesian product and runs the benchmark once per combination.
+`pytest.mark.parametrize` replaces ASV's `params`/`param_names`. Stacking two
+`@pytest.mark.parametrize` decorators produces their Cartesian product:
 
 ```python
-class RegridderCreation:
-    params = [
-        [(100, 100), (300, 300), (600, 400)],        # src_size  — 3 values
-        [(50, 50), (200, 200), (400, 300)],           # dst_size  — 3 values
-        ["bilinear", "nearest_s2d", "conservative"],  # method    — 3 values
-    ]
-    param_names = ["src_size", "dst_size", "method"]
+@pytest.mark.parametrize("src_size,dst_size", SIZE_COMBOS)
+@pytest.mark.parametrize("method", ["bilinear", "conservative"])
+def test_generate_weights(benchmark, src_size, dst_size, method):
+    ...
 ```
 
-This produces 3 × 3 × 3 = **27 individual benchmark runs** for every `time_*` or `track_*`
-method in the class.
+Each `(src_size, dst_size, method)` combination becomes its own pytest test ID and its own
+row in `results/latest.json`.
 
 ---
 
-## How a single benchmark run works
+## `light` vs `heavy`
 
-For each (method, param combo), ASV spawns a **fresh subprocess**:
+The smallest grid-size combination in each synthetic (xESMF/ESMF) sweep is tagged
+`pytest.mark.light` via `pytest.param(..., marks=...)` on that specific combination; every
+other combination in the same sweep is `pytest.mark.heavy`. See
+`benchmarks/common/marks.py`'s `light_or_heavy(is_light)` helper.
 
-```
-subprocess starts (inside active CrocoDash Python env)
-      │
-      ├─ run benchmarks/__init__.py  (sets ESMFMKFILE; CrocoDash/mom6_forge are already
-      │                               on sys.path via the editable install)
-      ├─ import the benchmark module
-      ├─ instantiate the class
-      ├─ call setup(params...)          ← excluded from timing
-      │
-      └─ TIMING LOOP:
-            repeat N times {
-                call time_my_method(params...)   ← only this is timed
-            }
-            record: min, mean, std of N reps
+```bash
+pytest benchmarks/ -m light        # fast smoke test — smallest synthetic combos only
+pytest benchmarks/ -m heavy        # the full-size sweep — the real benchmark numbers
 ```
 
-Each subprocess is isolated — a crash in one benchmark doesn't affect the others, and
-memory from one run doesn't leak into the next.
+`test_topo.py` (bathymetry) and `test_obc.py` (OBC regrid+merge) are marked `heavy` at the
+whole-function level — they need real GEBCO/GLORYS data and take meaningful time even at
+their smallest parameter value, so there's no fast "light" case for them.
 
-### `setup()` — excluded from timing
+---
 
-`setup()` runs before the timing loop and is not measured. Put expensive construction here:
+## How a single benchmark runs
+
+```
+pytest calls test_generate_weights(benchmark, src_size=..., dst_size=..., method=...)
+      │
+      ├─ ordinary test-function setup code runs first (builds grids, etc.) — NOT timed
+      │
+      └─ benchmark(fn)          → calibrates reps automatically, times fn() N times
+         or
+         benchmark.pedantic(fn, rounds=1, iterations=1, warmup_rounds=0)
+                                 → times fn() exactly once
+```
+
+Everything before the `benchmark(...)`/`benchmark.pedantic(...)` call in the test function
+body is setup and isn't timed — the same role ASV's `setup()` played.
+
+### `benchmark(fn)` vs `benchmark.pedantic(...)`
+
+- **`benchmark(fn)`** — for cheap, synthetic benchmarks (xESMF/ESMF). pytest-benchmark
+  calibrates the number of repetitions automatically to get a stable mean/stddev.
+- **`benchmark.pedantic(fn, rounds=1, iterations=1, warmup_rounds=0)`** — for expensive or
+  data-dependent benchmarks (GEBCO regrid, GLORYS regrid+merge). Runs `fn()` exactly once;
+  repeating a multi-minute pipeline or a network call for statistical calibration would be
+  wasteful.
+
+### Skipping data-dependent benchmarks
+
+`@pytest.mark.skipif(condition, reason=...)` replaces ASV's `raise NotImplementedError` in
+`setup()`:
 
 ```python
-def setup(self, src_size, dst_size, method):
-    self.src = make_rect_grid(*src_size)
-    self.dst = make_curvilinear_grid(*dst_size)
-    # NOT timed — only time_* below is on the clock
+GEBCO_AVAILABLE = bool(GEBCO_PATH) and Path(GEBCO_PATH).exists()
 
-def time_create_regridder(self, src_size, dst_size, method):
-    xe.Regridder(self.src, self.dst, method=method)
+@pytest.mark.skipif(not GEBCO_AVAILABLE, reason="GEBCO_2024.nc not configured — GLADE only")
+@pytest.mark.parametrize("domain_deg", [5, 10, 20, 40])
+def test_set_from_dataset(benchmark, domain_deg, tmp_path):
+    ...
 ```
 
-### Timing mechanism
-
-ASV uses Python's `timeit` internally. It runs the method multiple times and reports
-statistics (mean ± std). The number of repetitions is chosen automatically to get a
-stable measurement — fast operations get more reps, slow ones fewer.
-
-`--quick` forces exactly **one repetition per param combo**. Results are noisier but the
-run finishes much faster. Use `--quick` for sanity checks; omit it for real data.
-
-### `teardown()` — cleanup after timing
-
-Called after timing completes even if timing raised an error. Use it to remove temp files
-or destroy ESMF objects:
-
-```python
-def teardown(self, src_size, dst_size, reuse_weights):
-    shutil.rmtree(self._tmpdir, ignore_errors=True)
-```
-
-### Errors and skipped benchmarks
-
-- `setup()` raises `NotImplementedError` → benchmark is marked **`n/a`** (skipped, not failed).
-  Use this for data-dependent benchmarks when the required file is absent.
-- `setup()` raises any other exception → benchmark is marked **failed** (red on dashboard).
-- `time_*` raises an exception → benchmark is marked **failed**.
+Runtime-only checks (like the `domain_deg=40` memory guard in `test_topo.py`) call
+`pytest.skip(...)` from inside the test body instead, since they depend on reading
+`/sys/fs/cgroup/...` at collection time isn't reliable.
 
 ---
 
 ## Memory benchmarks
 
-ASV has three memory benchmark types. SeaSloth uses `track_rss_mb` because ESMF makes
-large C/Fortran heap allocations that `mem_*` and `peakmem_*` miss entirely.
-
-| Type | What it measures | When to use |
-|---|---|---|
-| `mem_*` | Deep Python object size of the **return value** | Pure Python objects |
-| `peakmem_*` | Peak `tracemalloc` usage during the call | Python heap only |
-| `track_rss_mb` | Process RSS delta via psutil | C/Fortran allocations (ESMF, NetCDF) |
+pytest-benchmark has no built-in memory measurement. `benchmarks/common/memtrack.py`
+provides `measure_rss(fn, *args, **kwargs)` — a psutil RSS-delta wrapper, since ESMF's
+C/Fortran heap allocations are invisible to Python's own memory introspection:
 
 ```python
-def track_rss_mb(self, ...):
-    import os, psutil
-    proc = psutil.Process(os.getpid())
-    before = proc.memory_info().rss
-    xe.Regridder(...)
-    return (proc.memory_info().rss - before) / 1024**2
+from benchmarks.common.memtrack import measure_rss
 
-track_rss_mb.unit = "MB"
+def test_generate_weights(benchmark, src_size, dst_size, method):
+    ...
+    box = {}
+    def run():
+        result, box["rss_mb"] = measure_rss(xe.Regridder, src, dst, method=method, ...)
+        return result
+    benchmark(run)
+    benchmark.extra_info["rss_mb"] = box.get("rss_mb")
 ```
+
+The RSS delta is recorded once per call via a mutable closure variable, then attached to
+`benchmark.extra_info` — this avoids running the (possibly expensive) function a second time
+just to measure memory.
 
 ---
 
 ## Results storage
 
-After all benchmarks finish, ASV writes one JSON file per run:
+`--benchmark-json=results/latest.json` (set by `scripts/run_benchmarks.sh`) writes
+pytest-benchmark's native JSON schema: machine info plus a flat `benchmarks` list of
+`{name, fullname, params, stats: {mean, min, max, stddev, rounds, ...}, extra_info}`.
 
-```
-results/
-├── benchmarks.json                                           ← benchmark metadata
-└── derecho/
-    ├── machine.json                                          ← CPU/RAM/OS info
-    └── <croco-commit>-existing-py_<env-path>.json           ← timing data
-```
-
-The file is named with the **CrocoDash commit hash** (from `--set-commit-hash`). This is
-what links the dashboard timeline to CrocoDash's git history and makes `show_commit_url`
-point to the right commit on GitHub.
-
-If the process is killed mid-run (e.g., PBS walltime exceeded), the timing JSON is never
-written. `machine.json` appears early; the timing file only appears at the very end.
-
-Commit results to git so the history accumulates:
+This file is **always overwritten**, not accumulated — commit it after a real run so the
+report reflects the latest numbers:
 
 ```bash
-git add results/
+git add results/latest.json
 git commit -m "bench: <brief description>"
 git push
 ```
 
 ---
 
-## `asv publish` and the dashboard
+## Report generation
 
-`scripts/publish.sh` runs two things:
+`scripts/generate_report.py` reads `results/latest.json`, groups benchmarks by suite
+(parsed from `fullname`) and then by test function, and renders one HTML table per function
+— no charts, no computed ratios, no hand-written prose. Output: `report/index.html`.
 
-1. **`asv publish`** — reads all JSON files in `results/`, resolves commit hashes against
-   the CrocoDash git repo, and builds a self-contained HTML app in `.asv/html/`. Needs the
-   full git history — this is why CI uses `fetch-depth: 0`.
-
-2. **`scripts/generate_report.py`** — reads the same JSON files and generates snapshot bar
-   charts (one per benchmark class) as a standalone `index.html`. Overwrites ASV's
-   `index.html` and saves ASV's version as `asv_timeline.html`.
-
-| Page | What it shows | Useful for |
-|---|---|---|
-| `index.html` | Bar charts per benchmark class (latest values) | Parameter sweeps, quick comparison |
-| `asv_timeline.html` | Commit timeline, regression detection | Spotting regressions across versions |
-
-The ASV timeline needs **2+ commits** with data before it shows anything meaningful.
+Data-access health is a separate concern with its own script and page — see
+`scripts/check_data_access.py` and `scripts/generate_health_report.py` — because it runs on
+its own daily cadence rather than being triggered by `run_benchmarks.sh`.
 
 ---
 
 ## CI
 
-The GitHub Actions workflow (`.github/workflows/benchmark.yml`) only runs `asv publish`
-and `generate_report.py` — it never runs benchmarks. Benchmarks run on GLADE. Results are
-committed to `results/` in git. CI checks out the repo with full history (`fetch-depth: 0`)
-so ASV can resolve all CrocoDash commit hashes in the result files, then deploys to GitHub Pages.
+`.github/workflows/publish.yml` runs on manual dispatch and a daily schedule. It never runs
+the actual benchmarks or health checks — GitHub's runners have no CrocoDash, GEBCO, GLORYS,
+or ESMF. It only regenerates both report pages (`generate_report.py` and
+`generate_health_report.py`) from whatever is currently committed under `results/`, then
+deploys to GitHub Pages.

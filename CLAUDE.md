@@ -4,7 +4,15 @@ This file provides guidance to Claude Code when working in this repository.
 
 ## Project Overview
 
-**SeaSloth** is the performance benchmarking suite for the CROC ocean modeling ecosystem (CrocoDash, mom6_forge). It uses [ASV (Airspeed Velocity)](https://asv.readthedocs.io/) to measure computationally expensive operations — xESMF/ESMF weight generation, bathymetry pipelines, OBC forcing — and presents results in an interactive HTML dashboard.
+**SeaSloth** is a one-time performance snapshot for parts of the CROC ocean modeling
+ecosystem that don't change commit-to-commit: xESMF/ESMF regridding (external libraries),
+the mom6_forge bathymetry pipeline, and the CrocoDash OBC regrid+merge pipeline. It uses
+[pytest-benchmark](https://pytest-benchmark.readthedocs.io/) and renders two static HTML
+pages of plain tables — no charts, no hand-written narrative.
+
+Commit-by-commit performance tracking for CrocoDash/mom6_forge code lives in those repos'
+own pytest-benchmark suites — not here. SeaSloth previously used ASV (airspeed velocity)
+for commit tracking; that's gone.
 
 GitHub org: https://github.com/CROCODILE-CESM
 
@@ -12,91 +20,91 @@ GitHub org: https://github.com/CROCODILE-CESM
 
 | Suite | File(s) | Data needed | What it measures |
 |---|---|---|---|
-| xESMF weight generation | `xesmf/bench_weights_generate.py` | None (synthetic) | `xe.Regridder()` construction time + RSS, grid→grid and grid→locstream, up to ~1 M source pts |
-| xESMF regrid application | `xesmf/bench_regrid_apply.py` | None (synthetic) | `regridder(ds)` time across grid sizes, time depths, methods |
-| ESMF weight generation | `esmf/bench_weights_generate.py` | None (synthetic) | `esmpy.Regrid()` construction — raw ESMF, same sizes as xESMF suite |
-| ESMF regrid application | `esmf/bench_regrid_apply.py` | None (synthetic) | `esmpy.Regrid()(src, dst)` time per ntime steps — raw ESMF |
-| OBC forcing pipeline | `crocodash/bench_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE of `process_conditions()`, no GET; varies step_days |
-| Runoff mapping | `mom6_forge/bench_runoff_mapping.py` | ESMF mesh files (GLADE) | `gen_rof_maps()` — NN and smoothed NN mapping between ROF and OCN meshes |
-| Raw data access health | `crocodash/bench_raw_data_access.py` | Credentials / GLADE | Connectivity check for GLORYS, GEBCO, GLOFAS, MOM6 output; returns 1/0 |
-| Bathymetry pipeline | `mom6_forge/bench_topo.py` | GEBCO (GLADE) | `Topo.set_from_dataset()` — GEBCO regrid + fill across grid sizes |
+| xESMF weight generation | `xesmf/test_weights_generate.py` | None (synthetic) | `xe.Regridder()` construction time + RSS |
+| xESMF regrid application | `xesmf/test_regrid_apply.py` | None (synthetic) | `regridder(ds)` time across grid sizes, time depths, methods |
+| ESMF weight generation | `esmf/test_weights_generate.py` | None (synthetic) | raw `esmpy.Regrid()` construction — same sizes as xESMF |
+| ESMF regrid application | `esmf/test_regrid_apply.py` | None (synthetic) | raw `esmpy.Regrid()(src, dst)` time |
+| Bathymetry pipeline | `mom6_forge/test_topo.py` | GEBCO (GLADE) | `Topo.set_from_dataset()` — GEBCO regrid + fill across domain sizes |
+| OBC forcing pipeline | `crocodash/test_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE of `process_conditions()`, varying `step_days` |
 
-## Framework: ASV
+Data-source health (link/`validate_function` checks) is a **separate**, daily-run concern —
+see `scripts/check_data_access.py` below, not part of the pytest-benchmark suite.
 
-ASV discovers benchmarks by importing every `bench_*.py` file under `benchmarks/` and finding classes with methods starting with `time_`, `mem_`, `peakmem_`, or `track_`. Each method + parameter combo is a separate benchmark run in a fresh subprocess.
+## Framework: pytest-benchmark
+
+Every benchmark is a normal pytest test using the `benchmark` fixture. `pytest.mark.parametrize`
+replaces ASV's `params`/`param_names`; `@pytest.mark.skipif` replaces ASV's
+`raise NotImplementedError` in `setup()` for data-dependent tests.
 
 Key conventions:
-- `setup(self, *params)` — runs before timing, excluded from measurement; put expensive construction here
-- `time_*` — timed with `timeit`; ASV auto-selects number of reps
-- `track_rss_mb` — custom `track_*` using psutil RSS; captures C/Fortran heap (ESMF) that `mem_*` and `peakmem_*` miss
-- `teardown(self, *params)` — cleanup after timing (temp files, esmpy .destroy() calls)
-- `NotImplementedError` in `setup()` marks a benchmark as `n/a` (data-dependent or HPC-only)
+- `benchmark(fn)` — times `fn`, calibrating reps automatically. Use for cheap, synthetic benchmarks.
+- `benchmark.pedantic(fn, rounds=1, iterations=1, warmup_rounds=0)` — times `fn` exactly
+  once. Use for expensive/data-dependent benchmarks (GEBCO regrid, GLORYS regrid+merge,
+  network calls) where repeating the call for statistical calibration would be wasteful or slow.
+- `benchmark.extra_info["rss_mb"] = ...` — memory tracking, since pytest-benchmark has no
+  built-in memory measurement. See `benchmarks/common/memtrack.py`.
+- `pytest.mark.light` / `pytest.mark.heavy` — the smallest parameter combination in a
+  synthetic (xESMF/ESMF) sweep is tagged `light` for a fast smoke test; everything else is
+  `heavy`. `test_topo.py` and `test_obc.py` are always `heavy` — even their smallest size
+  needs real GEBCO/GLORYS data and takes meaningful time. Run just the light ones with
+  `pytest -m light`.
 
 ## Directory Structure
 
 ```
 SeaSloth/
-├── asv.conf.json                         # ASV config — environment_type, matrix, result paths
+├── pyproject.toml                        # deps + light/heavy marker registration
 ├── benchmarks/
-│   ├── __init__.py                       # Sets ESMFMKFILE + adds mom6_forge/CrocoDash to sys.path
-│   ├── data_config.json                  # Paths to GEBCO, GLORYS, mesh files, OBC config
+│   ├── data_config.json                  # Paths to GEBCO, GLORYS, OBC config
+│   ├── link_config.json                  # Product -> documentation URL, used by check_data_access.py
 │   ├── common/
 │   │   ├── synthetic_data.py             # make_rect_grid(), make_curvilinear_grid(), etc.
-│   │   └── config.py                     # get_path() helper to read data_config.json
+│   │   ├── config.py                     # get_path() helper to read data_config.json
+│   │   ├── memtrack.py                   # measure_rss(fn, *a, **kw) -> (result, rss_mb)
+│   │   └── marks.py                      # light_or_heavy(is_light) helper
 │   ├── xesmf/                            # xESMF weight generation and application
 │   ├── esmf/                             # Raw esmpy weight generation and application
-│   ├── mom6_forge/                       # Topo.set_from_dataset() + gen_rof_maps()
-│   └── crocodash/                        # OBC pipeline + raw data health checks
-├── results/                              # ASV result JSON — commit these to track history
+│   ├── mom6_forge/                       # Topo.set_from_dataset()
+│   └── crocodash/                        # OBC regrid+merge pipeline
+├── results/
+│   ├── latest.json                       # perf-benchmark snapshot (pytest-benchmark JSON), manual runs
+│   └── health.json                       # data-access health snapshot, overwritten daily
 ├── scripts/
-│   ├── publish.sh                        # Build .asv/html/ dashboard + report
-│   └── pbs_submit.sh                     # PBS job for data-dependent benchmarks on Derecho
+│   ├── run_benchmarks.sh                 # pytest wrapper -> results/latest.json
+│   ├── generate_report.py                # results/latest.json -> report/index.html (tables)
+│   ├── check_data_access.py              # link + validate_function checks -> results/health.json
+│   ├── generate_health_report.py         # results/health.json -> report/health.html
+│   ├── pbs_submit.sh                     # PBS job for the full perf suite on Derecho/Casper
+│   └── pbs_data_health.sh                # self-resubmitting daily PBS job for health checks
 ├── docs/
 │   ├── how_benchmarking_works.md
 │   └── adding_benchmarks.md
-└── .github/workflows/benchmark.yml      # CI: asv publish + generate_report.py only
+└── .github/workflows/publish.yml         # manual dispatch + daily schedule: rebuild both pages, deploy Pages
 ```
 
 ## Running Benchmarks
 
-Use `scripts/run_bench.sh` — it automatically detects the CrocoDash commit from the active
-editable install and passes `--set-commit-hash` correctly:
-
 ```bash
 conda activate CrocoDash
 
-bash scripts/run_bench.sh                                   # all benchmarks
-bash scripts/run_bench.sh --quick                           # fast single-rep run
-bash scripts/run_bench.sh --bench "CrocoDashImports" --quick
-bash scripts/run_bench.sh --bench "XESMFWeightsGenerate"
+bash scripts/run_benchmarks.sh                # all perf benchmarks -> results/latest.json
+bash scripts/run_benchmarks.sh -m light       # fast smoke test (synthetic suites only)
+bash scripts/run_benchmarks.sh -k xesmf       # one suite
 
-# On Derecho — PBS job (handles --set-commit-hash and auto-commits results)
+python scripts/generate_report.py             # -> report/index.html
+
+# On Derecho — PBS job for the full suite (needs GEBCO/GLORYS data)
 qsub scripts/pbs_submit.sh
-
-# Build dashboard from committed results
-bash scripts/publish.sh
 ```
 
-With `environment_type: "existing"`, ASV silently discards results without `--set-commit-hash`.
-The wrapper handles this and uses your local CrocoDash HEAD (not GitHub's main), so benchmarking
-older commits is correct. `asv.conf.json` `"repo"` is the CrocoDash GitHub URL — works on GLADE
-and in CI with no local path setup.
+Data access health runs separately, daily:
 
-**Multi-commit iteration** — to populate the regression timeline with real per-version data:
 ```bash
-COMMITS=(a90e282a af474049 1b98b32a)  # CrocoDash commit hashes
-for HASH in "${COMMITS[@]}"; do
-    git -C /path/to/CrocoDash checkout --quiet "$HASH"
-    bash scripts/run_bench.sh --quick --bench "CrocoDashImports"
-done
-git -C /path/to/CrocoDash checkout main
-```
+python scripts/check_data_access.py           # -> results/health.json
+python scripts/generate_health_report.py      # -> report/health.html
 
-After any run, commit `results/` so the dashboard history accumulates:
-```bash
-git add results/
-git commit -m "bench: <description>"
-git push
+# On GLADE — self-resubmitting daily job
+qsub scripts/pbs_data_health.sh
 ```
 
 ## data_config.json
@@ -105,36 +113,19 @@ Keys that need to be set before HPC-dependent benchmarks will run:
 
 | Key | Used by | Description |
 |---|---|---|
-| `gebco_path` | `bench_topo.py` | Path to GEBCO_2024.nc |
-| `glorys_rda_path` | `bench_raw_data_access.py` | GLADE campaign storage root |
-| `mesh_pairs` | `bench_runoff_mapping.py` | List of `{label, rof_mesh, ocn_mesh, rmax, fold}` dicts |
-| `obc_config_path` | `bench_obc.py` | Path to a CrocoDash case config YAML |
-| `obc_step_days_dirs` | `bench_obc.py` | Dict mapping step_days → pre-staged raw GLORYS folder |
+| `gebco_path` | `test_topo.py` | Path to GEBCO_2024.nc |
+| `obc_config_path` | `test_obc.py` | Path to a CrocoDash case config YAML |
+| `obc_step_days_dirs` | `test_obc.py` | Dict mapping step_days → pre-staged raw GLORYS folder |
 
-## Critical: environment_type, sys.path, and ESMFMKFILE
-
-`asv.conf.json` uses `"environment_type": "existing"`. ASV uses the currently active Python interpreter — no env building, no matrix. **Never specify a commit range** — with `existing` env, ASV benchmarks the current working tree and tags results with the current git HEAD automatically.
-
-**mom6_forge and CrocoDash** must be installed in the `CrocoDash` conda environment (via `pip install -e .` or similar). They are imported directly — no `sys.path` manipulation.
-
-**ESMFMKFILE** is set by conda's `activate.d` scripts when `conda activate CrocoDash` runs, and is inherited by ASV's benchmark subprocesses. No manual setup needed.
-
-**esmpy teardown**: ESMF direct benchmarks must call `.destroy()` on esmpy Grid/Field/Regrid objects in `teardown()` to prevent ESMF internal state from leaking between benchmark subprocesses.
+Tests using these paths skip via `pytest.mark.skipif`/`pytest.skip()` when the path is unset
+or missing.
 
 ## Memory Benchmarks
 
-SeaSloth uses `track_rss_mb` (not `mem_*`) for memory measurements because ESMF performs large C/Fortran heap allocations invisible to Python's `sys.getsizeof` and `tracemalloc`.
-
-```python
-def track_rss_mb(self, ...):
-    import os, psutil
-    proc = psutil.Process(os.getpid())
-    before = proc.memory_info().rss
-    # ... call being measured ...
-    return (proc.memory_info().rss - before) / 1024**2
-
-track_rss_mb.unit = "MB"
-```
+Use `benchmarks/common/memtrack.py`'s `measure_rss(fn, *args, **kwargs)` — not ASV's
+`track_rss_mb` convention. It returns `(result, rss_delta_mb)`; stash the delta into
+`benchmark.extra_info["rss_mb"]`. This exists because ESMF performs large C/Fortran heap
+allocations invisible to Python's `sys.getsizeof`/`tracemalloc`.
 
 ## Synthetic Data
 
@@ -147,21 +138,29 @@ Use helpers from `benchmarks/common/synthetic_data.py` — do not create grids i
 | `make_locstream_grid(n)` | 1D ncells xr.Dataset | OBC boundary (locstream_out=True) |
 | `make_data_variable(grid, ntime, nvars)` | grid + data variables | Anything needing data to regrid |
 
-For ESMF direct benchmarks use `_make_esmpy_grid(nlon, nlat)` defined inline in the benchmark file — not the xarray helpers.
+For ESMF direct benchmarks use `_make_esmpy_grid(nlon, nlat)` defined inline in the
+benchmark file — not the xarray helpers.
+
+## Report generators
+
+Both are plain stdlib (`json` + f-strings) — no matplotlib, no numpy, no image generation.
+`scripts/generate_report.py` groups `results/latest.json`'s benchmarks by suite (parsed from
+`fullname`) then by test function, rendering one table per function (params, mean, min, max,
+rss). `scripts/generate_health_report.py` renders `results/health.json`'s `link_checks`/
+`validate_checks` lists as two small tables. Neither computes cross-benchmark ratios or
+writes prose — if you're tempted to add narrative back in, don't; that's the complexity this
+rewrite removed.
 
 ## CI
 
-The GitHub Actions workflow (`.github/workflows/benchmark.yml`) only runs `asv publish` and `generate_report.py` — it never runs benchmarks. Benchmarks run locally on GLADE. Results are committed to `results/` in git. CI checks out the repo with full history (`fetch-depth: 0`) so ASV can resolve all result commit hashes, then deploys to GitHub Pages.
-
-## Dashboard
-
-Two HTML outputs in `.asv/html/`:
-- `index.html` — ASV commit-timeline view (good for spotting regressions)
-- `report.html` — snapshot bar charts per benchmark class (good for parameter sweeps)
+`.github/workflows/publish.yml` triggers on `workflow_dispatch` and a daily `schedule`. It
+never runs the actual benchmarks or health checks (GitHub's runners can't — no CrocoDash,
+no GEBCO/GLORYS, no ESMF) — it only regenerates both report pages from whatever is currently
+committed under `results/` and deploys to GitHub Pages.
 
 ## Linting
 
 Use black before committing:
 ```bash
-black benchmarks/
+black benchmarks/ scripts/
 ```

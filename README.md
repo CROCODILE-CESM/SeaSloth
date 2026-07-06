@@ -1,109 +1,86 @@
 # SeaSloth
 
-Performance benchmarking suite for the CROC ocean modeling ecosystem (CrocoDash, mom6_forge, xESMF/ESMF regridding).
+A one-time performance snapshot for parts of the CROC ocean modeling ecosystem that don't
+change commit-to-commit: xESMF/ESMF regridding (external libraries), the mom6_forge
+bathymetry pipeline, and the CrocoDash OBC regrid+merge pipeline. Commit-by-commit
+performance tracking for CrocoDash/mom6_forge code itself lives in those repos' own
+pytest-benchmark suites, not here.
 
-## What's Benchmarked
+Two static pages, no charts, no narrative — just tables of what pytest-benchmark measured.
+
+## What's benchmarked
 
 | Suite | File(s) | Data needed | What it measures |
 |---|---|---|---|
-| xESMF weight generation | `xesmf/bench_weights_generate.py` | None (synthetic) | `xe.Regridder()` construction time + RSS, grid→grid and grid→locstream, up to ~1 M source points |
-| xESMF regrid application | `xesmf/bench_regrid_apply.py` | None (synthetic) | `regridder(ds)` time across grid sizes, time depths, and methods |
-| ESMF weight generation | `esmf/bench_weights_generate.py` | None (synthetic) | `esmpy.Regrid()` construction time + RSS — raw ESMF, same sizes as xESMF suite |
-| ESMF regrid application | `esmf/bench_regrid_apply.py` | None (synthetic) | `esmpy.Regrid()(src, dst)` time — raw ESMF, loop over ntime steps |
-| OBC forcing pipeline | `crocodash/bench_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE phases of `process_conditions()`, no GET; varies step_days chunk size |
-| Runoff mapping | `mom6_forge/bench_runoff_mapping.py` | ESMF mesh files (GLADE) | `gen_rof_maps()` — nearest-neighbour and smoothed NN mapping between ROF and OCN meshes |
-| Raw data access health | `crocodash/bench_raw_data_access.py` | Credentials / GLADE | Connectivity check for GLORYS (RDA + Copernicus), GEBCO, GLOFAS, MOM6 output; returns 1 (up) / 0 (down) |
-| Bathymetry pipeline | `mom6_forge/bench_topo.py` | GEBCO (GLADE) | `Topo.set_from_dataset()` — GEBCO regrid + fill across grid sizes |
-| Import times | `crocodash/bench_imports.py` | None | `import CrocoDash.case`, `mom6_forge.grid/topo/vgrid` — catches import-time regressions |
+| xESMF weight generation | `xesmf/test_weights_generate.py` | None (synthetic) | `xe.Regridder()` construction time + RSS, grid→grid and grid→locstream |
+| xESMF regrid application | `xesmf/test_regrid_apply.py` | None (synthetic) | `regridder(ds)` time across grid sizes, time depths, methods |
+| ESMF weight generation | `esmf/test_weights_generate.py` | None (synthetic) | `esmpy.Regrid()` construction — raw ESMF, same sizes as xESMF suite |
+| ESMF regrid application | `esmf/test_regrid_apply.py` | None (synthetic) | `esmpy.Regrid()(src, dst)` time — raw ESMF |
+| Bathymetry pipeline | `mom6_forge/test_topo.py` | GEBCO (GLADE) | `Topo.set_from_dataset()` — GEBCO regrid + fill across domain sizes |
+| OBC forcing pipeline | `crocodash/test_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE phases of `process_conditions()`, varying `step_days` |
 
-## First-time Setup
+The xESMF/ESMF suites are pure-synthetic and marked `light`/`heavy` — the smallest
+grid-size combination in each sweep is `light` (a fast smoke test), everything else is
+`heavy`. `test_topo.py` and `test_obc.py` are always `heavy` — they need real GEBCO/GLORYS
+data and take meaningful time even at their smallest parameter value.
 
-Verify your environment is ready:
+Data-source health (are GLORYS/GEBCO/GLOFAS/etc. reachable?) is a separate concern —
+see [Data access health](#data-access-health) below.
 
-```bash
-conda activate CrocoDash
-bash scripts/configure.sh
-```
-
-No path configuration needed — `asv.conf.json` points to the public CrocoDash GitHub repo so it works identically on GLADE and in CI.
-
-## Running Benchmarks
-
-Use `scripts/run_bench.sh` — it automatically detects the CrocoDash commit from your active editable install and passes the correct `--set-commit-hash`:
+## Running the perf benchmarks
 
 ```bash
 conda activate CrocoDash
+bash scripts/configure.sh          # sanity-check the environment
 
-# Run all benchmarks (full timing)
-bash scripts/run_bench.sh
-
-# Quick sanity check (one rep per benchmark, less accurate but fast)
-bash scripts/run_bench.sh --quick
-
-# Run a specific suite or class
-bash scripts/run_bench.sh --bench "CrocoDashImports" --quick
-bash scripts/run_bench.sh --bench "XESMFWeightsGenerate"
+bash scripts/run_benchmarks.sh                 # everything
+bash scripts/run_benchmarks.sh -m light        # fast smoke test (synthetic suites only)
+bash scripts/run_benchmarks.sh -k xesmf        # one suite
 ```
 
-Any extra arguments are passed straight through to `asv run`. Each run produces a result file named `<croco-hash>-existing-....json` in `results/derecho/`, tagged to the exact CrocoDash commit checked out locally.
+This writes `results/latest.json`. On Derecho, `qsub scripts/pbs_submit.sh` runs the full
+suite (including the GEBCO/GLORYS-dependent ones) as a PBS job.
 
-**Why the wrapper instead of `asv run` directly?** With `environment_type: "existing"`, ASV silently discards results unless `--set-commit-hash` is passed. The wrapper handles this automatically and uses your local CrocoDash HEAD (not GitHub's `main`), so benchmarking older commits works correctly.
-
-On Derecho/GLADE, submit as a PBS job for data-dependent benchmarks:
+Build the report page:
 
 ```bash
-qsub scripts/pbs_submit.sh
+python scripts/generate_report.py
+open report/index.html
 ```
 
-## Tracking Multiple CrocoDash Commits
+## Data access health
 
-To populate the regression timeline with real per-version data, benchmark across several CrocoDash commits:
+Whether GLORYS/GEBCO/GLOFAS/etc. are reachable and CrocoDash's access methods still work
+is checked **daily**, independent of the perf benchmarks above:
 
 ```bash
-cd /path/to/CrocoDash
-COMMITS=($(git log --oneline -5 | awk '{print $1}'))
-
-cd /path/to/SeaSloth
-for HASH in "${COMMITS[@]}"; do
-    git -C /path/to/CrocoDash checkout --quiet "$HASH"
-    python -m asv run --quick --bench "CrocoDashImports" --set-commit-hash "$HASH"
-done
-
-git -C /path/to/CrocoDash checkout main
+conda activate CrocoDash
+python scripts/check_data_access.py     # writes results/health.json
+python scripts/generate_health_report.py
+open report/health.html
 ```
 
-Commit and push the accumulated results so CI can publish the updated timeline:
+On GLADE, `qsub scripts/pbs_data_health.sh` starts a self-resubmitting daily job that runs
+the check, overwrites `results/health.json`, and pushes it.
 
-```bash
-git add results/
-git commit -m "bench: import times across CrocoDash commits"
-git push
-```
+## HPC data-dependent benchmarks
 
-## HPC Data-Dependent Benchmarks
-
-Fill in paths in `benchmarks/data_config.json` to enable benchmarks that need real data:
+Fill in paths in `benchmarks/data_config.json` to enable the tests that need real data:
 
 | Key | Benchmark | What to put |
 |---|---|---|
-| `gebco_path` | Bathymetry pipeline | Path to `GEBCO_2024.nc` |
-| `mesh_pairs[*].rof_mesh` / `ocn_mesh` | Runoff mapping | Paths to ESMF mesh NetCDF files |
-| `obc_config_path` | OBC pipeline | Path to a CrocoDash case config YAML |
-| `obc_step_days_dirs` | OBC pipeline | Three pre-staged raw GLORYS folders (one per step_days) |
+| `gebco_path` | `test_topo.py` | Path to `GEBCO_2024.nc` |
+| `obc_config_path` | `test_obc.py` | Path to a CrocoDash case config |
+| `obc_step_days_dirs` | `test_obc.py` | Three pre-staged raw GLORYS folders (one per `step_days`) |
 
-Benchmarks that need data raise `NotImplementedError` in `setup()` when files are absent — ASV marks them `n/a` automatically.
+Tests skip gracefully (`pytest.mark.skipif` / `pytest.skip`) when the required data isn't
+configured.
 
-## Dashboard
+## CI
 
-```bash
-bash scripts/publish.sh
-```
-
-Builds two pages in `.asv/html/`:
-- `index.html` — snapshot bar charts per benchmark class (generated by `scripts/generate_report.py`)
-- `asv_timeline.html` — ASV's commit-timeline view for spotting regressions (needs 2+ commits to show data)
-
-The live dashboard deploys to GitHub Pages on every push to `main`.
+`.github/workflows/publish.yml` runs on manual dispatch and a daily schedule. It never runs
+the actual benchmarks or health checks — it just regenerates both report pages from
+whatever is currently committed under `results/` and deploys them to GitHub Pages.
 > **First-time GitHub Pages setup:** Settings → Pages → Source → GitHub Actions.
 
 ## Documentation

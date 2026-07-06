@@ -7,8 +7,8 @@
 #PBS -j oe
 #PBS -o /glade/u/home/manishrv/documents/croc/dev/SeaSloth/pbs_bench.log
 #
-# pbs_submit.sh — PBS job for slow/HPC benchmarks on Casper.
-# Runs suites that require GEBCO or GLORYS data.
+# pbs_submit.sh — PBS job for the full perf-benchmark suite on Casper.
+# Runs everything, including suites that require GEBCO or GLORYS data.
 # Submit with: qsub scripts/pbs_submit.sh
 
 set -euo pipefail
@@ -21,10 +21,10 @@ cd "$REPO_ROOT"
 echo "=== SeaSloth HPC benchmarks: $(date) ==="
 echo "Node: $(hostname)"
 
-bash scripts/run_bench.sh --bench "TopoSetFromDataset|DataAccessHealth|DataAccessLinkCheck"
+bash scripts/run_benchmarks.sh
 
 echo ""
 echo "=== Done: $(date) ==="
-echo "Commit results and rebuild dashboard from login node:"
-echo "  git add results/ && git commit -m 'bench: <description>' && git push"
-echo "  bash scripts/publish.sh"
+echo "Commit results and rebuild the report page from the login node:"
+echo "  git add results/latest.json && git commit -m 'bench: <description>' && git push"
+echo "  python scripts/generate_report.py"
