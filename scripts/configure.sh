@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # configure.sh — Verify the CrocoDash conda environment is ready for benchmarking.
 #
-# asv.conf.json "repo" points to the public CrocoDash GitHub repo, so no local
-# path configuration is needed. This script just confirms that CrocoDash and
-# mom6_forge are importable in the active environment.
+# This script just confirms that pytest-benchmark, CrocoDash, mom6_forge, and
+# xesmf are importable in the active environment.
 #
 # Usage:
 #   conda activate CrocoDash
@@ -17,10 +16,9 @@ python - <<'EOF'
 import importlib, sys
 
 ok = True
-for pkg in ["CrocoDash", "mom6_forge", "asv"]:
+for pkg in ["pytest", "pytest_benchmark", "CrocoDash", "mom6_forge", "xesmf"]:
     try:
         m = importlib.import_module(pkg)
-        import os
         src = getattr(m, "__file__", "?")
         print(f"  OK  {pkg:20s}  {src}")
     except ImportError as e:
@@ -33,5 +31,5 @@ if not ok:
     sys.exit(1)
 else:
     print("\nEnvironment looks good. Run benchmarks with:")
-    print("  python -m asv run --set-commit-hash HEAD")
+    print("  bash scripts/run_benchmarks.sh")
 EOF

@@ -1,13 +1,9 @@
-# ASV generated output
-.asv/html/
-.asv/cache/
-env/
+# Generated report pages — rebuilt from committed results/*.json
+report/
 
-# ASV clones the "repo" here as a local bare-git cache
-SeaSloth/
-
-# Large result files (commit small JSON results, ignore large ones)
-results/**/*.json.bz2
+# .pytest_cache and pytest-benchmark's own history dir
+.pytest_cache/
+.benchmarks/
 
 # NetCDF and large data files
 *.nc
