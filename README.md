@@ -78,9 +78,10 @@ configured.
 
 ## CI
 
-`.github/workflows/publish.yml` runs on manual dispatch and a daily schedule. It never runs
-the actual benchmarks or health checks — it just regenerates both report pages from
-whatever is currently committed under `results/` and deploys them to GitHub Pages.
+`.github/workflows/publish.yml` runs on push to `main`, manual dispatch, and a daily
+schedule. It never runs the actual benchmarks or health checks — it just regenerates both
+report pages from whatever is currently committed under `results/` and deploys them to
+GitHub Pages.
 > **First-time GitHub Pages setup:** Settings → Pages → Source → GitHub Actions.
 
 ## Documentation

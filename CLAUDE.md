@@ -79,7 +79,7 @@ SeaSloth/
 ├── docs/
 │   ├── how_benchmarking_works.md
 │   └── adding_benchmarks.md
-└── .github/workflows/publish.yml         # manual dispatch + daily schedule: rebuild both pages, deploy Pages
+└── .github/workflows/publish.yml         # push to main + manual dispatch + daily schedule: rebuild both pages, deploy Pages
 ```
 
 ## Running Benchmarks
@@ -153,10 +153,10 @@ rewrite removed.
 
 ## CI
 
-`.github/workflows/publish.yml` triggers on `workflow_dispatch` and a daily `schedule`. It
-never runs the actual benchmarks or health checks (GitHub's runners can't — no CrocoDash,
-no GEBCO/GLORYS, no ESMF) — it only regenerates both report pages from whatever is currently
-committed under `results/` and deploys to GitHub Pages.
+`.github/workflows/publish.yml` triggers on push to `main`, `workflow_dispatch`, and a daily
+`schedule`. It never runs the actual benchmarks or health checks (GitHub's runners can't —
+no CrocoDash, no GEBCO/GLORYS, no ESMF) — it only regenerates both report pages from
+whatever is currently committed under `results/` and deploys to GitHub Pages.
 
 ## Linting
 

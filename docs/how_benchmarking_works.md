@@ -182,8 +182,8 @@ its own daily cadence rather than being triggered by `run_benchmarks.sh`.
 
 ## CI
 
-`.github/workflows/publish.yml` runs on manual dispatch and a daily schedule. It never runs
-the actual benchmarks or health checks — GitHub's runners have no CrocoDash, GEBCO, GLORYS,
-or ESMF. It only regenerates both report pages (`generate_report.py` and
-`generate_health_report.py`) from whatever is currently committed under `results/`, then
-deploys to GitHub Pages.
+`.github/workflows/publish.yml` runs on push to `main`, manual dispatch, and a daily
+schedule. It never runs the actual benchmarks or health checks — GitHub's runners have no
+CrocoDash, GEBCO, GLORYS, or ESMF. It only regenerates both report pages
+(`generate_report.py` and `generate_health_report.py`) from whatever is currently committed
+under `results/`, then deploys to GitHub Pages.
