@@ -366,6 +366,29 @@ def build_topo_linechart(grouped):
         </div>"""
 
 
+def build_obc_linechart(grouped):
+    """OBC (process_obc_conditions REGRID+MERGE) cost vs. regrid_step — total
+    date range and data volume are fixed across the sweep, so this shows the
+    per-chunk-count overhead directly."""
+    rows = grouped.get("crocodash", {}).get("test_regrid_and_merge", [])
+    if not rows:
+        return ""
+    pairs = sorted(
+        ((r["params"]["step_days"], r["stats"]["mean"]) for r in rows if r.get("params")),
+        key=lambda p: p[0],
+    )
+    if len(pairs) < 2:
+        return ""
+    points = [(f"{step}d", mean) for step, mean in pairs]
+    svg = _linechart_svg(points, color="#1baf7a")
+    return f"""
+        <div class="card">
+          <h3>test_regrid_and_merge — time vs. regrid_step</h3>
+          <p class="lc-sub">x-axis: regrid chunk size in days (fixed 30-day total date range)</p>
+          {svg}
+        </div>"""
+
+
 def make_table_html(rows):
     has_rss = any(r.get("extra_info", {}).get("rss_mb") is not None for r in rows)
     header = "<tr><th>Params</th><th>Mean</th><th>Min</th><th>Max</th><th>Rounds</th>"
@@ -402,6 +425,8 @@ def build_html(grouped):
         cards = []
         if suite == "mom6_forge":
             cards.append(build_topo_linechart(grouped))
+        elif suite == "crocodash":
+            cards.append(build_obc_linechart(grouped))
         for test_name in sorted(grouped[suite]):
             table = make_table_html(grouped[suite][test_name])
             cards.append(f"<div class='card'><h3>{test_name}</h3>{table}</div>")
