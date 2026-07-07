@@ -322,9 +322,25 @@ def _linechart_svg(points, y_fmt=fmt_time, color="#2a78d6", width=480, height=22
     </svg>"""
 
 
+# test_topo.py fixes these at grid-construction time; mirrored here to label
+# the x-axis by point count rather than raw domain degrees.
+GEBCO_RES_DEG = 1 / 240  # GEBCO_2024 native resolution (15 arcsec)
+TOPO_DST_RES_DEG = 0.1  # destination Grid(..., resolution=0.1) in test_topo.py
+
+
+def _fmt_count(n):
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1_000:
+        return f"{n / 1_000:.0f}K"
+    return str(n)
+
+
 def build_topo_linechart(grouped):
     """Topo (Topo.set_from_dataset) cost vs. domain size — a natural sweep
-    (5/10/20/40 deg) better read as a trend line than a table row-by-row."""
+    (5/10/20/40 deg) better read as a trend line than a table row-by-row.
+    Labeled by source (GEBCO)/destination point count, since that's the
+    actual cost driver, not the domain size in degrees."""
     rows = grouped.get("mom6_forge", {}).get("test_set_from_dataset", [])
     if not rows:
         return ""
@@ -334,11 +350,18 @@ def build_topo_linechart(grouped):
     )
     if len(pairs) < 2:
         return ""
-    points = [(f"{deg}°", mean) for deg, mean in pairs]
+
+    def label_for(domain_deg):
+        src_pts = round(domain_deg / GEBCO_RES_DEG) ** 2
+        dst_pts = round(domain_deg / TOPO_DST_RES_DEG) ** 2
+        return f"{_fmt_count(src_pts)}→{_fmt_count(dst_pts)}"
+
+    points = [(label_for(deg), mean) for deg, mean in pairs]
     svg = _linechart_svg(points)
     return f"""
         <div class="card">
-          <h3>test_set_from_dataset — time vs. domain size</h3>
+          <h3>test_set_from_dataset — time vs. grid size</h3>
+          <p class="lc-sub">x-axis: GEBCO source points &rarr; destination points (fixed 0.1&deg; destination resolution)</p>
           {svg}
         </div>"""
 
@@ -435,6 +458,7 @@ def build_html(grouped):
   table.heatmap td.hm-empty {{ color: #bbb; text-align: center; }}
 
   .linechart {{ width: 100%; max-width: 480px; height: auto; display: block; }}
+  .lc-sub {{ font-size: 0.75rem; color: #777; margin: -0.4rem 0 0.75rem; }}
   .lc-axis {{ font-size: 9px; fill: #898781; font-family: -apple-system, sans-serif; }}
   .lc-value {{ font-size: 10px; fill: #333; font-variant-numeric: tabular-nums;
                font-family: -apple-system, sans-serif; }}
