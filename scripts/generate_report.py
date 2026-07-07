@@ -413,6 +413,16 @@ def make_table_html(rows):
     return f"<table>{header}{''.join(body_rows)}</table>"
 
 
+# suite -> (chart builder, name of the test function the chart replaces).
+# The table for that test is skipped only if the chart actually rendered
+# (needs >=2 data points) — if there's not enough data yet, fall back to
+# the table rather than silently dropping the one data point that exists.
+LINECHART_BY_SUITE = {
+    "mom6_forge": (build_topo_linechart, "test_set_from_dataset"),
+    "crocodash": (build_obc_linechart, "test_regrid_and_merge"),
+}
+
+
 def build_html(grouped):
     heatmaps = build_regrid_heatmaps(grouped)
 
@@ -423,11 +433,17 @@ def build_html(grouped):
             continue
         label = SUITE_LABELS.get(suite, suite)
         cards = []
-        if suite == "mom6_forge":
-            cards.append(build_topo_linechart(grouped))
-        elif suite == "crocodash":
-            cards.append(build_obc_linechart(grouped))
+        charted_test = None
+        if suite in LINECHART_BY_SUITE:
+            builder, charted_test = LINECHART_BY_SUITE[suite]
+            chart = builder(grouped)
+            if chart:
+                cards.append(chart)
+            else:
+                charted_test = None
         for test_name in sorted(grouped[suite]):
+            if test_name == charted_test:
+                continue
             table = make_table_html(grouped[suite][test_name])
             cards.append(f"<div class='card'><h3>{test_name}</h3>{table}</div>")
         sections.append(f"<section><h2>{label}</h2>{''.join(cards)}</section>")
