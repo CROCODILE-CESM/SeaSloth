@@ -269,6 +269,80 @@ def build_tables(benchmarks):
     return grouped
 
 
+def _linechart_svg(points, y_fmt=fmt_time, color="#2a78d6", width=480, height=220):
+    """points: list of (x_label, y_value), sorted ascending by the underlying
+    parameter. Renders a single-series line chart on a log-scale y axis with
+    direct value labels — no charting library, plain inline SVG."""
+    pad_l, pad_r, pad_t, pad_b = 46, 20, 24, 34
+    plot_w = width - pad_l - pad_r
+    plot_h = height - pad_t - pad_b
+
+    values = [v for _, v in points]
+    vmin, vmax = min(values), max(values)
+    n = len(points)
+
+    def x_at(i):
+        return pad_l + (i / (n - 1) if n > 1 else 0.5) * plot_w
+
+    def y_at(v):
+        t = _normalize_log(v, vmin, vmax)
+        return pad_t + (1 - t) * plot_h
+
+    coords = [(x_at(i), y_at(v)) for i, (_, v) in enumerate(points)]
+    poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in coords)
+
+    gridlines = "".join(
+        f"<line x1='{pad_l}' y1='{pad_t + f * plot_h:.1f}' "
+        f"x2='{pad_l + plot_w}' y2='{pad_t + f * plot_h:.1f}' "
+        f"stroke='#e1e0d9' stroke-width='1'/>"
+        for f in (0.0, 0.25, 0.5, 0.75, 1.0)
+    )
+
+    labels = "".join(
+        f"<text x='{x:.1f}' y='{height - pad_b + 18}' text-anchor='middle' "
+        f"class='lc-axis'>{points[i][0]}</text>"
+        for i, (x, _) in enumerate(coords)
+    )
+
+    points_html = "".join(
+        f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4' fill='{color}'>"
+        f"<title>{points[i][0]}: {y_fmt(points[i][1])}</title></circle>"
+        f"<text x='{x:.1f}' y='{y - 10:.1f}' text-anchor='middle' class='lc-value'>"
+        f"{y_fmt(points[i][1])}</text>"
+        for i, (x, y) in enumerate(coords)
+    )
+
+    return f"""
+    <svg class="linechart" viewBox="0 0 {width} {height}" role="img"
+         aria-label="Line chart, log scale, of timing across parameter values">
+      {gridlines}
+      <polyline points="{poly}" fill="none" stroke="{color}" stroke-width="2"/>
+      {points_html}
+      {labels}
+    </svg>"""
+
+
+def build_topo_linechart(grouped):
+    """Topo (Topo.set_from_dataset) cost vs. domain size — a natural sweep
+    (5/10/20/40 deg) better read as a trend line than a table row-by-row."""
+    rows = grouped.get("mom6_forge", {}).get("test_set_from_dataset", [])
+    if not rows:
+        return ""
+    pairs = sorted(
+        ((r["params"]["domain_deg"], r["stats"]["mean"]) for r in rows if r.get("params")),
+        key=lambda p: p[0],
+    )
+    if len(pairs) < 2:
+        return ""
+    points = [(f"{deg}°", mean) for deg, mean in pairs]
+    svg = _linechart_svg(points)
+    return f"""
+        <div class="card">
+          <h3>test_set_from_dataset — time vs. domain size</h3>
+          {svg}
+        </div>"""
+
+
 def make_table_html(rows):
     has_rss = any(r.get("extra_info", {}).get("rss_mb") is not None for r in rows)
     header = "<tr><th>Params</th><th>Mean</th><th>Min</th><th>Max</th><th>Rounds</th>"
@@ -298,13 +372,17 @@ def build_html(grouped):
 
     sections = []
     for suite in sorted(grouped):
+        if suite in ("xesmf", "esmf"):
+            # Fully covered by the consolidated heatmap above — no separate tables.
+            continue
         label = SUITE_LABELS.get(suite, suite)
         cards = []
+        if suite == "mom6_forge":
+            cards.append(build_topo_linechart(grouped))
         for test_name in sorted(grouped[suite]):
             table = make_table_html(grouped[suite][test_name])
             cards.append(f"<div class='card'><h3>{test_name}</h3>{table}</div>")
-        heading = f"{label} — all parameter combinations" if suite in ("xesmf", "esmf") else label
-        sections.append(f"<section><h2>{heading}</h2>{''.join(cards)}</section>")
+        sections.append(f"<section><h2>{label}</h2>{''.join(cards)}</section>")
 
     body = heatmaps + (
         "".join(sections) if sections else "<p>No benchmark results found.</p>"
@@ -355,6 +433,11 @@ def build_html(grouped):
   table.heatmap td.hm-cell {{ text-align: center; font-variant-numeric: tabular-nums;
                               font-size: 0.7rem; padding: 0.5rem 0.3rem; border-radius: 4px; }}
   table.heatmap td.hm-empty {{ color: #bbb; text-align: center; }}
+
+  .linechart {{ width: 100%; max-width: 480px; height: auto; display: block; }}
+  .lc-axis {{ font-size: 9px; fill: #898781; font-family: -apple-system, sans-serif; }}
+  .lc-value {{ font-size: 10px; fill: #333; font-variant-numeric: tabular-nums;
+               font-family: -apple-system, sans-serif; }}
 </style>
 </head>
 <body>

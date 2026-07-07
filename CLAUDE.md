@@ -8,7 +8,8 @@ This file provides guidance to Claude Code when working in this repository.
 ecosystem that don't change commit-to-commit: xESMF/ESMF regridding (external libraries),
 the mom6_forge bathymetry pipeline, and the CrocoDash OBC regrid+merge pipeline. It uses
 [pytest-benchmark](https://pytest-benchmark.readthedocs.io/) and renders two static HTML
-pages of plain tables — no charts, no hand-written narrative.
+pages — a heatmap and a line chart (plain inline HTML/CSS/SVG, no charting library) plus
+detail tables, no hand-written narrative.
 
 Commit-by-commit performance tracking for CrocoDash/mom6_forge code lives in those repos'
 own pytest-benchmark suites — not here. SeaSloth previously used ASV (airspeed velocity)
@@ -25,7 +26,7 @@ GitHub org: https://github.com/CROCODILE-CESM
 | ESMF weight generation | `esmf/test_weights_generate.py` | None (synthetic) | raw `esmpy.Regrid()` construction — same sizes as xESMF |
 | ESMF regrid application | `esmf/test_regrid_apply.py` | None (synthetic) | raw `esmpy.Regrid()(src, dst)` time |
 | Bathymetry pipeline | `mom6_forge/test_topo.py` | GEBCO (GLADE) | `Topo.set_from_dataset()` — GEBCO regrid + fill across domain sizes |
-| OBC forcing pipeline | `crocodash/test_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE of `process_conditions()`, varying `step_days` |
+| OBC forcing pipeline | `crocodash/test_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE of `process_obc_conditions()`, varying `regrid_step` |
 
 Data-source health (link/`validate_function` checks) is a **separate**, daily-run concern —
 see `scripts/check_data_access.py` below, not part of the pytest-benchmark suite.
@@ -74,12 +75,12 @@ SeaSloth/
 │   ├── generate_report.py                # results/latest.json -> report/index.html (tables)
 │   ├── check_data_access.py              # link + validate_function checks -> results/health.json
 │   ├── generate_health_report.py         # results/health.json -> report/health.html
-│   ├── pbs_submit.sh                     # PBS job for the full perf suite on Derecho/Casper
-│   └── pbs_data_health.sh                # self-resubmitting daily PBS job for health checks
+│   └── pbs_submit.sh                     # PBS job for the full perf suite on Derecho/Casper
 ├── docs/
 │   ├── how_benchmarking_works.md
 │   └── adding_benchmarks.md
-└── .github/workflows/publish.yml         # push to main + manual dispatch + daily schedule: rebuild both pages, deploy Pages
+└── .github/workflows/publish.yml         # push to main + manual dispatch + daily schedule:
+                                           # data-health job (crocontainer) + rebuild both pages, deploy Pages
 ```
 
 ## Running Benchmarks
@@ -97,14 +98,13 @@ python scripts/generate_report.py             # -> report/index.html
 qsub scripts/pbs_submit.sh
 ```
 
-Data access health runs separately, daily:
+Data access health runs separately, daily — via `.github/workflows/publish.yml`'s
+`data-health` job (inside the `crocontainer` image, which has `CrocoDash` pre-installed).
+Run it by hand the same way locally:
 
 ```bash
 python scripts/check_data_access.py           # -> results/health.json
 python scripts/generate_health_report.py      # -> report/health.html
-
-# On GLADE — self-resubmitting daily job
-qsub scripts/pbs_data_health.sh
 ```
 
 ## data_config.json
@@ -114,8 +114,9 @@ Keys that need to be set before HPC-dependent benchmarks will run:
 | Key | Used by | Description |
 |---|---|---|
 | `gebco_path` | `test_topo.py` | Path to GEBCO_2024.nc |
-| `obc_config_path` | `test_obc.py` | Path to a CrocoDash case config YAML |
-| `obc_step_days_dirs` | `test_obc.py` | Dict mapping step_days → pre-staged raw GLORYS folder |
+| `obc_hgrid_path` / `obc_bathymetry_path` / `obc_vgrid_path` | `test_obc.py` | Grid + bathymetry from an existing CrocoDash case |
+| `obc_raw_data_dir` | `test_obc.py` | Directory of pre-downloaded GLORYS OBC files, one per boundary, named `{boundary}_unprocessed.{start}_{end}.nc` with ISO dates |
+| `obc_dates_start` / `obc_dates_end` | `test_obc.py` | Date range those raw files cover |
 
 Tests using these paths skip via `pytest.mark.skipif`/`pytest.skip()` when the path is unset
 or missing.
@@ -145,18 +146,35 @@ benchmark file — not the xarray helpers.
 
 Both are plain stdlib (`json` + f-strings) — no matplotlib, no numpy, no image generation.
 `scripts/generate_report.py` groups `results/latest.json`'s benchmarks by suite (parsed from
-`fullname`) then by test function, rendering one table per function (params, mean, min, max,
-rss). `scripts/generate_health_report.py` renders `results/health.json`'s `link_checks`/
-`validate_checks` lists as two small tables. Neither computes cross-benchmark ratios or
-writes prose — if you're tempted to add narrative back in, don't; that's the complexity this
-rewrite removed.
+`fullname`) then by test function. The six xESMF/ESMF weight-generation/apply benchmarks are
+consolidated into one heatmap section (source size × destination size → time, inline HTML
+table + a shared log-scale color legend, sequential-blue ramp from the dataviz palette) —
+no separate detail tables for those two suites, the heatmap is the whole story. `test_topo`
+(mom6_forge) gets a small inline-SVG line chart (domain size → time, log-scale y-axis,
+direct value labels) since it's a natural sweep. Everything else, plus `test_topo`/`test_obc`
+themselves, still gets a plain table (params, mean, min, max, rss). `scripts/generate_health_report.py`
+renders `results/health.json`'s `link_checks`/`validate_checks` lists as two small tables.
+Neither computes cross-benchmark ratios or writes prose — if you're tempted to add narrative
+back in, don't; that's the complexity this rewrite removed.
 
 ## CI
 
 `.github/workflows/publish.yml` triggers on push to `main`, `workflow_dispatch`, and a daily
-`schedule`. It never runs the actual benchmarks or health checks (GitHub's runners can't —
-no CrocoDash, no GEBCO/GLORYS, no ESMF) — it only regenerates both report pages from
-whatever is currently committed under `results/` and deploys to GitHub Pages.
+`schedule`.
+
+- **`data-health`** (schedule + manual dispatch only): runs inside the
+  [`crocontainer`](https://github.com/CROCODILE-CESM/crocontainer) image on GitHub-hosted
+  `ubuntu-latest` — that image already has the `CrocoDash` conda env built in (see its
+  `Dockerfile`/`environment.yml`), so `scripts/check_data_access.py` can really import
+  `CrocoDash` and call `ProductRegistry.validate_function()` for real, not just skip
+  gracefully. It commits and pushes the refreshed `results/health.json`. Checks that read
+  hardcoded `/glade/...` paths (GLORYS via RDA, CESM ocean output) always report unhealthy
+  from CI — that's expected, they're GLADE-only by design. Checks needing Copernicus
+  Marine/CDS credentials need `COPERNICUSMARINE_SERVICE_USERNAME`/`_PASSWORD` and
+  `CDSAPI_URL`/`CDSAPI_KEY` set as repo secrets to pass.
+- **`publish`** (always runs): regenerates both report pages from whatever is currently
+  committed under `results/` and deploys to GitHub Pages. It never runs the perf
+  benchmarks — those need real HPC-scale GEBCO/GLORYS data and stay a manual/PBS thing.
 
 ## Linting
 

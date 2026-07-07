@@ -17,7 +17,7 @@ Two static pages, no charts, no narrative — just tables of what pytest-benchma
 | ESMF weight generation | `esmf/test_weights_generate.py` | None (synthetic) | `esmpy.Regrid()` construction — raw ESMF, same sizes as xESMF suite |
 | ESMF regrid application | `esmf/test_regrid_apply.py` | None (synthetic) | `esmpy.Regrid()(src, dst)` time — raw ESMF |
 | Bathymetry pipeline | `mom6_forge/test_topo.py` | GEBCO (GLADE) | `Topo.set_from_dataset()` — GEBCO regrid + fill across domain sizes |
-| OBC forcing pipeline | `crocodash/test_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE phases of `process_conditions()`, varying `step_days` |
+| OBC forcing pipeline | `crocodash/test_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE phases of `process_obc_conditions()`, varying `regrid_step` |
 
 The xESMF/ESMF suites are pure-synthetic and marked `light`/`heavy` — the smallest
 grid-size combination in each sweep is `light` (a fast smoke test), everything else is
@@ -51,17 +51,19 @@ open report/index.html
 ## Data access health
 
 Whether GLORYS/GEBCO/GLOFAS/etc. are reachable and CrocoDash's access methods still work
-is checked **daily**, independent of the perf benchmarks above:
+is checked **daily**, independent of the perf benchmarks above. This runs entirely in
+`.github/workflows/publish.yml`'s daily schedule — no HPC job to babysit:
 
 ```bash
+# What the daily CI job runs, inside the crocontainer image:
 conda activate CrocoDash
 python scripts/check_data_access.py     # writes results/health.json
 python scripts/generate_health_report.py
 open report/health.html
 ```
 
-On GLADE, `qsub scripts/pbs_data_health.sh` starts a self-resubmitting daily job that runs
-the check, overwrites `results/health.json`, and pushes it.
+You can also run this by hand (locally, in the `CrocoDash` env) to check status without
+waiting for the schedule.
 
 ## HPC data-dependent benchmarks
 
@@ -70,8 +72,9 @@ Fill in paths in `benchmarks/data_config.json` to enable the tests that need rea
 | Key | Benchmark | What to put |
 |---|---|---|
 | `gebco_path` | `test_topo.py` | Path to `GEBCO_2024.nc` |
-| `obc_config_path` | `test_obc.py` | Path to a CrocoDash case config |
-| `obc_step_days_dirs` | `test_obc.py` | Three pre-staged raw GLORYS folders (one per `step_days`) |
+| `obc_hgrid_path` / `obc_bathymetry_path` / `obc_vgrid_path` | `test_obc.py` | Grid + bathymetry from an existing CrocoDash case |
+| `obc_raw_data_dir` | `test_obc.py` | Pre-downloaded GLORYS OBC files, one per boundary, ISO-dated filenames |
+| `obc_dates_start` / `obc_dates_end` | `test_obc.py` | Date range those raw files cover |
 
 Tests skip gracefully (`pytest.mark.skipif` / `pytest.skip`) when the required data isn't
 configured.
@@ -79,9 +82,23 @@ configured.
 ## CI
 
 `.github/workflows/publish.yml` runs on push to `main`, manual dispatch, and a daily
-schedule. It never runs the actual benchmarks or health checks — it just regenerates both
-report pages from whatever is currently committed under `results/` and deploys them to
-GitHub Pages.
+schedule.
+
+- On the daily schedule and manual dispatch, a `data-health` job runs inside the
+  [crocontainer](https://github.com/CROCODILE-CESM/crocontainer) image (which already has
+  the `CrocoDash` conda env baked in), executes `scripts/check_data_access.py` for real,
+  and commits/pushes the refreshed `results/health.json`. It never runs the perf
+  benchmarks themselves — those need real HPC-scale data and are run by hand (see above).
+- A `publish` job then regenerates both report pages from whatever is currently committed
+  under `results/` and deploys them to GitHub Pages. It always runs (even on a plain push,
+  where `data-health` is skipped).
+
+Some `validate_function` checks need credentials (Copernicus Marine, CDS) to succeed —
+configure them as repo secrets (`COPERNICUSMARINE_SERVICE_USERNAME`/`_PASSWORD`,
+`CDSAPI_URL`/`CDSAPI_KEY`) or those specific checks will correctly report `ok: false`.
+A few others (GLORYS via RDA, CESM ocean output) read hardcoded `/glade/...` paths and can
+only ever pass on GLADE — expect those to always show unhealthy from CI.
+
 > **First-time GitHub Pages setup:** Settings → Pages → Source → GitHub Actions.
 
 ## Documentation

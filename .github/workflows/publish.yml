@@ -5,11 +5,11 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    # 06:00 UTC daily — after the PBS data-health job on GLADE typically finishes.
+    # 06:00 UTC daily — runs the data-access health check, then rebuilds both pages.
     - cron: "0 6 * * *"
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -18,7 +18,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  data-health:
+    # Only on the daily cron / manual dispatch — a real network+CrocoDash check,
+    # not something to re-run on every push.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/crocodile-cesm/crocontainer:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run data-access health check
+        working-directory: ${{ github.workspace }}
+        env:
+          CDSAPI_URL: ${{ secrets.CDSAPI_URL }}
+          CDSAPI_KEY: ${{ secrets.CDSAPI_KEY }}
+          COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
+          COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
+        run: |
+          source /opt/conda/etc/profile.d/conda.sh
+          conda activate CrocoDash
+          python scripts/check_data_access.py || true
+
+      - name: Commit health snapshot
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add results/health.json
+          git diff --cached --quiet || git commit -m "ci: daily data-access health $(date -u +%Y-%m-%d)"
+          git push
+
   publish:
+    needs: [data-health]
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

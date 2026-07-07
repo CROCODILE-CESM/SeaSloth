@@ -74,8 +74,9 @@ Currently configured `data_config.json` keys:
 | Key | Used by |
 |---|---|
 | `gebco_path` | `test_topo.py` |
-| `obc_config_path` | `test_obc.py` |
-| `obc_step_days_dirs` | `test_obc.py` |
+| `obc_hgrid_path` / `obc_bathymetry_path` / `obc_vgrid_path` | `test_obc.py` |
+| `obc_raw_data_dir` | `test_obc.py` |
+| `obc_dates_start` / `obc_dates_end` | `test_obc.py` |
 
 ## Synthetic data
 

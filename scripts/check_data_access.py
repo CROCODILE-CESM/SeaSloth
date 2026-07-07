@@ -34,7 +34,7 @@ CONFIG_FILE = REPO_ROOT / "benchmarks" / "link_config.json"
 OUTPUT_FILE = REPO_ROOT / "results" / "health.json"
 
 LINK_TIMEOUT = 20
-VALIDATE_TIMEOUT = 60  # seconds per validate_function call
+VALIDATE_TIMEOUT = 900  # seconds per validate_function call (15 min)
 
 
 def _check_link(url):
