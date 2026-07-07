@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #PBS -N seasloth_bench
 #PBS -l select=1:ncpus=8:mem=128GB
-#PBS -l walltime=04:00:00
+#PBS -l walltime=08:00:00
 #PBS -q casper
 #PBS -A NCGD0011
 #PBS -j oe
