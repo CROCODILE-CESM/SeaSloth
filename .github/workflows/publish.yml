@@ -30,6 +30,7 @@ jobs:
 
       - name: Run data-access health check
         working-directory: ${{ github.workspace }}
+        shell: bash
         env:
           CDSAPI_URL: ${{ secrets.CDSAPI_URL }}
           CDSAPI_KEY: ${{ secrets.CDSAPI_KEY }}
