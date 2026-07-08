@@ -73,7 +73,7 @@ def build_html(data):
         meta = (
             f"<p class='lc-sub'>Grid: {data.get('grid', '?')} &mdash; "
             f"compset: <code>{data.get('compset', '?')}</code> &mdash; "
-            f"machine: {data.get('machine', '?')} ({data.get('queue', '?')} queue) &mdash; "
+            f"machine: {data.get('machine', '?')}, queue: {data.get('queue', '?')} &mdash; "
             f"date range: {', '.join(data.get('date_range', []))}</p>"
         )
         body = f"""
@@ -126,7 +126,7 @@ def build_html(data):
 <body>
 <header>
   <h1>SeaSloth MOM6 Scaling Report</h1>
-  <p>NTASKS_OCN strong-scaling sweep, run by hand on Derecho's develop queue.
+  <p>NTASKS_OCN strong-scaling sweep, run by hand on Derecho.
      <a href="index.html">&larr; Benchmark report</a></p>
 </header>
 {body}
