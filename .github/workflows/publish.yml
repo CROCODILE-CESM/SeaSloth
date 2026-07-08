@@ -66,6 +66,9 @@ jobs:
       - name: Generate data access health report
         run: python scripts/generate_health_report.py
 
+      - name: Generate MOM6 scaling report
+        run: python scripts/generate_scaling_report.py
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

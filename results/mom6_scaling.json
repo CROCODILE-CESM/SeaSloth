@@ -1,0 +1,45 @@
+{
+  "grid": "100x100 (0.1 deg), flat bathymetry 1000m, nk=10 uniform vgrid",
+  "compset": "1850_DATM%NYF_SLND_SICE_MOM6%REGIONAL_SROF_SGLC_SWAV",
+  "machine": "derecho",
+  "queue": "develop",
+  "date_range": ["2020-01-01", "2020-01-31"],
+  "points": [
+    {
+      "ntasks_ocn": 1,
+      "throughput_sim_years_per_day": 4.90,
+      "tot_run_time_s": 1449.901,
+      "ocn_cost_pe_hrs": 627.22
+    },
+    {
+      "ntasks_ocn": 2,
+      "throughput_sim_years_per_day": 13.04,
+      "tot_run_time_s": 544.602,
+      "ocn_cost_pe_hrs": 235.59
+    },
+    {
+      "ntasks_ocn": 4,
+      "throughput_sim_years_per_day": 15.45,
+      "tot_run_time_s": 459.625,
+      "ocn_cost_pe_hrs": 198.83
+    },
+    {
+      "ntasks_ocn": 5,
+      "throughput_sim_years_per_day": 17.91,
+      "tot_run_time_s": 396.555,
+      "ocn_cost_pe_hrs": 171.55
+    },
+    {
+      "ntasks_ocn": 10,
+      "throughput_sim_years_per_day": 34.22,
+      "tot_run_time_s": 207.491,
+      "ocn_cost_pe_hrs": 89.76
+    },
+    {
+      "ntasks_ocn": 20,
+      "throughput_sim_years_per_day": 69.27,
+      "tot_run_time_s": 102.522,
+      "ocn_cost_pe_hrs": 44.35
+    }
+  ]
+}
