@@ -40,6 +40,12 @@
       "throughput_sim_years_per_day": 69.27,
       "tot_run_time_s": 102.522,
       "ocn_cost_pe_hrs": 44.35
+    },
+    {
+      "ntasks_ocn": 40,
+      "throughput_sim_years_per_day": 120.48,
+      "tot_run_time_s": 58.941,
+      "ocn_cost_pe_hrs": 25.50
     }
   ]
 }
