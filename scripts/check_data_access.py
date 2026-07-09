@@ -82,7 +82,7 @@ def _try_import_crocodash():
 
 
 def _call_with_timeout(fn, timeout_s):
-    """Run fn() in a thread; return elapsed or raise TimeoutError.
+    """Run fn() in a thread; return (result, elapsed) or raise TimeoutError.
 
     Enforces a wall-clock cap on validate_function calls that may block
     indefinitely on network I/O (e.g. CDS API, SVN endpoints).
@@ -91,24 +91,32 @@ def _call_with_timeout(fn, timeout_s):
         future = ex.submit(fn)
         t0 = time.monotonic()
         try:
-            future.result(timeout=timeout_s)
-            return time.monotonic() - t0
+            result = future.result(timeout=timeout_s)
+            return result, time.monotonic() - t0
         except concurrent.futures.TimeoutError:
             raise TimeoutError(f"exceeded {timeout_s}s")
 
 
 def run_validate_checks(registry):
-    """Calls validate_function for every registered (product, method) pair."""
+    """Calls validate_function for every registered (product, method) pair.
+
+    BaseProduct.validate_method catches its own exceptions internally, logs
+    them, and returns False rather than raising — so a bare try/except here
+    can't detect failure; the return value has to be checked too, or every
+    internal failure gets misreported as an instant "OK".
+    """
     rows = []
     for product in sorted(registry.list_products()):
         for method in sorted(registry.list_access_methods(product)):
             status = "OK  "
             ok = True
             try:
-                elapsed = _call_with_timeout(
+                result, elapsed = _call_with_timeout(
                     lambda p=product, m=method: registry.validate_function(p, m),
                     VALIDATE_TIMEOUT,
                 )
+                if result is False:
+                    ok, status = False, "FAIL"
             except TimeoutError:
                 ok, elapsed, status = False, VALIDATE_TIMEOUT, "TIME"
             except Exception:
