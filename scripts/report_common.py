@@ -4,17 +4,25 @@ report_common.py — Shared page shell (CSS + header + nav + footer) for every
 generate_*_report.py script. Five generators render into the same report/
 directory and cross-link each other; keeping the shell in one place means the
 nav links can't drift out of sync page-by-page.
+
+Also publishes the raw results/*.json each page is built from into report/,
+next to the rendered HTML, so the underlying data is fetchable at a stable
+Pages URL instead of only living in the git repo.
 """
 
-# (href, label) for every page in report/, in the order they should appear
-# in the nav bar and on the index.html landing page.
+import shutil
+
+# (href, label, source results/*.json filename or None) for every page in
+# report/, in the order they should appear in the nav bar and on the
+# index.html landing page. The json name is what gets linked as "raw data"
+# on that page, and is the file publish_results_json() copies into report/.
 NAV_PAGES = [
-    ("index.html", "Overview"),
-    ("regridding.html", "Regridding"),
-    ("crocodash.html", "CrocoDash"),
-    ("mom6_forge.html", "mom6_forge"),
-    ("health.html", "Data access health"),
-    ("mom6_scaling.html", "MOM6 scaling"),
+    ("index.html", "Overview", None),
+    ("regridding.html", "Regridding", "latest.json"),
+    ("crocodash.html", "CrocoDash", "latest.json"),
+    ("mom6_forge.html", "mom6_forge", "latest.json"),
+    ("health.html", "Data access health", "health.json"),
+    ("mom6_scaling.html", "MOM6 scaling", "mom6_scaling.json"),
 ]
 
 BASE_CSS = """
@@ -78,15 +86,28 @@ LINECHART_CSS = """
 def render_nav(current):
     """Nav links to every report page except the one being rendered."""
     links = [
-        f'<a href="{href}">{label}</a>' for href, label in NAV_PAGES if href != current
+        f'<a href="{href}">{label}</a>'
+        for href, label, _ in NAV_PAGES
+        if href != current
     ]
     return "".join(links)
+
+
+def json_link_for(current):
+    """The raw results/*.json filename this page is built from, or None."""
+    return next(
+        (json_name for href, _, json_name in NAV_PAGES if href == current), None
+    )
 
 
 def page_shell(current, title, subtitle_html, body_html, footer_text, extra_css=""):
     """Wrap body_html in the common doctype/head/header/footer. `current` is
     the page's own filename (e.g. "regridding.html"), used to build the nav
-    bar and to exclude the self-link."""
+    bar, exclude the self-link, and link the raw JSON this page renders."""
+    json_name = json_link_for(current)
+    json_link = (
+        f' &middot; <a href="{json_name}">Raw data (JSON)</a>' if json_name else ""
+    )
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -98,7 +119,7 @@ def page_shell(current, title, subtitle_html, body_html, footer_text, extra_css=
 <body>
 <header>
   <h1>{title}</h1>
-  <p>{subtitle_html}</p>
+  <p>{subtitle_html}{json_link}</p>
   <nav>{render_nav(current)}</nav>
 </header>
 {body_html}
@@ -106,3 +127,11 @@ def page_shell(current, title, subtitle_html, body_html, footer_text, extra_css=
 </body>
 </html>
 """
+
+
+def publish_results_json(results_file, report_dir):
+    """Copy the raw results JSON into report/ so it's served at the same
+    stable Pages URL as the rendered HTML — fetchable by helper scripts
+    without touching the git repo or scraping HTML."""
+    if results_file.exists():
+        shutil.copy2(results_file, report_dir / results_file.name)

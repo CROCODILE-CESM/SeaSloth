@@ -10,7 +10,7 @@ Output: report/health.html
 import json
 from pathlib import Path
 
-from report_common import page_shell
+from report_common import page_shell, publish_results_json
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_FILE = REPO_ROOT / "results" / "health.json"
@@ -97,6 +97,7 @@ def main():
     data = load_health()
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_FILE.write_text(build_html(data))
+    publish_results_json(RESULTS_FILE, OUTPUT_FILE.parent)
     print(f"Health report written to {OUTPUT_FILE}")
 
 

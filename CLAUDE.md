@@ -174,6 +174,15 @@ table on `report/mom6_scaling.html`. None of them compute cross-benchmark ratios
 prose — if you're tempted to add narrative back in, don't; that's the complexity the
 original rewrite removed.
 
+Every generator also calls `report_common.publish_results_json()`, which copies the
+`results/*.json` it just rendered into `report/` next to the HTML (e.g. `results/health.json`
+-> `report/health.json`). This makes the underlying data fetchable at a stable Pages URL
+(`.../health.json`, `.../latest.json`, `.../mom6_scaling.json`) instead of only living in the
+git repo — the point being that other tools (e.g. a CrocoDash helper checking "is glorys
+healthy right now?") can `GET` it directly rather than scraping HTML. Each rendered page links
+to its source JSON via a "Raw data (JSON)" link in the header, driven by the third element of
+each `NAV_PAGES` tuple in `scripts/report_common.py`.
+
 ## CI
 
 `.github/workflows/publish.yml` triggers on push to `main`, `workflow_dispatch`, and a daily

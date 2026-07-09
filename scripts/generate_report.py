@@ -18,7 +18,13 @@ import re
 import sys
 from pathlib import Path
 
-from report_common import HEATMAP_CSS, LINECHART_CSS, NAV_PAGES, page_shell
+from report_common import (
+    HEATMAP_CSS,
+    LINECHART_CSS,
+    NAV_PAGES,
+    page_shell,
+    publish_results_json,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_FILE = REPO_ROOT / "results" / "latest.json"
@@ -538,11 +544,15 @@ LANDING_DESCRIPTIONS = {
 
 def build_index_page():
     """Landing page — no benchmark content of its own, just a card per report
-    linking out to it. Regenerated every run so it's never missing a page."""
+    linking out to it (plus its raw JSON, for anything that wants to consume
+    the data programmatically). Regenerated every run so it's never missing
+    a page."""
     cards = "".join(
         f"<div class='card'><h3><a href='{href}'>{label}</a></h3>"
-        f"<p>{LANDING_DESCRIPTIONS[href]}</p></div>"
-        for href, label in NAV_PAGES
+        f"<p>{LANDING_DESCRIPTIONS[href]}"
+        + (f" <a href='{json_name}'>[JSON]</a>" if json_name else "")
+        + "</p></div>"
+        for href, label, json_name in NAV_PAGES
         if href in LANDING_DESCRIPTIONS
     )
     body = f"<section><h2>Reports</h2>{cards}</section>"
@@ -574,6 +584,7 @@ def main():
     }
     for name, html in pages.items():
         (REPORT_DIR / name).write_text(html)
+    publish_results_json(RESULTS_FILE, REPORT_DIR)
     print(f"Report pages written to {REPORT_DIR}: {', '.join(pages)}")
 
 

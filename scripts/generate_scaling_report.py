@@ -21,7 +21,7 @@ OUTPUT_FILE = REPO_ROOT / "report" / "mom6_scaling.html"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generate_report import _linechart_svg  # noqa: E402
-from report_common import LINECHART_CSS, page_shell  # noqa: E402
+from report_common import LINECHART_CSS, page_shell, publish_results_json  # noqa: E402
 
 
 def load_scaling():
@@ -110,6 +110,7 @@ def main():
 
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_FILE.write_text(build_html(data))
+    publish_results_json(RESULTS_FILE, OUTPUT_FILE.parent)
     print(f"Scaling report written to {OUTPUT_FILE}")
 
 
