@@ -30,8 +30,19 @@ SUITE_LABELS = {
 # Sequential blue ramp, light -> dark, low magnitude -> high magnitude.
 # github.com/CROCODILE-CESM dataviz palette, "Sequential hue" (light mode).
 SEQ_RAMP = [
-    "#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7",
-    "#3987e5", "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b",
+    "#cde2fb",
+    "#b7d3f6",
+    "#9ec5f4",
+    "#86b6ef",
+    "#6da7ec",
+    "#5598e7",
+    "#3987e5",
+    "#2a78d6",
+    "#256abf",
+    "#1c5cab",
+    "#184f95",
+    "#104281",
+    "#0d366b",
 ]
 
 SRC_SIZES = ["(300, 300)", "(800, 600)", "(1500, 700)"]
@@ -204,14 +215,30 @@ def build_regrid_heatmaps(grouped):
         return _heatmap_grid(rows, method_filter, ntime_filter) if rows else {}
 
     grid_to_grid = [
-        ("xESMF — weight generation", grid_for("xesmf", "test_generate_weights", "bilinear", None), DST_SIZES),
-        ("ESMF — weight generation", grid_for("esmf", "test_generate_weights", "bilinear", None), DST_SIZES),
+        (
+            "xESMF — weight generation",
+            grid_for("xesmf", "test_generate_weights", "bilinear", None),
+            DST_SIZES,
+        ),
+        (
+            "ESMF — weight generation",
+            grid_for("esmf", "test_generate_weights", "bilinear", None),
+            DST_SIZES,
+        ),
         ("xESMF — apply", grid_for("xesmf", "test_apply", "bilinear", "1"), DST_SIZES),
         ("ESMF — apply", grid_for("esmf", "test_apply", "bilinear", "1"), DST_SIZES),
     ]
     grid_to_boundary = [
-        ("xESMF — weight generation (OBC boundary)", grid_for("xesmf", "test_generate_weights_locstream", "bilinear", None), N_BOUNDARY),
-        ("xESMF — apply (OBC boundary)", grid_for("xesmf", "test_apply_locstream", None, "1"), N_BOUNDARY),
+        (
+            "xESMF — weight generation (OBC boundary)",
+            grid_for("xesmf", "test_generate_weights_locstream", "bilinear", None),
+            N_BOUNDARY,
+        ),
+        (
+            "xESMF — apply (OBC boundary)",
+            grid_for("xesmf", "test_apply_locstream", None, "1"),
+            N_BOUNDARY,
+        ),
     ]
 
     all_values = [
@@ -345,7 +372,11 @@ def build_topo_linechart(grouped):
     if not rows:
         return ""
     pairs = sorted(
-        ((r["params"]["domain_deg"], r["stats"]["mean"]) for r in rows if r.get("params")),
+        (
+            (r["params"]["domain_deg"], r["stats"]["mean"])
+            for r in rows
+            if r.get("params")
+        ),
         key=lambda p: p[0],
     )
     if len(pairs) < 2:
@@ -374,7 +405,11 @@ def build_obc_linechart(grouped):
     if not rows:
         return ""
     pairs = sorted(
-        ((r["params"]["step_days"], r["stats"]["mean"]) for r in rows if r.get("params")),
+        (
+            (r["params"]["step_days"], r["stats"]["mean"])
+            for r in rows
+            if r.get("params")
+        ),
         key=lambda p: p[0],
     )
     if len(pairs) < 2:
@@ -522,8 +557,10 @@ def build_html(grouped):
 def main():
     benchmarks = load_benchmarks()
     if not benchmarks:
-        print(f"No benchmarks found in {RESULTS_FILE}. Run scripts/run_benchmarks.sh first.",
-              file=sys.stderr)
+        print(
+            f"No benchmarks found in {RESULTS_FILE}. Run scripts/run_benchmarks.sh first.",
+            file=sys.stderr,
+        )
 
     grouped = build_tables(benchmarks)
     OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)

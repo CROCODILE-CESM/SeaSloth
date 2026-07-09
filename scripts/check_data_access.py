@@ -59,8 +59,12 @@ def run_link_checks(products):
     rows = []
     for product, url in sorted(products.items()):
         ok, elapsed = _check_link(url)
-        rows.append({"product": product, "url": url, "ok": ok, "elapsed_s": round(elapsed, 2)})
-        print(f"  link  [{'OK  ' if ok else 'FAIL'}] {product}: {url}  ({elapsed:.1f}s)")
+        rows.append(
+            {"product": product, "url": url, "ok": ok, "elapsed_s": round(elapsed, 2)}
+        )
+        print(
+            f"  link  [{'OK  ' if ok else 'FAIL'}] {product}: {url}  ({elapsed:.1f}s)"
+        )
     return rows
 
 
@@ -110,7 +114,12 @@ def run_validate_checks(registry):
             except Exception:
                 ok, elapsed, status = False, 0.0, "FAIL"
             rows.append(
-                {"product": product, "method": method, "ok": ok, "elapsed_s": round(elapsed, 2)}
+                {
+                    "product": product,
+                    "method": method,
+                    "ok": ok,
+                    "elapsed_s": round(elapsed, 2),
+                }
             )
             print(f"  func  [{status}] {product} / {method}  ({elapsed:.1f}s)")
     return rows
