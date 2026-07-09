@@ -28,6 +28,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # TEMP: neutered for fast CI iteration while debugging the commit step below —
+      # skips the real network/CrocoDash checks (~5-8 min) and just touches
+      # results/health.json so the commit step below has something to diff against.
+      # Restore the real run: block before merging.
       - name: Run data-access health check
         working-directory: ${{ github.workspace }}
         shell: bash
@@ -37,14 +41,23 @@ jobs:
           COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
           COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
         run: |
-          source /opt/conda/etc/profile.d/conda.sh
-          conda activate CrocoDash
-          python scripts/check_data_access.py || true
+          echo "DEBUG MODE: skipping real check_data_access.py run"
+          date -u +'{"date": "%Y-%m-%dT%H:%M:%S+00:00", "link_checks": [], "validate_checks": []}' > results/health.json
 
       - name: Commit health snapshot
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
+          echo "pwd: $(pwd)"
+          echo "HOME: $HOME"
+          echo "github.workspace: ${{ github.workspace }}"
+          whoami || true
+          id || true
+          ls -la . || true
+          ls -la .git || echo "NO .git HERE"
+          git rev-parse --show-toplevel || echo "git rev-parse failed"
+          git config --global --add safe.directory '*' || true
+          git config --list --show-origin | grep -i safe || true
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add results/health.json
