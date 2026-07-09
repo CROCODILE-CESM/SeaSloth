@@ -63,7 +63,13 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      # ref: main (not the default github.sha) — data-health may have just
+      # pushed a new commit (the health snapshot); without this, checkout
+      # pins to the commit that triggered the run and misses it, so the
+      # published health page is permanently a day stale.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:

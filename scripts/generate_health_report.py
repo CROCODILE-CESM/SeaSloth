@@ -8,9 +8,13 @@ Output: report/health.html
 """
 
 import json
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from report_common import page_shell, publish_results_json
+
+MOUNTAIN_TZ = ZoneInfo("America/Denver")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_FILE = REPO_ROOT / "results" / "health.json"
@@ -32,6 +36,15 @@ def load_health():
 
 def _status(ok):
     return '<span class="ok">Yes</span>' if ok else '<span class="fail">No</span>'
+
+
+def _format_mountain(iso_date):
+    """check_data_access.py stores `date` as UTC ISO8601 — render it in
+    Mountain Time (handles MST/MDT automatically) for display."""
+    if not iso_date:
+        return "never run"
+    dt = datetime.fromisoformat(iso_date).astimezone(MOUNTAIN_TZ)
+    return dt.strftime("%Y-%m-%d %H:%M %Z")
 
 
 def make_link_table(rows):
@@ -63,7 +76,7 @@ def make_validate_table(rows):
 
 
 def build_html(data):
-    date = data.get("date") or "never run"
+    date = _format_mountain(data.get("date"))
     link_checks = data.get("link_checks", [])
     validate_checks = data.get("validate_checks", [])
     link_ok = sum(1 for r in link_checks if r["ok"])
