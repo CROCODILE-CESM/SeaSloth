@@ -130,7 +130,7 @@ bash scripts/run_benchmarks.sh -k test_my_operation   # just this benchmark
 bash scripts/run_benchmarks.sh -m light               # smoke test across all light cases
 bash scripts/run_benchmarks.sh                         # everything -> results/latest.json
 
-python scripts/generate_report.py                      # -> report/index.html
+python scripts/generate_report.py                      # -> report/{regridding,crocodash,mom6_forge,index}.html
 ```
 
 ## Committing results

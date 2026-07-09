@@ -7,9 +7,10 @@ This file provides guidance to Claude Code when working in this repository.
 **SeaSloth** is a one-time performance snapshot for parts of the CROC ocean modeling
 ecosystem that don't change commit-to-commit: xESMF/ESMF regridding (external libraries),
 the mom6_forge bathymetry pipeline, and the CrocoDash OBC regrid+merge pipeline. It uses
-[pytest-benchmark](https://pytest-benchmark.readthedocs.io/) and renders two static HTML
-pages — a heatmap and a line chart (plain inline HTML/CSS/SVG, no charting library) plus
-detail tables, no hand-written narrative.
+[pytest-benchmark](https://pytest-benchmark.readthedocs.io/) and renders one static HTML
+page per topic — regridding, CrocoDash, mom6_forge, data access health, MOM6 scaling — plus
+an `index.html` landing page, all plain inline HTML/CSS/SVG (no charting library), no
+hand-written narrative.
 
 Commit-by-commit performance tracking for CrocoDash/mom6_forge code lives in those repos'
 own pytest-benchmark suites — not here. SeaSloth previously used ASV (airspeed velocity)
@@ -72,15 +73,17 @@ SeaSloth/
 │   └── health.json                       # data-access health snapshot, overwritten daily
 ├── scripts/
 │   ├── run_benchmarks.sh                 # pytest wrapper -> results/latest.json
-│   ├── generate_report.py                # results/latest.json -> report/index.html (tables)
+│   ├── report_common.py                  # shared page shell (CSS, header, cross-page nav)
+│   ├── generate_report.py                # results/latest.json -> report/{regridding,crocodash,mom6_forge,index}.html
 │   ├── check_data_access.py              # link + validate_function checks -> results/health.json
 │   ├── generate_health_report.py         # results/health.json -> report/health.html
+│   ├── generate_scaling_report.py        # results/mom6_scaling.json -> report/mom6_scaling.html
 │   └── pbs_submit.sh                     # PBS job for the full perf suite on Derecho/Casper
 ├── docs/
 │   ├── how_benchmarking_works.md
 │   └── adding_benchmarks.md
 └── .github/workflows/publish.yml         # push to main + manual dispatch + daily schedule:
-                                           # data-health job (crocontainer) + rebuild both pages, deploy Pages
+                                           # data-health job (crocontainer) + rebuild all report pages, deploy Pages
 ```
 
 ## Running Benchmarks
@@ -92,7 +95,7 @@ bash scripts/run_benchmarks.sh                # all perf benchmarks -> results/l
 bash scripts/run_benchmarks.sh -m light       # fast smoke test (synthetic suites only)
 bash scripts/run_benchmarks.sh -k xesmf       # one suite
 
-python scripts/generate_report.py             # -> report/index.html
+python scripts/generate_report.py             # -> report/{regridding,crocodash,mom6_forge,index}.html
 
 # On Derecho — PBS job for the full suite (needs GEBCO/GLORYS data)
 qsub scripts/pbs_submit.sh
@@ -144,18 +147,32 @@ benchmark file — not the xarray helpers.
 
 ## Report generators
 
-Both are plain stdlib (`json` + f-strings) — no matplotlib, no numpy, no image generation.
+All plain stdlib (`json` + f-strings) — no matplotlib, no numpy, no image generation. Every
+generator shares one page shell — CSS, header, cross-page nav bar — from
+`scripts/report_common.py`, so adding or renaming a report page means updating `NAV_PAGES`
+in one place rather than five nav bars by hand.
+
 `scripts/generate_report.py` groups `results/latest.json`'s benchmarks by suite (parsed from
-`fullname`) then by test function. The six xESMF/ESMF weight-generation/apply benchmarks are
-consolidated into one heatmap section (source size × destination size → time, inline HTML
-table + a shared log-scale color legend, sequential-blue ramp from the dataviz palette) —
-no separate detail tables for those two suites, the heatmap is the whole story. `test_topo`
-(mom6_forge) gets a small inline-SVG line chart (domain size → time, log-scale y-axis,
-direct value labels) since it's a natural sweep. Everything else, plus `test_topo`/`test_obc`
-themselves, still gets a plain table (params, mean, min, max, rss). `scripts/generate_health_report.py`
-renders `results/health.json`'s `link_checks`/`validate_checks` lists as two small tables.
-Neither computes cross-benchmark ratios or writes prose — if you're tempted to add narrative
-back in, don't; that's the complexity this rewrite removed.
+`fullname`) then by test function, and writes three suite pages plus a landing page:
+- `report/regridding.html` — the six xESMF/ESMF weight-generation/apply benchmarks
+  consolidated into one heatmap section (source size × destination size → time, inline HTML
+  table + a shared log-scale color legend, sequential-blue ramp from the dataviz palette),
+  no separate detail tables, the heatmap is the whole story.
+- `report/mom6_forge.html` — `test_topo`'s `test_set_from_dataset` gets a small inline-SVG
+  line chart (domain size → time, log-scale y-axis, direct value labels) since it's a
+  natural sweep.
+- `report/crocodash.html` — `test_obc`'s `test_regrid_and_merge` gets the same style of
+  line chart (time vs. regrid_step).
+- `report/index.html` — no benchmark content of its own; one card per report page
+  (regridding, CrocoDash, mom6_forge, data access health, MOM6 scaling) linking out to it.
+
+Any test function not covered by a chart still gets a plain table (params, mean, min, max,
+rss). `scripts/generate_health_report.py` renders `results/health.json`'s
+`link_checks`/`validate_checks` lists as two small tables on `report/health.html`.
+`scripts/generate_scaling_report.py` renders `results/mom6_scaling.json` as a line chart +
+table on `report/mom6_scaling.html`. None of them compute cross-benchmark ratios or write
+prose — if you're tempted to add narrative back in, don't; that's the complexity the
+original rewrite removed.
 
 ## CI
 
@@ -172,7 +189,7 @@ back in, don't; that's the complexity this rewrite removed.
   from CI — that's expected, they're GLADE-only by design. Checks needing Copernicus
   Marine/CDS credentials need `COPERNICUSMARINE_SERVICE_USERNAME`/`_PASSWORD` and
   `CDSAPI_URL`/`CDSAPI_KEY` set as repo secrets to pass.
-- **`publish`** (always runs): regenerates both report pages from whatever is currently
+- **`publish`** (always runs): regenerates all report pages from whatever is currently
   committed under `results/` and deploys to GitHub Pages. It never runs the perf
   benchmarks — those need real HPC-scale GEBCO/GLORYS data and stay a manual/PBS thing.
 

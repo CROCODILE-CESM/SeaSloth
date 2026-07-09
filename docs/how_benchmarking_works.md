@@ -172,7 +172,11 @@ git push
 
 `scripts/generate_report.py` reads `results/latest.json`, groups benchmarks by suite
 (parsed from `fullname`) and then by test function, and renders one HTML table per function
-— no charts, no computed ratios, no hand-written prose. Output: `report/index.html`.
+— no charts beyond the regridding heatmap and two per-suite line charts, no computed ratios,
+no hand-written prose. It writes three suite pages — `report/regridding.html` (xESMF/ESMF),
+`report/crocodash.html`, `report/mom6_forge.html` — plus `report/index.html`, a landing page
+linking to those three and to `health.html`/`mom6_scaling.html`. The shared page shell (CSS,
+header, cross-page nav) lives in `scripts/report_common.py`, used by all report generators.
 
 Data-access health is a separate concern with its own script and page — see
 `scripts/check_data_access.py` and `scripts/generate_health_report.py` — because it runs on
