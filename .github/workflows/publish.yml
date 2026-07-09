@@ -28,10 +28,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # TEMP: neutered for fast CI iteration while debugging the commit step below —
-      # skips the real network/CrocoDash checks (~5-8 min) and just touches
-      # results/health.json so the commit step below has something to diff against.
-      # Restore the real run: block before merging.
       - name: Run data-access health check
         working-directory: ${{ github.workspace }}
         shell: bash
@@ -41,23 +37,21 @@ jobs:
           COPERNICUSMARINE_SERVICE_USERNAME: ${{ secrets.COPERNICUSMARINE_SERVICE_USERNAME }}
           COPERNICUSMARINE_SERVICE_PASSWORD: ${{ secrets.COPERNICUSMARINE_SERVICE_PASSWORD }}
         run: |
-          echo "DEBUG MODE: skipping real check_data_access.py run"
-          date -u +'{"date": "%Y-%m-%dT%H:%M:%S+00:00", "link_checks": [], "validate_checks": []}' > results/health.json
+          source /opt/conda/etc/profile.d/conda.sh
+          conda activate CrocoDash
+          python scripts/check_data_access.py || true
 
       - name: Commit health snapshot
         working-directory: ${{ github.workspace }}
         shell: bash
         run: |
-          echo "pwd: $(pwd)"
-          echo "HOME: $HOME"
-          echo "github.workspace: ${{ github.workspace }}"
-          whoami || true
-          id || true
-          ls -la . || true
-          ls -la .git || echo "NO .git HERE"
-          git rev-parse --show-toplevel || echo "git rev-parse failed"
-          git config --global --add safe.directory '*' || true
-          git config --list --show-origin | grep -i safe || true
+          # actions/checkout registers this repo as a safe.directory, but only
+          # under a temporary $HOME it swaps back afterward — later steps run
+          # with the container's real $HOME (/github/home), where checkout's
+          # exception was never saved. Root (the container user) checking out
+          # a directory owned by a different uid (the runner host's user, via
+          # the bind mount) trips git's dubious-ownership check without it.
+          git config --global --add safe.directory "$(pwd)"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add results/health.json
