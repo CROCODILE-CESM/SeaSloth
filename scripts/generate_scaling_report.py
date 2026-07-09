@@ -4,8 +4,9 @@ generate_scaling_report.py — Build a static HTML page from results/mom6_scalin
 
 Two sections:
   1. Location comparison — four 100×100 domains (Caribbean, Equatorial Pacific, Arctic,
-     Antarctic) each run at NTASKS_OCN=20 and 40 on Derecho's develop queue.  One
-     throughput chart + full table per domain, plus a cross-domain comparison table.
+     Antarctic) each run at NTASKS_OCN=20 and 40 on Derecho's develop queue. One combined
+     multi-line chart (all domains, since there are only two NTASKS points each), a
+     cross-domain comparison table, plus a per-domain results table.
   2. Historical NTASKS sweep — the original Bahamas full-sweep data kept for reference.
 
 Output: report/mom6_scaling.html
@@ -20,8 +21,14 @@ RESULTS_FILE = REPO_ROOT / "results" / "mom6_scaling.json"
 OUTPUT_FILE = REPO_ROOT / "report" / "mom6_scaling.html"
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from generate_report import _linechart_svg  # noqa: E402
+from generate_report import _linechart_svg, _normalize_log  # noqa: E402
 from report_common import LINECHART_CSS, page_shell, publish_results_json  # noqa: E402
+
+SCALING_EXTRA_CSS = """
+  .lc-legend { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.25rem; }
+  .lc-legend-item { font-size: 0.8rem; color: #555; display: flex; align-items: center; gap: 0.35rem; }
+  .lc-legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+"""
 
 
 def load_scaling():
@@ -61,28 +68,84 @@ def make_table_html(points):
     )
 
 
-def build_domain_section(domain):
+DOMAIN_COLORS = ["#2a78d6", "#1baf7a", "#d68c2a", "#c33d69"]
+
+
+def _multi_linechart_svg(series, y_fmt=lambda v: f"{v:.1f}", width=480, height=280):
+    """series: list of (name, color, [(x_label, y_value), ...]) sharing one x-axis.
+    Plain inline SVG, no charting library -- multiple colored lines + a legend,
+    for comparing a handful of domains at the same small set of NTASKS points."""
+    pad_l, pad_r, pad_t, pad_b = 46, 20, 24, 44
+    plot_w = width - pad_l - pad_r
+    plot_h = height - pad_t - pad_b
+
+    all_x = sorted({x for _, _, pts in series for x, _ in pts}, key=lambda v: int(v))
+    all_y = [y for _, _, pts in series for _, y in pts]
+    if not all_x or not all_y:
+        return "<p><em>No results yet.</em></p>"
+    vmin, vmax = min(all_y), max(all_y)
+    n = len(all_x)
+
+    def x_at(i):
+        return pad_l + (i / (n - 1) if n > 1 else 0.5) * plot_w
+
+    def y_at(v):
+        t = _normalize_log(v, vmin, vmax)
+        return pad_t + (1 - t) * plot_h
+
+    x_index = {x: i for i, x in enumerate(all_x)}
+
+    gridlines = "".join(
+        f"<line x1='{pad_l}' y1='{pad_t + f * plot_h:.1f}' "
+        f"x2='{pad_l + plot_w}' y2='{pad_t + f * plot_h:.1f}' "
+        f"stroke='#e1e0d9' stroke-width='1'/>"
+        for f in (0.0, 0.25, 0.5, 0.75, 1.0)
+    )
+    x_labels = "".join(
+        f"<text x='{x_at(i):.1f}' y='{height - pad_b + 18}' text-anchor='middle' "
+        f"class='lc-axis'>N={x}</text>"
+        for i, x in enumerate(all_x)
+    )
+
+    lines_html = []
+    for name, color, pts in series:
+        pts_sorted = sorted(pts, key=lambda p: x_index[p[0]])
+        coords = [(x_at(x_index[x]), y_at(v)) for x, v in pts_sorted]
+        poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in coords)
+        dots = "".join(
+            f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4' fill='{color}'>"
+            f"<title>{name} N={pts_sorted[i][0]}: {y_fmt(pts_sorted[i][1])}</title></circle>"
+            for i, (x, y) in enumerate(coords)
+        )
+        lines_html.append(
+            f"<polyline points='{poly}' fill='none' stroke='{color}' stroke-width='2'/>{dots}"
+        )
+
+    legend = "".join(
+        f"<span class='lc-legend-item'><span class='lc-legend-swatch' "
+        f"style='background:{color}'></span>{name}</span>"
+        for name, color, _ in series
+    )
+
+    return f"""
+    <svg class="linechart" viewBox="0 0 {width} {height}" role="img"
+         aria-label="Line chart comparing throughput across domains and NTASKS_OCN">
+      {gridlines}
+      {''.join(lines_html)}
+      {x_labels}
+    </svg>
+    <div class="lc-legend">{legend}</div>"""
+
+
+def build_domain_table_section(domain):
     points = sorted(domain.get("points", []), key=lambda p: p["ntasks_ocn"])
     name = domain["name"]
     grid = domain.get("grid", "")
-
-    if points:
-        chart_points = [
-            (str(p["ntasks_ocn"]), p["throughput_sim_years_per_day"]) for p in points
-        ]
-        chart = _linechart_svg(
-            chart_points, y_fmt=lambda v: f"{v:.1f} y/day", color="#2a78d6"
-        )
-    else:
-        chart = "<p><em>No results yet.</em></p>"
-
     table = make_table_html(points)
     return f"""
     <div class="card">
       <h3>{name}</h3>
       <p class="lc-sub">{grid}</p>
-      <p class="lc-sub">x-axis: NTASKS_OCN</p>
-      {chart}
       {table}
     </div>"""
 
@@ -120,7 +183,7 @@ def build_html(data):
             "Location-dependent scaling sweep on Derecho.",
             body,
             "Generated by scripts/generate_scaling_report.py",
-            extra_css=LINECHART_CSS,
+            extra_css=LINECHART_CSS + SCALING_EXTRA_CSS,
         )
 
     domains = data.get("domains", [])
@@ -133,21 +196,39 @@ def build_html(data):
             f"machine: {data.get('machine', '?')}, queue: {data.get('queue', '?')} &mdash; "
             f"date range: {', '.join(data.get('date_range', []))}</p>"
         )
-        domain_cards = "".join(build_domain_section(d) for d in domains)
+        chart_series = [
+            (
+                d["name"],
+                DOMAIN_COLORS[i % len(DOMAIN_COLORS)],
+                [
+                    (str(p["ntasks_ocn"]), p["throughput_sim_years_per_day"])
+                    for p in sorted(d.get("points", []), key=lambda p: p["ntasks_ocn"])
+                ],
+            )
+            for i, d in enumerate(domains)
+        ]
+        combined_chart = _multi_linechart_svg(
+            [s for s in chart_series if s[2]], y_fmt=lambda v: f"{v:.1f} y/day"
+        )
+        domain_tables = "".join(build_domain_table_section(d) for d in domains)
         comparison = make_comparison_table_html(domains)
         location_section = f"""
     <section>
       <h2>Throughput by Geographic Location</h2>
       {meta}
       <p>Each domain is 100×100 grid points, flat 1000 m bathymetry, 10 vertical levels,
-         run at NTASKS_OCN=20 and 40 on Derecho's develop queue (30-day simulation).
+         run at NTASKS_OCN=20 and 40 on Derecho's develop queue (~24-day simulation).
          Helen Kershaw's question: does MOM6/CESM throughput vary by where on Earth the
          domain sits?</p>
+      <div class="card">
+        <h3>Throughput (sim-years/day) by domain and NTASKS_OCN</h3>
+        {combined_chart}
+      </div>
       <div class="card">
         <h3>Cross-domain comparison — throughput (sim-years/day)</h3>
         {comparison}
       </div>
-      {domain_cards}
+      {domain_tables}
     </section>"""
     else:
         location_section = "<section><p>No location-comparison results yet.</p></section>"
@@ -184,7 +265,7 @@ def build_html(data):
         "Location-dependent scaling sweep on Derecho.",
         body,
         "Generated by scripts/generate_scaling_report.py",
-        extra_css=LINECHART_CSS,
+        extra_css=LINECHART_CSS + SCALING_EXTRA_CSS,
     )
 
 
