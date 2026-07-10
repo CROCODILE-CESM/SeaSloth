@@ -1,47 +1,47 @@
 {
-  "date": "2026-07-09T18:05:01+00:00",
+  "date": "2026-07-10T07:27:37+00:00",
   "link_checks": [
     {
       "product": "cesm inputdata",
       "url": "https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/ocn/mom/croc",
       "ok": false,
-      "elapsed_s": 0.3
+      "elapsed_s": 0.11
     },
     {
       "product": "gebco",
       "url": "https://www.gebco.net/data_and_products/gridded_bathymetry_data/#global",
       "ok": true,
-      "elapsed_s": 0.59
+      "elapsed_s": 0.54
     },
     {
       "product": "glofas",
       "url": "https://ewds.climate.copernicus.eu/datasets/cems-glofas-historical?tab=download",
       "ok": true,
-      "elapsed_s": 2.25
+      "elapsed_s": 2.66
     },
     {
       "product": "glorys",
       "url": "https://data.marine.copernicus.eu/product/GLOBAL_MULTIYEAR_PHY_001_030/description",
       "ok": true,
-      "elapsed_s": 0.17
+      "elapsed_s": 0.21
     },
     {
       "product": "mom6_output",
       "url": "https://gdex.ucar.edu/datasets/d267000/",
       "ok": true,
-      "elapsed_s": 0.44
+      "elapsed_s": 0.99
     },
     {
       "product": "seawifs",
       "url": "https://oceandata.sci.gsfc.nasa.gov/getfile/SEASTAR_SEAWIFS_GAC.19980201_20100228.L3m.MC.CHL.chlor_a.9km.nc",
       "ok": true,
-      "elapsed_s": 0.59
+      "elapsed_s": 0.27
     },
     {
       "product": "tpxo",
       "url": "https://www.tpxo.net/global",
       "ok": true,
-      "elapsed_s": 0.31
+      "elapsed_s": 0.33
     }
   ],
   "validate_checks": [
@@ -55,13 +55,13 @@
       "product": "gebco",
       "method": "get_gebco_data_with_python",
       "ok": true,
-      "elapsed_s": 399.31
+      "elapsed_s": 289.02
     },
     {
       "product": "glofas",
       "method": "get_global_data_with_python",
       "ok": false,
-      "elapsed_s": 0.04
+      "elapsed_s": 0.02
     },
     {
       "product": "glofas",
@@ -73,7 +73,7 @@
       "product": "glorys",
       "method": "get_glorys_data_from_cds_api",
       "ok": true,
-      "elapsed_s": 0.65
+      "elapsed_s": 1.14
     },
     {
       "product": "glorys",
