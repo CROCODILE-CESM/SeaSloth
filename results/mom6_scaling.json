@@ -30,10 +30,10 @@
     },
     {
       "name": "Antarctic",
-      "grid": "100x100 (36km, polar-stereo EPSG:3031), 3600x3600km cap on S pole (boundaries ~67-74S, widened to clear GLORYS's -80S coverage limit), flat 1000m, nk=10",
+      "grid": "100x100 (36km, polar-stereo EPSG:3031), 3600x3600km cap on S pole (boundaries ~67-74S, widened to clear GLORYS's -80S coverage limit), flat 1000m, nk=10, DT=600s matched to other domains",
       "points": [
-        {"ntasks_ocn": 20, "throughput_sim_years_per_day": 141.84, "tot_run_time_s": 38.384, "ocn_cost_pe_hrs": 21.66},
-        {"ntasks_ocn": 40, "throughput_sim_years_per_day": 180.43, "tot_run_time_s": 30.174, "ocn_cost_pe_hrs": 17.03}
+        {"ntasks_ocn": 20, "throughput_sim_years_per_day": 69.04,  "tot_run_time_s": 78.853, "ocn_cost_pe_hrs": 44.49},
+        {"ntasks_ocn": 40, "throughput_sim_years_per_day": 115.78, "tot_run_time_s": 47.025, "ocn_cost_pe_hrs": 26.53}
       ]
     }
   ],

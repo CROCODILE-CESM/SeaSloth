@@ -218,8 +218,12 @@ def build_html(data):
       {meta}
       <p>Each domain is 100×100 grid points, flat 1000 m bathymetry, 10 vertical levels,
          run at NTASKS_OCN=20 and 40 on Derecho's develop queue (~24-day simulation).
-         Helen Kershaw's question: does MOM6/CESM throughput vary by where on Earth the
-         domain sits?</p>
+         Does MOM6/CESM throughput vary by where on Earth the domain sits?</p>
+      <p><strong>Note:</strong> DT (baroclinic timestep) is auto-selected by CrocoDash based
+         on grid spacing — a coarser grid allows a larger CFL-stable DT, which reduces
+         wallclock time independently of geographic location. All domains here use a matched
+         DT=600 s so the comparison reflects location effects rather than timestep artifacts.
+         Increasing or decreasing DT has a direct proportional effect on throughput.</p>
       <div class="card">
         <h3>Throughput (sim-years/day) by domain and NTASKS_OCN</h3>
         {combined_chart}
