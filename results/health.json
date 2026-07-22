@@ -1,47 +1,47 @@
 {
-  "date": "2026-07-21T07:09:04+00:00",
+  "date": "2026-07-22T07:08:41+00:00",
   "link_checks": [
     {
       "product": "cesm inputdata",
       "url": "https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/ocn/mom/croc",
       "ok": true,
-      "elapsed_s": 0.42
+      "elapsed_s": 0.21
     },
     {
       "product": "gebco",
       "url": "https://www.gebco.net/data_and_products/gridded_bathymetry_data/#global",
       "ok": true,
-      "elapsed_s": 0.6
+      "elapsed_s": 0.56
     },
     {
       "product": "glofas",
       "url": "https://ewds.climate.copernicus.eu/datasets/cems-glofas-historical?tab=download",
       "ok": true,
-      "elapsed_s": 1.76
+      "elapsed_s": 1.2
     },
     {
       "product": "glorys",
       "url": "https://data.marine.copernicus.eu/product/GLOBAL_MULTIYEAR_PHY_001_030/description",
       "ok": true,
-      "elapsed_s": 0.05
+      "elapsed_s": 0.29
     },
     {
       "product": "mom6_output",
       "url": "https://gdex.ucar.edu/datasets/d267000/",
       "ok": true,
-      "elapsed_s": 0.32
+      "elapsed_s": 0.36
     },
     {
       "product": "seawifs",
       "url": "https://oceandata.sci.gsfc.nasa.gov/getfile/SEASTAR_SEAWIFS_GAC.19980201_20100228.L3m.MC.CHL.chlor_a.9km.nc",
-      "ok": true,
-      "elapsed_s": 0.87
+      "ok": false,
+      "elapsed_s": 20.29
     },
     {
       "product": "tpxo",
       "url": "https://www.tpxo.net/global",
       "ok": true,
-      "elapsed_s": 0.31
+      "elapsed_s": 0.3
     }
   ],
   "validate_checks": [
@@ -55,7 +55,7 @@
       "product": "gebco",
       "method": "get_gebco_data_with_python",
       "ok": false,
-      "elapsed_s": 339.15
+      "elapsed_s": 248.7
     },
     {
       "product": "glofas",
@@ -73,7 +73,7 @@
       "product": "glorys",
       "method": "get_glorys_data_from_cds_api",
       "ok": true,
-      "elapsed_s": 0.81
+      "elapsed_s": 0.73
     },
     {
       "product": "glorys",
