@@ -16,7 +16,8 @@ Two sweeps, because destination cost has two independent axes:
     is visible well before the domains get expensive; once the rungs reach
     real-case scale they become the actual configurations CROC builds — Gulf of
     Mexico, Caribbean, North Atlantic, and an Indo-Pacific domain sized to the
-    existing `CrocIndoPacific_112` case.
+    existing `CrocIndoPacific_112` case. Cost is flat to ~116K cells and then
+    rises mildly: 2.4M cells costs ~2.4x the 144-cell case, not orders more.
   - **Ocean resolution** (`test_gen_rof_maps_resolution`) grows the destination
     cell count at a *fixed* geographic footprint, so the overlap window and the
     set of contributing rivers stay constant. Separating this from extent is the
@@ -30,6 +31,18 @@ Also requires a mom6_forge that has the runoff-mapping write-path fix (see
 `_has_write_path_fix` below). Run this suite in the `mom6_forge` conda env, not
 `CrocoDash` — CrocoDash's nested mom6_forge checkout is a different branch and
 does not have the fix.
+
+Keep every box clear of the 0/360 seam — the assertion below enforces it. This
+sweep originally reported the two basin-scale rungs as intractable (>1 hr, no
+completion), which was wrong: the `north_atlantic` box was `(280.0, 80.0, ...)`
+and 280 + 80 = 360. `_get_mesh_bbox()` normalizes longitudes into [0, 360), so a
+node at exactly 360 becomes 0 and the naive min/max returns a *near-global*
+longitude bbox (0.0 .. 359.92) instead of 280 .. 360. That makes
+`generate_ESMF_map_via_xesmf`'s `map_overlap` masking a no-op in longitude, so
+the regrid runs against the whole global latitude band instead of the domain's
+own window. Shifted 5 degrees west, the identical 576K-cell case finishes in
+106 s. Tracked as a mom6_forge bug in its own right — a user can legitimately
+configure a domain ending at lon 360 and would just see an unexplained hang.
 """
 
 import inspect
@@ -60,21 +73,11 @@ FOLD_KM = 20
 # configure, and exist to show where the curve starts before real-case sizes take
 # over. From gulf_of_mexico up, every rung is a domain CROC really builds.
 #
-# KNOWN PERFORMANCE PROBLEM at the basin-scale end, not yet fixed: north_atlantic
-# (576K cells) was measured sitting in ESMF's `ESMP_FieldRegridStore` — the
-# nearest_d2s weight generation inside generate_ESMF_map_via_xesmf — for over an
-# hour at ~98% CPU without finishing, and indo_pacific is 4x larger again. The
-# cliff is steep, not gradual: caribbean-scale domains finish in ~a minute, so the
-# wall sits somewhere between ~100K and ~600K destination cells. Both cases are
-# kept here as first-class benchmark cases because they are exactly the sizes that
-# need to become tractable; deselect them (`-k "not north_atlantic and not
-# indo_pacific"`) when you need a run that finishes today.
-#
-# First thing to check when picking this up: these meshes are built
-# `mask="all_unmasked"`, so every destination cell is active, whereas a real case's
-# ocean mesh masks out land. The real CrocIndoPacific_112 case (2.65M cells,
-# land-masked) generates its nn map in ~210 s — so the cliff may be an artifact of
-# unmasked synthetic meshes rather than a cost real users hit.
+# Keep every box clear of the 0/360 periodic seam -- see the assertion below. The
+# north_atlantic rung was originally (280.0, 80.0, ...), whose eastern edge lands on
+# exactly lon 360, and it did not complete in over an hour at ~98% CPU. Shifted 5 deg
+# west, the identical 576K-cell case finishes in 106 s. There is no destination-size
+# cliff here; there was one malformed box.
 DOMAINS = {
     "box_1deg": {"box": (262.0, 1.0, 18.0, 1.0)},
     "box_2deg": {"box": (262.0, 2.0, 18.0, 2.0)},
@@ -82,10 +85,25 @@ DOMAINS = {
     "box_8deg": {"box": (262.0, 8.0, 18.0, 8.0)},
     "gulf_of_mexico": {"box": (262.0, 18.0, 18.0, 13.0)},
     "caribbean": {"box": (270.0, 35.0, 5.0, 23.0)},
-    "north_atlantic": {"box": (280.0, 80.0, 20.0, 50.0)},
+    # lon 275..355, not 280..360: 280 + 80 = 360 puts the eastern edge on the seam.
+    "north_atlantic": {"box": (275.0, 80.0, 20.0, 50.0)},
     # Sized to the existing CrocIndoPacific_112 case: ~1920x1260 = 2.4M cells at 1/12 deg.
     "indo_pacific": {"box": (30.0, 160.0, -45.0, 105.0)},
 }
+
+# A destination mesh whose nodes land on exactly lon 360 has 601 nodes at 360.0, which
+# on a sphere is the same point as 0.0 -- so ESMF sees a mesh whose Cartesian bounding
+# volume spans nearly the whole globe in longitude and its nearest-neighbour search
+# loses the ability to prune. The regrid then does not finish in any practical time,
+# with no error and no memory growth to hint at the cause. Fail loudly at import
+# instead of silently hanging a benchmark run for an hour.
+for _name, _spec in DOMAINS.items():
+    _xstart, _lenx, _, _ = _spec["box"]
+    assert _xstart > 0 and _xstart + _lenx < 360, (
+        f"domain {_name!r} touches the 0/360 periodic seam "
+        f"(lon {_xstart}..{_xstart + _lenx}); shift it so ESMF can prune its "
+        f"nearest-neighbour search -- otherwise gen_rof_maps will appear to hang"
+    )
 
 # Destination resolution for the domain sweep — 1/12 deg, the resolution the real
 # CARIB12 / CrocIndoPacific_112 cases run at.

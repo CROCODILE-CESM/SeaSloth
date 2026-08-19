@@ -122,18 +122,18 @@ python scripts/generate_runoff_report.py
 `merge_results.py` keys on `fullname` — incoming entries replace same-named ones, everything
 else is untouched. After reworking a `@parametrize`, add `--prune-stale` so the old parameter
 ids are dropped instead of lingering in the snapshot and being charted next to the new ones;
-don't combine it with `-k`, since it would delete the deselected cases' results. Since a merged snapshot spans multiple sessions, its top-level
+don't combine it with `-k`, since it would delete the deselected cases' results.
+
+Since a merged snapshot spans multiple sessions, its top-level
 `machine_info`/`datetime` no longer cover every entry, so each merged benchmark carries its
 own `extra_info["run_datetime"]`/`["run_node"]`.
 
-### Runoff mapping: basin-scale domains are a known-slow, unfixed case
+### Runoff mapping: keep every domain clear of the 0/360 seam
 
-`test_gen_rof_maps_domain` walks an ascending ladder of destination sizes, ~4× per
-rung. The two largest do **not** currently finish in a practical time and are
-deliberately left in the suite rather than removed or flag-gated — they are exactly
-the sizes that need to become tractable:
+`test_gen_rof_maps_domain` walks an ascending ladder of destination sizes, ~4x per
+rung, all against the production ROF mesh. Measured:
 
-| Domain | Cells @ 1/12° | Measured |
+| Domain | Cells @ 1/12° | Time |
 |---|---|---|
 | 1° box | 144 | 77.7 s |
 | 2° box | 576 | 73.7 s |
@@ -141,36 +141,35 @@ the sizes that need to become tractable:
 | 8° box | 9.2K | 74.2 s |
 | Gulf of Mexico | 34K | 80.7 s |
 | Caribbean | 116K | 78.9 s |
-| North Atlantic | 576K | **stalls** — >1 hr at 98% CPU in ESMF `ESMP_FieldRegridStore`, did not finish |
-| Indo-Pacific | 2.42M | not reached (4× larger again) |
+| North Atlantic | 576K | 105.7 s |
+| Indo-Pacific | 2.42M | 187.2 s |
 
-**The headline result:** across those six rungs the destination grid grows **805×** and
-wall time grows **1.02×**, non-monotonically. The destination grid is not the cost — it's
-the fixed source-mesh read/re-write (every source-domain field is ~2.2 GB and lands in
-both output files). Peak RSS is flat at ~12.5–13.4 GB throughout, for the same reason.
-Anything that optimizes the *ocean* side of this call has almost nothing left to win.
+Cost is flat to ~116K cells (805x more cells for 1.02x the time) and then rises
+mildly — 2.4M cells is ~2.4x the 144-cell box. The dominant term at the small end is
+the fixed source-mesh read/re-write, ~2.2 GB per source-domain field into both output
+files; the destination grid only starts to matter at basin scale. Peak RSS is ~12.5–13.4
+GB up to the Caribbean, rising to 15.8 GB at 2.4M cells.
 
-The four `box_*` rungs are squares anchored at the Gulf of Mexico's southwest corner, so
-they nest inside the `gulf_of_mexico` rung — the small end of the ladder is a zoom-in on
-the smallest real configuration, not an unrelated patch of ocean. They sit below anything
-anyone would configure and exist to show where the curve starts; from `gulf_of_mexico` up,
-every rung is a domain CROC actually builds. Everything runs against the production ROF
-mesh only, since that's the only source mesh a real case gets.
+**This suite briefly claimed a size cliff above ~150K cells. That was wrong**, and the
+reason is a real `mom6_forge` bug worth knowing about. The `north_atlantic` box was
+`(xstart=280, lenx=80)` and 280 + 80 = 360, so its eastern edge sat on the periodic
+seam. `_get_mesh_bbox()` normalizes longitudes into [0, 360), so the 601 nodes at
+exactly 360 become 0, and its naive `min()`/`max()` then returns a **near-global**
+longitude bbox (`0.00 .. 359.92`) instead of `280 .. 360`. That makes
+`generate_ESMF_map_via_xesmf`'s `map_overlap` masking a no-op in longitude, so the
+regrid runs against the entire global 20–70°N band rather than the domain's own 80°
+window — and does not finish in over an hour. Shifted 5° west, the identical
+576K-cell case takes 106 s.
 
-The cliff is steep, not gradual, so it sits somewhere between ~100K and ~600K
-destination cells. For a run that finishes today:
+`DOMAINS` therefore asserts at import that no box touches the seam, with the reason
+inline. Don't remove that guard: the failure mode is silent (no error, no memory
+growth, ~1 GB RSS, one core pinned), so a reintroduced seam box just looks like a hang.
 
-```bash
-conda run -n mom6_forge pytest benchmarks/mom6_forge/test_mapping.py \
-  -k "not north_atlantic and not indo_pacific" --benchmark-json=/tmp/rof.json -v
-```
-
-**First thing to check when picking this up:** these benchmarks build their ocean
-meshes with `mask="all_unmasked"`, so every destination cell is active, while a real
-case's ocean mesh masks out land. The real `CrocIndoPacific_112` case (2.65M cells,
-land-masked) generates its nn map in ~210 s — so the cliff may be an artifact of
-benchmarking with unmasked synthetic meshes rather than a cost real users hit. Worth
-resolving before optimizing anything.
+Status of the underlying bug: open in `mom6_forge`. The fix belongs in
+`_get_mesh_bbox()`, which needs a wrap-aware longitude range instead of `min`/`max`
+of normalized values, and the `map_overlap` comparison that consumes it needs to
+handle a wrapped interval. Same class of defect as the `normalize_deg(src_lat)` bug
+already fixed on that branch.
 
 ### The runoff-mapping suite needs the `mom6_forge` env
 

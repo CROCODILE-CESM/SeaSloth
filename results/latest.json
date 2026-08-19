@@ -53774,6 +53774,102 @@
     },
     {
       "group": null,
+      "name": "test_gen_rof_maps_domain[indo_pacific]",
+      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[indo_pacific]",
+      "params": {
+        "domain": "indo_pacific"
+      },
+      "param": "indo_pacific",
+      "extra_info": {
+        "peak_rss_mb": 15801.6015625,
+        "domain": "indo_pacific",
+        "resolution_deg": 0.08333333333333333,
+        "n_src": 21600000,
+        "n_dst": 2419200,
+        "run_datetime": "2026-08-19T22:14:53.574319",
+        "run_node": "crhtc75"
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 187.15010187681764,
+        "max": 187.15010187681764,
+        "mean": 187.15010187681764,
+        "stddev": 0,
+        "rounds": 1,
+        "median": 187.15010187681764,
+        "iqr": 0.0,
+        "q1": 187.15010187681764,
+        "q3": 187.15010187681764,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 187.15010187681764,
+        "hd15iqr": 187.15010187681764,
+        "ops": 0.00534330459867022,
+        "total": 187.15010187681764,
+        "data": [
+          187.15010187681764
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_gen_rof_maps_domain[north_atlantic]",
+      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[north_atlantic]",
+      "params": {
+        "domain": "north_atlantic"
+      },
+      "param": "north_atlantic",
+      "extra_info": {
+        "peak_rss_mb": 13235.7890625,
+        "domain": "north_atlantic",
+        "resolution_deg": 0.08333333333333333,
+        "n_src": 21600000,
+        "n_dst": 576000,
+        "run_datetime": "2026-08-19T22:14:53.574319",
+        "run_node": "crhtc75"
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 105.70233133994043,
+        "max": 105.70233133994043,
+        "mean": 105.70233133994043,
+        "stddev": 0,
+        "rounds": 1,
+        "median": 105.70233133994043,
+        "iqr": 0.0,
+        "q1": 105.70233133994043,
+        "q3": 105.70233133994043,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 105.70233133994043,
+        "hd15iqr": 105.70233133994043,
+        "ops": 0.009460529274269113,
+        "total": 105.70233133994043,
+        "data": [
+          105.70233133994043
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
       "name": "test_gen_rof_maps_resolution[0.04]",
       "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_resolution[0.04]",
       "params": {

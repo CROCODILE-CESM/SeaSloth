@@ -12,8 +12,8 @@ Three sections:
      fixed 1/12 deg, sub-real boxes first, then the real CROC domains.
   2. Resolution sweep — the same call at a fixed geographic footprint, so only
      the destination cell count varies.
-  3. Not yet tractable — the basin-scale rungs that don't finish, kept visible
-     rather than quietly dropped from the sweep.
+  3. The 0/360 seam — why the boxes sit where they do, and the mom6_forge bbox
+     bug that made this page briefly report a size cliff that does not exist.
 
 Charts and the domain label table come from generate_report.py so the two pages
 can't disagree about how a rung is named.
@@ -57,23 +57,6 @@ RUNOFF_EXTRA_CSS = """
   td.pending { color: #b30000; font-weight: 600; }
 """
 
-# Rungs that are part of the sweep but do not currently finish. Kept on the page
-# with an explicit status so "no number" reads as an open problem rather than as a
-# domain nobody thought to measure.
-NOT_TRACTABLE = [
-    (
-        "north_atlantic",
-        "576K",
-        "Sat in ESMF <code>ESMP_FieldRegridStore</code> for &gt;1 hr at ~98% CPU "
-        "without finishing (py-spy stack sample).",
-    ),
-    (
-        "indo_pacific",
-        "2.4M",
-        "4&times; larger again; sized to the existing <code>CrocIndoPacific_112</code> case.",
-    ),
-]
-
 
 def _rows_for(grouped, test_name):
     return [
@@ -99,7 +82,7 @@ def _detail_table(rows, key_label, key_of, sort_key):
     return f"<table>{header}{body}</table>"
 
 
-def _spread_sentence(rows, lead="Across the rungs that finish"):
+def _spread_sentence(rows, lead="Across the ladder"):
     """One sentence quantifying the headline finding, computed from the data
     rather than hard-coded, so it can't go stale when the sweep is re-run."""
     sized = [r for r in rows if r["extra_info"].get("n_dst")]
@@ -154,12 +137,13 @@ def build_domain_section(grouped):
          unrelated patch of ocean. From the Gulf of Mexico up, every rung is a domain
          CROC actually builds.</p>
       <div class="note"><strong>What the curve says:</strong> {_spread_sentence(rows)}
-         The destination grid is not the cost. Almost all of it is fixed source-mesh
-         work — every source-domain field (<code>xc_a</code>, <code>yc_a</code>,
-         <code>xv_a</code>, <code>mask_a</code>, <code>area_a</code>, &hellip;) is
-         ~2.2&nbsp;GB and gets written into both output files, so a case pays it whether
-         its ocean domain is a 1&deg; box or the whole Caribbean. Optimizing the ocean
-         side of this call has almost nothing to win; the write path does.</div>
+         Cost is essentially flat up to the Caribbean — 805&times; more cells for 1.02&times;
+         the time — and only then begins to rise, mildly and roughly linearly. What
+         dominates the small end is fixed source-mesh work: every source-domain field
+         (<code>xc_a</code>, <code>yc_a</code>, <code>xv_a</code>, <code>mask_a</code>,
+         <code>area_a</code>, &hellip;) is ~2.2&nbsp;GB and gets written into both output
+         files, so a 1&deg; box pays nearly the same toll as a basin. The destination grid
+         only starts to matter at basin scale, and even there it is a factor, not a wall.</div>
       {chart}
       <div class="card">
         <h3>Domain ladder — full numbers</h3>
@@ -218,40 +202,45 @@ def build_resolution_section(grouped):
     </section>"""
 
 
-def build_pending_section(grouped):
-    """The top of the ladder, listed with its status rather than omitted."""
-    measured = {
-        r["extra_info"]["domain"]
-        for r in _rows_for(grouped, "test_gen_rof_maps_domain")
-    }
-    pending = [(d, cells, why) for d, cells, why in NOT_TRACTABLE if d not in measured]
-    if not pending:
-        return ""
-    rows = "".join(
-        f"<tr><td>{ROF_DOMAIN_LABELS.get(d, d)}</td><td>{cells}</td>"
-        f"<td class='pending'>does not finish</td><td>{why}</td></tr>"
-        for d, cells, why in pending
-    )
-    return f"""
+def build_seam_section():
+    """The 0/360 seam hazard.
+
+    Static prose, not derived from the JSON: it documents why the ladder's boxes
+    sit where they do, and it is the reason this page briefly claimed a
+    destination-size cliff that does not exist. Worth keeping visible even after
+    the underlying mom6_forge bug is fixed, because the failure mode is silent.
+    """
+    return """
     <section>
-      <h2>Not yet tractable</h2>
-      <p>These rungs are first-class cases in the sweep — they are exactly the sizes
-         that need to become fast — but they do not currently complete, so they have no
-         number here. The cliff is steep rather than gradual: Caribbean-scale domains
-         finish in about a minute, so the wall sits somewhere between ~100K and ~600K
-         destination cells, in <code>nearest_d2s</code> weight generation.</p>
-      <div class="card">
-        <h3>Rungs above the cliff</h3>
-        <table><tr><th>Domain</th><th>Ocean cells</th><th>Status</th><th>What was observed</th></tr>{rows}</table>
-      </div>
-      <div class="note"><strong>First thing to check when picking this up:</strong>
-         these benchmark meshes are built <code>mask="all_unmasked"</code>, so every
-         destination cell is active, whereas a real case&rsquo;s ocean mesh masks out
-         land. The real <code>CrocIndoPacific_112</code> case (2.65M cells, land-masked)
-         writes its nearest-neighbor map in ~210&nbsp;s — so the cliff may be an artifact
-         of unmasked synthetic meshes rather than a cost real users hit. Reproduce with
-         <code>pytest benchmarks/mom6_forge/test_mapping.py -k north_atlantic</code>
-         in the <code>mom6_forge</code> conda env.</div>
+      <h2>The 0/360 seam — why these boxes sit where they do</h2>
+      <p>Every rung above is deliberately clear of the 0/360 periodic seam, and the
+         benchmark asserts it at import. This page previously reported the two
+         basin-scale rungs as intractable — &gt;1 hr at ~98% CPU in ESMF&rsquo;s
+         <code>ESMP_FieldRegridStore</code> without completing. That was wrong, and the
+         cause is worth writing down.</p>
+      <div class="note"><strong>The bug:</strong> the North Atlantic box was
+         <code>(xstart=280, lenx=80)</code>, and 280&nbsp;+&nbsp;80&nbsp;=&nbsp;360.
+         <code>_get_mesh_bbox()</code> normalizes longitudes into [0,&nbsp;360), so the
+         601 mesh nodes sitting on exactly 360 become 0 — and a naive
+         <code>min()</code>/<code>max()</code> then returns a <em>near-global</em>
+         longitude bounding box, <code>0.00 .. 359.92</code> instead of
+         <code>280 .. 360</code>. That makes <code>generate_ESMF_map_via_xesmf</code>&rsquo;s
+         <code>map_overlap</code> masking a no-op in longitude, so the regrid runs
+         against the entire global 20–70&deg;N band rather than the domain&rsquo;s own
+         80&deg; window. Shift the box 5&deg; west and the identical 576K-cell case
+         finishes in 106&nbsp;s.</div>
+      <p>There was never a destination-size cliff. Cost is flat to ~116K cells and then
+         rises mildly with the grid — the 2.4M-cell Indo-Pacific rung is about 2.4&times;
+         the 144-cell box, not orders of magnitude more. For comparison, the production
+         <code>CrocIndoPacific_112</code> case (2.65M cells, 1.91M of them active after
+         land masking) writes its nearest-neighbor map in ~210&nbsp;s, which lines up.</p>
+      <p><strong>Status:</strong> open as a <code>mom6_forge</code> bug. A regional domain
+         ending at lon 360 is a legitimate thing to configure, and today it produces an
+         unexplained hang — no error, no memory growth, ~1&nbsp;GB RSS, one core pinned.
+         The fix belongs in <code>_get_mesh_bbox()</code>, which needs a wrap-aware
+         longitude range rather than <code>min</code>/<code>max</code> of normalized
+         values. Same class of bug as the <code>normalize_deg(src_lat)</code> defect
+         already fixed on that branch.</p>
     </section>"""
 
 
@@ -259,7 +248,7 @@ def build_html(grouped):
     body = (
         build_domain_section(grouped)
         + build_resolution_section(grouped)
-        + build_pending_section(grouped)
+        + build_seam_section()
     )
     return page_shell(
         PAGE,
