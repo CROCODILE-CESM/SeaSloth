@@ -9,6 +9,7 @@
 | Raw ESMF weight generation | `benchmarks/esmf/test_weights_generate.py` |
 | Raw ESMF regrid application | `benchmarks/esmf/test_regrid_apply.py` |
 | mom6_forge bathymetry pipeline | `benchmarks/mom6_forge/test_topo.py` |
+| mom6_forge runoff mapping (`gen_rof_maps`) | `benchmarks/mom6_forge/test_mapping.py` |
 | CrocoDash OBC regrid+merge pipeline | `benchmarks/crocodash/test_obc.py` |
 
 Remember: SeaSloth is for one-time/stable-reference benchmarks only (external libraries,
@@ -74,6 +75,7 @@ Currently configured `data_config.json` keys:
 | Key | Used by |
 |---|---|
 | `gebco_path` | `test_topo.py` |
+| `rof_esmf_mesh_global_path` / `rof_esmf_mesh_regional_path` | `test_mapping.py` |
 | `obc_hgrid_path` / `obc_bathymetry_path` / `obc_vgrid_path` | `test_obc.py` |
 | `obc_raw_data_dir` | `test_obc.py` |
 | `obc_dates_start` / `obc_dates_end` | `test_obc.py` |

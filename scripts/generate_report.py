@@ -5,7 +5,7 @@ results/latest.json (pytest-benchmark's native JSON output).
 
 One table per benchmark function: one row per parameter combination, with
 mean/min/max timing and RSS memory (when tracked). No charts beyond the
-regridding heatmap and the two per-suite line charts, no narrative — just the
+regridding heatmap and the per-suite line charts, no narrative — just the
 numbers pytest-benchmark already computed.
 
 Output: report/regridding.html, report/crocodash.html, report/mom6_forge.html,
@@ -352,6 +352,96 @@ def _linechart_svg(points, y_fmt=fmt_time, color="#2a78d6", width=480, height=22
     </svg>"""
 
 
+def _multiline_svg(
+    x_labels, series, y_fmt=fmt_time, width=520, height=260, label_offsets=None
+):
+    """Multi-series version of _linechart_svg.
+
+    x_labels: shared categorical x axis. series: list of (label, color, values)
+    where values is aligned to x_labels and may contain None for a missing point.
+    The log-scale y axis is normalized across every series so the lines are
+    directly comparable. label_offsets: optional per-series vertical nudge for
+    the direct value labels, to keep two close lines from overprinting.
+    """
+    # Extra bottom padding versus the single-series chart: x labels here can be
+    # two stacked lines (a domain name over its cell count).
+    pad_l, pad_r, pad_t, pad_b = 46, 20, 24, 46
+    plot_w = width - pad_l - pad_r
+    plot_h = height - pad_t - pad_b
+
+    all_values = [v for _, _, values in series for v in values if v is not None]
+    if not all_values:
+        return ""
+    vmin, vmax = min(all_values), max(all_values)
+    n = len(x_labels)
+
+    def x_at(i):
+        return pad_l + (i / (n - 1) if n > 1 else 0.5) * plot_w
+
+    def y_at(v):
+        return pad_t + (1 - _normalize_log(v, vmin, vmax)) * plot_h
+
+    gridlines = "".join(
+        f"<line x1='{pad_l}' y1='{pad_t + f * plot_h:.1f}' "
+        f"x2='{pad_l + plot_w}' y2='{pad_t + f * plot_h:.1f}' "
+        f"stroke='#e1e0d9' stroke-width='1'/>"
+        for f in (0.0, 0.25, 0.5, 0.75, 1.0)
+    )
+
+    # An x label may be a plain string or a sequence of lines (e.g. a domain name
+    # over its cell count), rendered as stacked tspans.
+    def render_label(i, label):
+        lines = [label] if isinstance(label, str) else list(label)
+        x = x_at(i)
+        tspans = "".join(
+            f"<tspan x='{x:.1f}' dy='{0 if k == 0 else 11}'>{line}</tspan>"
+            for k, line in enumerate(lines)
+        )
+        return (
+            f"<text y='{height - pad_b + 16}' text-anchor='middle' "
+            f"class='lc-axis'>{tspans}</text>"
+        )
+
+    axis_labels = "".join(render_label(i, label) for i, label in enumerate(x_labels))
+
+    body = []
+    for s_idx, (s_label, color, values) in enumerate(series):
+        coords = [(x_at(i), y_at(v)) for i, v in enumerate(values) if v is not None]
+        if len(coords) > 1:
+            poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in coords)
+            body.append(
+                f"<polyline points='{poly}' fill='none' stroke='{color}' "
+                f"stroke-width='2'/>"
+            )
+        dy = (label_offsets or {}).get(s_label, -10)
+        for i, v in enumerate(values):
+            if v is None:
+                continue
+            x, y = x_at(i), y_at(v)
+            body.append(
+                f"<circle cx='{x:.1f}' cy='{y:.1f}' r='4' fill='{color}'>"
+                f"<title>{s_label} — {x_labels[i]}: {y_fmt(v)}</title></circle>"
+                f"<text x='{x:.1f}' y='{y + dy:.1f}' text-anchor='middle' "
+                f"class='lc-value'>{y_fmt(v)}</text>"
+            )
+
+    legend = "".join(
+        f"<span class='lc-legend-item'>"
+        f"<span class='lc-legend-swatch' style='background:{color}'></span>{s_label}"
+        f"</span>"
+        for s_label, color, _ in series
+    )
+
+    return f"""
+    <div class="lc-legend">{legend}</div>
+    <svg class="linechart" style="max-width:{width}px" viewBox="0 0 {width} {height}"
+         role="img" aria-label="Multi-series line chart, log scale, of timing across parameter values">
+      {gridlines}
+      {"".join(body)}
+      {axis_labels}
+    </svg>"""
+
+
 # test_topo.py fixes these at grid-construction time; mirrored here to label
 # the x-axis by point count rather than raw domain degrees.
 GEBCO_RES_DEG = 1 / 240  # GEBCO_2024 native resolution (15 arcsec)
@@ -396,6 +486,133 @@ def build_topo_linechart(grouped):
         <div class="card">
           <h3>test_set_from_dataset — time vs. grid size</h3>
           <p class="lc-sub">x-axis: GEBCO source points &rarr; destination points (fixed 0.1&deg; destination resolution)</p>
+          {svg}
+        </div>"""
+
+
+ROF_MESH_SERIES = [
+    # (source_mesh param value, legend prefix, color)
+    ("regional", "Regional ROF mesh", "#1baf7a"),
+    ("global", "Global (production) ROF mesh", "#2a78d6"),
+]
+
+# Display names for the real ocean domains the runoff sweep uses.
+ROF_DOMAIN_LABELS = {
+    "gulf_of_mexico": "Gulf of Mexico",
+    "caribbean": "Caribbean",
+    "north_atlantic": "N. Atlantic",
+    "indo_pacific": "Indo-Pacific",
+}
+
+
+def _rof_rows(grouped, test_name):
+    return [
+        r for r in grouped.get("mom6_forge", {}).get(test_name, []) if r.get("params")
+    ]
+
+
+def _rof_series(rows, key_of, keys):
+    """One (label, color, values) series per ROF source mesh, aligned to keys.
+
+    Missing combinations come back as None rather than being dropped, so a mesh
+    that only covers some of the domains renders as a line with gaps instead of
+    silently shifting the x positions of the points it does have.
+    """
+    series = []
+    for mesh_name, legend_prefix, color in ROF_MESH_SERIES:
+        mesh_rows = [r for r in rows if r["extra_info"].get("source_mesh") == mesh_name]
+        if not mesh_rows:
+            continue
+        by_key = {key_of(r): r["stats"]["mean"] for r in mesh_rows}
+        n_src = mesh_rows[0]["extra_info"].get("n_src")
+        label = (
+            f"{legend_prefix} ({_fmt_count(n_src)} elem)" if n_src else legend_prefix
+        )
+        series.append((label, color, [by_key.get(k) for k in keys]))
+    return series
+
+
+def build_rof_domain_linechart(grouped):
+    """gen_rof_maps() cost across real ocean domains, one line per ROF source mesh.
+
+    Two series on one log axis because the comparison is the point: the regional
+    series shows how cost scales with the ocean destination grid, while the global
+    (production) series shows how much of the real cost is fixed source-mesh
+    overhead — 2.2 GB of source-domain fields written twice per call — that no
+    ocean-side change can touch. The regional mesh only covers the western
+    Atlantic, so its line stops after the domains it actually contains.
+    """
+    rows = _rof_rows(grouped, "test_gen_rof_maps_domain")
+    if not rows:
+        return ""
+
+    # Order domains by destination cell count, so the x axis reads smallest to
+    # largest regardless of dict/param ordering.
+    n_dst_by_domain = {
+        r["extra_info"]["domain"]: r["extra_info"].get("n_dst") for r in rows
+    }
+    domains = sorted(n_dst_by_domain, key=lambda d: n_dst_by_domain[d] or 0)
+    if len(domains) < 2:
+        return ""
+
+    x_labels = [
+        (
+            ROF_DOMAIN_LABELS.get(d, d),
+            f"{_fmt_count(n_dst_by_domain[d])} cells" if n_dst_by_domain.get(d) else "",
+        )
+        for d in domains
+    ]
+    series = _rof_series(rows, lambda r: r["extra_info"]["domain"], domains)
+    if not series:
+        return ""
+
+    # Regional sits low on the log axis and global high, so drop regional's value
+    # labels below its line to keep the two from overprinting.
+    offsets = {s[0]: (14 if s[1] == "#1baf7a" else -10) for s in series}
+    svg = _multiline_svg(x_labels, series, label_offsets=offsets)
+    return f"""
+        <div class="card">
+          <h3>test_gen_rof_maps_domain — time vs. ocean domain</h3>
+          <p class="lc-sub">Real CROC domains at fixed 1/12&deg; resolution, smallest to largest. Both nearest-neighbor and smoothed mapping files, log-scale y.</p>
+          {svg}
+        </div>"""
+
+
+def build_rof_resolution_linechart(grouped):
+    """gen_rof_maps() cost vs. ocean resolution at a fixed geographic footprint.
+
+    Complements the domain chart: here the overlap window and the set of
+    contributing rivers are constant, so this isolates destination-grid cost from
+    "how much of the world the domain touches".
+    """
+    rows = _rof_rows(grouped, "test_gen_rof_maps_resolution")
+    if not rows:
+        return ""
+
+    res = sorted({r["params"]["resolution_deg"] for r in rows})
+    if len(res) < 2:
+        return ""
+    n_dst_by_res = {
+        r["params"]["resolution_deg"]: r["extra_info"].get("n_dst") for r in rows
+    }
+    x_labels = [
+        (
+            f"1/{round(1 / v)}°",
+            f"{_fmt_count(n_dst_by_res[v])} cells" if n_dst_by_res.get(v) else "",
+        )
+        for v in res
+    ]
+    series = _rof_series(rows, lambda r: r["params"]["resolution_deg"], res)
+    if not series:
+        return ""
+
+    domain = rows[0]["extra_info"].get("domain", "")
+    domain_label = ROF_DOMAIN_LABELS.get(domain, domain)
+    svg = _multiline_svg(x_labels, series)
+    return f"""
+        <div class="card">
+          <h3>test_gen_rof_maps_resolution — time vs. ocean resolution</h3>
+          <p class="lc-sub">Fixed {domain_label} footprint, increasing destination resolution, against the production ROF mesh. Log-scale y.</p>
           {svg}
         </div>"""
 
@@ -451,33 +668,35 @@ def make_table_html(rows):
     return f"<table>{header}{''.join(body_rows)}</table>"
 
 
-# suite -> (chart builder, name of the test function the chart replaces).
+# suite -> list of (chart builder, name of the test function the chart replaces).
 # The table for that test is skipped only if the chart actually rendered
 # (needs >=2 data points) — if there's not enough data yet, fall back to
 # the table rather than silently dropping the one data point that exists.
 LINECHART_BY_SUITE = {
-    "mom6_forge": (build_topo_linechart, "test_set_from_dataset"),
-    "crocodash": (build_obc_linechart, "test_regrid_and_merge"),
+    "mom6_forge": [
+        (build_topo_linechart, "test_set_from_dataset"),
+        (build_rof_domain_linechart, "test_gen_rof_maps_domain"),
+        (build_rof_resolution_linechart, "test_gen_rof_maps_resolution"),
+    ],
+    "crocodash": [(build_obc_linechart, "test_regrid_and_merge")],
 }
 
 FOOTER = "Generated by scripts/generate_report.py"
 
 
 def build_suite_cards(grouped, suite):
-    """Chart (if it renders) + a table per test function not covered by that
-    chart, for a single suite — the shared body of the crocodash/mom6_forge
+    """Charts (those that render) + a table per test function not covered by
+    one of them, for a single suite — the shared body of the crocodash/mom6_forge
     pages."""
     cards = []
-    charted_test = None
-    if suite in LINECHART_BY_SUITE:
-        builder, charted_test = LINECHART_BY_SUITE[suite]
+    charted_tests = set()
+    for builder, charted_test in LINECHART_BY_SUITE.get(suite, []):
         chart = builder(grouped)
         if chart:
             cards.append(chart)
-        else:
-            charted_test = None
+            charted_tests.add(charted_test)
     for test_name in sorted(grouped.get(suite, {})):
-        if test_name == charted_test:
+        if test_name in charted_tests:
             continue
         table = make_table_html(grouped[suite][test_name])
         cards.append(f"<div class='card'><h3>{test_name}</h3>{table}</div>")
@@ -536,7 +755,10 @@ def build_mom6_forge_page(grouped):
 LANDING_DESCRIPTIONS = {
     "regridding.html": "xESMF/ESMF weight generation + apply cost across grid sizes.",
     "crocodash.html": "OBC forcing pipeline (regrid + merge) cost vs. chunk size.",
-    "mom6_forge.html": "Bathymetry pipeline (Topo.set_from_dataset) cost vs. grid size.",
+    "mom6_forge.html": (
+        "Bathymetry pipeline (Topo.set_from_dataset) and GLOFAS runoff mapping "
+        "(gen_rof_maps) cost vs. grid size."
+    ),
     "health.html": "Daily data-source reachability + validate_function checks.",
     "mom6_scaling.html": "MOM6 NTASKS_OCN strong-scaling sweep on Derecho.",
 }

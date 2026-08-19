@@ -75,9 +75,10 @@ pytest benchmarks/ -m light        # fast smoke test — smallest synthetic comb
 pytest benchmarks/ -m heavy        # the full-size sweep — the real benchmark numbers
 ```
 
-`test_topo.py` (bathymetry) and `test_obc.py` (OBC regrid+merge) are marked `heavy` at the
-whole-function level — they need real GEBCO/GLORYS data and take meaningful time even at
-their smallest parameter value, so there's no fast "light" case for them.
+`test_topo.py` (bathymetry), `test_mapping.py` (runoff mapping) and `test_obc.py` (OBC
+regrid+merge) are marked `heavy` at the whole-function level — they need real
+GEBCO/GLOFAS/GLORYS data and take meaningful time even at their smallest parameter value,
+so there's no fast "light" case for them.
 
 ---
 
@@ -172,7 +173,7 @@ git push
 
 `scripts/generate_report.py` reads `results/latest.json`, groups benchmarks by suite
 (parsed from `fullname`) and then by test function, and renders one HTML table per function
-— no charts beyond the regridding heatmap and two per-suite line charts, no computed ratios,
+— no charts beyond the regridding heatmap and the per-suite line charts, no computed ratios,
 no hand-written prose. It writes three suite pages — `report/regridding.html` (xESMF/ESMF),
 `report/crocodash.html`, `report/mom6_forge.html` — plus `report/index.html`, a landing page
 linking to those three and to `health.html`/`mom6_scaling.html`. The shared page shell (CSS,

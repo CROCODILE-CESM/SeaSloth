@@ -27,6 +27,7 @@ GitHub org: https://github.com/CROCODILE-CESM
 | ESMF weight generation | `esmf/test_weights_generate.py` | None (synthetic) | raw `esmpy.Regrid()` construction — same sizes as xESMF |
 | ESMF regrid application | `esmf/test_regrid_apply.py` | None (synthetic) | raw `esmpy.Regrid()(src, dst)` time |
 | Bathymetry pipeline | `mom6_forge/test_topo.py` | GEBCO (GLADE) | `Topo.set_from_dataset()` — GEBCO regrid + fill across domain sizes |
+| Runoff mapping | `mom6_forge/test_mapping.py` | GLOFAS ESMF meshes (GLADE) | `gen_rof_maps()` — nn + smoothed mapping files. Two sweeps: real ocean domains (Gulf of Mexico → Indo-Pacific) × ROF source mesh, and resolution at fixed footprint |
 | OBC forcing pipeline | `crocodash/test_obc.py` | Cached GLORYS (GLADE) | REGRID + MERGE of `process_obc_conditions()`, varying `regrid_step` |
 
 Data-source health (link/`validate_function` checks) is a **separate**, daily-run concern —
@@ -66,13 +67,14 @@ SeaSloth/
 │   │   └── marks.py                      # light_or_heavy(is_light) helper
 │   ├── xesmf/                            # xESMF weight generation and application
 │   ├── esmf/                             # Raw esmpy weight generation and application
-│   ├── mom6_forge/                       # Topo.set_from_dataset()
+│   ├── mom6_forge/                       # Topo.set_from_dataset(), gen_rof_maps()
 │   └── crocodash/                        # OBC regrid+merge pipeline
 ├── results/
 │   ├── latest.json                       # perf-benchmark snapshot (pytest-benchmark JSON), manual runs
 │   └── health.json                       # data-access health snapshot, overwritten daily
 ├── scripts/
 │   ├── run_benchmarks.sh                 # pytest wrapper -> results/latest.json
+│   ├── merge_results.py                  # merge a partial run's JSON into results/latest.json
 │   ├── report_common.py                  # shared page shell (CSS, header, cross-page nav)
 │   ├── generate_report.py                # results/latest.json -> report/{regridding,crocodash,mom6_forge,index}.html
 │   ├── check_data_access.py              # link + validate_function checks -> results/health.json
@@ -101,6 +103,70 @@ python scripts/generate_report.py             # -> report/{regridding,crocodash,
 qsub scripts/pbs_submit.sh
 ```
 
+### Partial runs: merge, don't overwrite
+
+`run_benchmarks.sh` passes `--benchmark-json=results/latest.json`, so **any partial run
+replaces the whole snapshot** and silently drops every suite that wasn't part of it. Suites
+have incompatible requirements (the 40° GEBCO sweep needs ~90 GB; the runoff-mapping sweep
+needs a different conda env), so refreshing one suite means writing to a scratch file and
+merging:
+
+```bash
+pytest benchmarks/mom6_forge/test_mapping.py --benchmark-json=/tmp/rof.json -v
+python scripts/merge_results.py /tmp/rof.json     # -> results/latest.json
+python scripts/generate_report.py
+```
+
+`merge_results.py` keys on `fullname` — incoming entries replace same-named ones, everything
+else is untouched. Since a merged snapshot spans multiple sessions, its top-level
+`machine_info`/`datetime` no longer cover every entry, so each merged benchmark carries its
+own `extra_info["run_datetime"]`/`["run_node"]`.
+
+### Runoff mapping: basin-scale domains are a known-slow, unfixed case
+
+`test_gen_rof_maps_domain` parametrizes over four real domains. The two largest do
+**not** currently finish in a practical time and are deliberately left in the suite
+rather than removed or flag-gated — they are exactly the sizes that need to become
+tractable:
+
+| Domain | Cells @ 1/12° | Status |
+|---|---|---|
+| Gulf of Mexico | 34K | fast (~1 min against the production mesh) |
+| Caribbean | 116K | fast |
+| North Atlantic | 576K | **stalls** — >1 hr at 98% CPU in ESMF `ESMP_FieldRegridStore`, did not finish |
+| Indo-Pacific | 2.42M | not reached (4× larger again) |
+
+The cliff is steep, not gradual, so it sits somewhere between ~100K and ~600K
+destination cells. For a run that finishes today:
+
+```bash
+conda run -n mom6_forge pytest benchmarks/mom6_forge/test_mapping.py \
+  -k "not north_atlantic and not indo_pacific" --benchmark-json=/tmp/rof.json -v
+```
+
+**First thing to check when picking this up:** these benchmarks build their ocean
+meshes with `mask="all_unmasked"`, so every destination cell is active, while a real
+case's ocean mesh masks out land. The real `CrocIndoPacific_112` case (2.65M cells,
+land-masked) generates its nn map in ~210 s — so the cliff may be an artifact of
+benchmarking with unmasked synthetic meshes rather than a cost real users hit. Worth
+resolving before optimizing anything.
+
+### The runoff-mapping suite needs the `mom6_forge` env
+
+`benchmarks/mom6_forge/test_mapping.py` must run in the **`mom6_forge`** conda env, not
+`CrocoDash`:
+
+```bash
+conda run -n mom6_forge pytest benchmarks/mom6_forge/test_mapping.py --benchmark-json=/tmp/rof.json -v
+```
+
+The `CrocoDash` env imports its own nested mom6_forge checkout
+(`CrocoDash/CrocoDash/visualCaseGen/external/mom6_forge/`), which is on a different branch
+and lacks the mapping write-path fix (mom6_forge PR #125). Without that fix a single
+global-mesh run takes ~36 min and peaks near 13 GB, and on pre-fix `main` it OOMs outright.
+The test detects this and skips rather than burning hours — so a `CrocoDash`-env run reports
+the suite as skipped, not as fast.
+
 Data access health runs separately, daily — via `.github/workflows/publish.yml`'s
 `data-health` job (inside the `crocontainer` image, which has `CrocoDash` pre-installed).
 Run it by hand the same way locally:
@@ -117,6 +183,8 @@ Keys that need to be set before HPC-dependent benchmarks will run:
 | Key | Used by | Description |
 |---|---|---|
 | `gebco_path` | `test_topo.py` | Path to GEBCO_2024.nc |
+| `rof_esmf_mesh_global_path` | `test_mapping.py` | Registered production global GLOFAS ESMF mesh (21.6M elements) — what a real CESM case gets as `ROF_DOMAIN_MESH` |
+| `rof_esmf_mesh_regional_path` | `test_mapping.py` | Smaller regional (CARIB12-domain) GLOFAS ESMF mesh, 319K elements — the second series in the sweep |
 | `obc_hgrid_path` / `obc_bathymetry_path` / `obc_vgrid_path` | `test_obc.py` | Grid + bathymetry from an existing CrocoDash case |
 | `obc_raw_data_dir` | `test_obc.py` | Directory of pre-downloaded GLORYS OBC files, one per boundary, named `{boundary}_unprocessed.{start}_{end}.nc` with ISO dates |
 | `obc_dates_start` / `obc_dates_end` | `test_obc.py` | Date range those raw files cover |
@@ -160,7 +228,16 @@ in one place rather than five nav bars by hand.
   no separate detail tables, the heatmap is the whole story.
 - `report/mom6_forge.html` — `test_topo`'s `test_set_from_dataset` gets a small inline-SVG
   line chart (domain size → time, log-scale y-axis, direct value labels) since it's a
-  natural sweep.
+  natural sweep. `test_mapping`'s two sweeps get one chart each, both drawn by
+  `_multiline_svg()` (shared log axis, HTML legend, optional two-line x labels):
+  `test_gen_rof_maps_domain` (real domains, one **series per ROF source mesh** — the
+  regional-vs-global comparison is the point, so both belong on one axis) and
+  `test_gen_rof_maps_resolution` (fixed footprint, increasing resolution). Series
+  labels and x-axis cell counts come from each benchmark's `extra_info`
+  (`n_src`/`n_dst`/`domain`) rather than being recomputed in the generator, so a chart can't
+  drift from the parameters the benchmark actually ran. The regional ROF mesh only covers the
+  western Atlantic, so its series renders with **gaps** for the domains it doesn't contain
+  (`_multiline_svg` takes `None` values) rather than shifting the remaining points.
 - `report/crocodash.html` — `test_obc`'s `test_regrid_and_merge` gets the same style of
   line chart (time vs. regrid_step).
 - `report/index.html` — no benchmark content of its own; one card per report page

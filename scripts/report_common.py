@@ -80,6 +80,10 @@ LINECHART_CSS = """
   .lc-axis { font-size: 9px; fill: #898781; font-family: -apple-system, sans-serif; }
   .lc-value { font-size: 10px; fill: #333; font-variant-numeric: tabular-nums;
                font-family: -apple-system, sans-serif; }
+  .lc-legend { display: flex; flex-wrap: wrap; gap: 1rem; margin: 0.25rem 0 0.75rem;
+               font-size: 0.75rem; color: #555; }
+  .lc-legend-item { display: flex; align-items: center; gap: 0.35rem; }
+  .lc-legend-swatch { display: inline-block; width: 22px; height: 3px; border-radius: 2px; }
 """
 
 
