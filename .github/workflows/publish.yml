@@ -78,6 +78,9 @@ jobs:
       - name: Generate benchmark report
         run: python scripts/generate_report.py
 
+      - name: Generate runoff mapping report
+        run: python scripts/generate_runoff_report.py
+
       - name: Generate data access health report
         run: python scripts/generate_health_report.py
 

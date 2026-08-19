@@ -7,6 +7,5 @@
     "obc_raw_data_dir": "/glade/u/home/manishrv/scratch/croc_input/bd.oo.10thdegree/extract_forcings/raw_data_iso",
     "obc_dates_start": "2000-01-01",
     "obc_dates_end": "2000-01-30",
-    "rof_esmf_mesh_global_path": "/glade/campaign/cesm/cesmdata/inputdata/lnd/dlnd7/GLOFAS/GLOFAS.v4.dis24.ESMFmesh_20260501.nc",
-    "rof_esmf_mesh_regional_path": "/glade/u/home/manishrv/scratch/croc_input/runoff_mapping_scaling/reference_files/GLOFAS_CARIB12_mesh.nc"
+    "rof_esmf_mesh_global_path": "/glade/campaign/cesm/cesmdata/inputdata/lnd/dlnd7/GLOFAS/GLOFAS.v4.dis24.ESMFmesh_20260501.nc"
 }

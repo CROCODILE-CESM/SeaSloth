@@ -176,8 +176,16 @@ git push
 — no charts beyond the regridding heatmap and the per-suite line charts, no computed ratios,
 no hand-written prose. It writes three suite pages — `report/regridding.html` (xESMF/ESMF),
 `report/crocodash.html`, `report/mom6_forge.html` — plus `report/index.html`, a landing page
-linking to those three and to `health.html`/`mom6_scaling.html`. The shared page shell (CSS,
+linking to those three and to
+`runoff_mapping.html`/`health.html`/`mom6_scaling.html`. The shared page shell (CSS,
 header, cross-page nav) lives in `scripts/report_common.py`, used by all report generators.
+
+`scripts/generate_runoff_report.py` reads the same `results/latest.json` but renders only the
+runoff-mapping sweeps, onto `report/runoff_mapping.html`. It's separate because that page is
+*curated*: unlike the suite pages it carries hand-written framing around the charts, since
+its numbers don't mean anything on their own (wall time is nearly flat across an 800x range
+of ocean grid sizes — the finding is where the cost isn't). Numbers quoted in that prose are
+computed from the JSON, not typed in.
 
 Data-access health is a separate concern with its own script and page — see
 `scripts/check_data_access.py` and `scripts/generate_health_report.py` — because it runs on
@@ -189,6 +197,7 @@ its own daily cadence rather than being triggered by `run_benchmarks.sh`.
 
 `.github/workflows/publish.yml` runs on push to `main`, manual dispatch, and a daily
 schedule. It never runs the actual benchmarks or health checks — GitHub's runners have no
-CrocoDash, GEBCO, GLORYS, or ESMF. It only regenerates both report pages
-(`generate_report.py` and `generate_health_report.py`) from whatever is currently committed
-under `results/`, then deploys to GitHub Pages.
+CrocoDash, GEBCO, GLORYS, or ESMF. It only regenerates the report pages
+(`generate_report.py`, `generate_runoff_report.py`, `generate_health_report.py`,
+`generate_scaling_report.py`) from whatever is currently committed under `results/`, then
+deploys to GitHub Pages.

@@ -3,33 +3,28 @@ Benchmarks: gen_rof_maps() (mom6_forge) — GLOFAS runoff -> ocean mapping files
 
 gen_rof_maps() builds the two mapping files CESM's DROF component needs to move
 river discharge onto the ocean grid: a nearest-neighbor map (`_nn.nc`) and a
-smoothed nearest-neighbor map (`_nnsm.nc`). Three things can drive its cost, and
-they are not symmetric — hence two separate sweeps here:
+smoothed nearest-neighbor map (`_nnsm.nc`). Both sweeps here run against the
+production ROF mesh — the one CIME actually registers as `ROF_DOMAIN_MESH`,
+21.6M elements — because that is the only source mesh a real case ever uses.
 
-  - **ROF source mesh size** drives the xESMF regrid and, far more importantly,
-    the size of every source-domain field written to *both* output files
-    (`xc_a`, `yc_a`, `xv_a`, `mask_a`, `area_a`, ...). At production scale — the
-    mesh CIME actually registers as `ROF_DOMAIN_MESH`, 21.6M elements — that is
-    ~2.2 GB per file, written twice per call.
+Two sweeps, because destination cost has two independent axes:
+
   - **Ocean domain extent** (`test_gen_rof_maps_domain`) grows the destination
     cell count and the source/destination overlap window together, which is how
-    a real case grows: a Gulf of Mexico configuration versus a basin-scale one.
+    a real case grows. The ladder starts far below any real configuration (a 1
+    degree box, 144 cells) and steps up ~4x at a time, so the shape of the curve
+    is visible well before the domains get expensive; once the rungs reach
+    real-case scale they become the actual configurations CROC builds — Gulf of
+    Mexico, Caribbean, North Atlantic, and an Indo-Pacific domain sized to the
+    existing `CrocIndoPacific_112` case.
   - **Ocean resolution** (`test_gen_rof_maps_resolution`) grows the destination
     cell count at a *fixed* geographic footprint, so the overlap window and the
     set of contributing rivers stay constant. Separating this from extent is the
     point: it isolates destination-grid cost from "how much of the world does
     this domain touch".
 
-Domains are the real configurations CROC builds, smallest to largest, rather than
-abstract boxes — Gulf of Mexico, Caribbean, North Atlantic, and an Indo-Pacific
-domain sized to match the existing `CrocIndoPacific_112` case (~2.4M ocean cells
-at 1/12 deg). The regional ROF mesh only covers the western-Atlantic sector, so it
-participates only in the domains it actually contains; those series come back with
-gaps rather than with meaningless numbers.
-
-Requires: both ROF meshes at the paths in data_config.json
-(`rof_esmf_mesh_global_path`, `rof_esmf_mesh_regional_path`). GLADE only —
-skipped gracefully elsewhere.
+Requires the production ROF mesh at the path in data_config.json
+(`rof_esmf_mesh_global_path`). GLADE only — skipped gracefully elsewhere.
 
 Also requires a mom6_forge that has the runoff-mapping write-path fix (see
 `_has_write_path_fix` below). Run this suite in the `mom6_forge` conda env, not
@@ -54,11 +49,16 @@ from benchmarks.common.memtrack import measure_peak_rss
 RMAX_KM = 20
 FOLD_KM = 20
 
-# Real CROC-scale ocean domains, smallest to largest by cell count.
-#   box              -> (xstart, lenx, ystart, leny) in degrees east / north
-#   in_regional_mesh -> covered by the regional ROF mesh (western Atlantic only:
-#                       lon 250-326, lat -7..35)? If not, that series is skipped
-#                       rather than given a meaningless number.
+# The destination-size ladder, ascending, ~4x per rung: 144 -> 576 -> 2.3K ->
+# 9.2K -> 34K -> 116K -> 576K -> 2.4M cells at 1/12 deg.
+#   box -> (xstart, lenx, ystart, leny) in degrees east / north
+#
+# The four `box_*` rungs are square boxes anchored at the Gulf of Mexico's
+# southwest corner, so they nest inside the gulf_of_mexico rung: the small end of
+# the sweep is literally a zoom-in on the smallest real configuration, not an
+# unrelated patch of ocean. They sit below any domain anyone would actually
+# configure, and exist to show where the curve starts before real-case sizes take
+# over. From gulf_of_mexico up, every rung is a domain CROC really builds.
 #
 # KNOWN PERFORMANCE PROBLEM at the basin-scale end, not yet fixed: north_atlantic
 # (576K cells) was measured sitting in ESMF's `ESMP_FieldRegridStore` — the
@@ -76,11 +76,15 @@ FOLD_KM = 20
 # land-masked) generates its nn map in ~210 s — so the cliff may be an artifact of
 # unmasked synthetic meshes rather than a cost real users hit.
 DOMAINS = {
-    "gulf_of_mexico": {"box": (262.0, 18.0, 18.0, 13.0), "in_regional_mesh": True},
-    "caribbean": {"box": (270.0, 35.0, 5.0, 23.0), "in_regional_mesh": True},
-    "north_atlantic": {"box": (280.0, 80.0, 20.0, 50.0), "in_regional_mesh": False},
+    "box_1deg": {"box": (262.0, 1.0, 18.0, 1.0)},
+    "box_2deg": {"box": (262.0, 2.0, 18.0, 2.0)},
+    "box_4deg": {"box": (262.0, 4.0, 18.0, 4.0)},
+    "box_8deg": {"box": (262.0, 8.0, 18.0, 8.0)},
+    "gulf_of_mexico": {"box": (262.0, 18.0, 18.0, 13.0)},
+    "caribbean": {"box": (270.0, 35.0, 5.0, 23.0)},
+    "north_atlantic": {"box": (280.0, 80.0, 20.0, 50.0)},
     # Sized to the existing CrocIndoPacific_112 case: ~1920x1260 = 2.4M cells at 1/12 deg.
-    "indo_pacific": {"box": (30.0, 160.0, -45.0, 105.0), "in_regional_mesh": False},
+    "indo_pacific": {"box": (30.0, 160.0, -45.0, 105.0)},
 }
 
 # Destination resolution for the domain sweep — 1/12 deg, the resolution the real
@@ -91,15 +95,11 @@ DOMAIN_SWEEP_RESOLUTION_DEG = 1 / 12
 RESOLUTIONS_DEG = [1 / 4, 1 / 8, 1 / 12, 1 / 25]
 RESOLUTION_SWEEP_DOMAIN = "gulf_of_mexico"
 
-ROF_MESH_PATHS = {
-    "regional": get_path("rof_esmf_mesh_regional_path"),
-    "global": get_path("rof_esmf_mesh_global_path"),
-}
+ROF_MESH_PATH = get_path("rof_esmf_mesh_global_path")
 
 
-def _mesh_available(which):
-    path = ROF_MESH_PATHS.get(which)
-    return bool(path) and Path(path).exists()
+def _mesh_available():
+    return bool(ROF_MESH_PATH) and Path(ROF_MESH_PATH).exists()
 
 
 def _has_write_path_fix():
@@ -109,9 +109,9 @@ def _has_write_path_fix():
     CESM mapping files must be in) triggers a backward-seeking 8 KB
     read-modify-write loop in libnetcdf's classic writer. mom6_forge works
     around it by writing NETCDF4 and converting with `nccopy -6`. Without that
-    workaround a single global-mesh run here takes ~36 minutes and peaks near
-    13 GB, and on mom6_forge `main` before the shape-lookup fix it does not
-    complete at all (OOM at ~29 GB) — so skip rather than silently burn hours.
+    workaround a single run here takes ~36 minutes and peaks near 13 GB, and on
+    mom6_forge `main` before the shape-lookup fix it does not complete at all
+    (OOM at ~29 GB) — so skip rather than silently burn hours.
 
     Probes for the `nccopy` call because that is the fix's observable signature;
     update this probe if the write path is ever reimplemented another way.
@@ -127,7 +127,7 @@ _ELEMENT_COUNT_CACHE = {}
 def _element_count(mesh_path):
     """Element count of an ESMF mesh, read from the header only and cached.
 
-    Opening the 1.3 GB global mesh over GLADE costs tens of seconds, and the
+    Opening the 1.3 GB production mesh over GLADE costs tens of seconds, and the
     sweeps touch it once per case — read it once per session instead.
     """
     key = str(mesh_path)
@@ -155,21 +155,20 @@ def _write_ocean_mesh(domain, resolution_deg, path):
     return path, grid.tlon.size
 
 
-def _run_gen_rof_maps(benchmark, source_mesh, domain, resolution_deg, tmp_path, label):
+def _run_gen_rof_maps(benchmark, domain, resolution_deg, tmp_path, label):
     """Shared body for both sweeps: build the ocean mesh, time one gen_rof_maps()
     call over it, and record the parameters that make the number interpretable."""
-    if not _mesh_available(source_mesh):
-        pytest.skip(f"{source_mesh} ROF mesh not configured — GLADE only")
+    if not _mesh_available():
+        pytest.skip("production ROF mesh not configured — GLADE only")
     if not _has_write_path_fix():
         pytest.skip(
             "installed mom6_forge lacks the mapping write-path fix "
-            "(mom6_forge PR #125) — a global-mesh run would take ~36 min; "
+            "(mom6_forge PR #125) — a run would take ~36 min; "
             "use the mom6_forge conda env"
         )
 
     from mom6_forge.mapping import gen_rof_maps
 
-    rof_mesh_path = ROF_MESH_PATHS[source_mesh]
     ocn_mesh_path, n_dst = _write_ocean_mesh(
         domain, resolution_deg, tmp_path / "ocn_mesh.nc"
     )
@@ -178,13 +177,13 @@ def _run_gen_rof_maps(benchmark, source_mesh, domain, resolution_deg, tmp_path, 
 
     def run():
         # gen_rof_maps() skips work when its output already exists, and the
-        # global-mesh files are ~2.2 GB each — clear the directory so a repeat
-        # round measures the real cost, and so nothing accumulates on scratch.
+        # output files are ~2.2 GB each — clear the directory so a repeat round
+        # measures the real cost, and so nothing accumulates on scratch.
         if output_dir.exists():
             shutil.rmtree(output_dir)
         result, box["peak_rss_mb"] = measure_peak_rss(
             gen_rof_maps,
-            rof_mesh_path=rof_mesh_path,
+            rof_mesh_path=ROF_MESH_PATH,
             ocn_mesh_path=ocn_mesh_path,
             output_dir=output_dir,
             mapping_file_prefix=f"bench_{label}_map",
@@ -203,34 +202,27 @@ def _run_gen_rof_maps(benchmark, source_mesh, domain, resolution_deg, tmp_path, 
     # allocations get reused, so a delta reads as ~0 (or negative) after the first
     # case. See measure_peak_rss's docstring.
     benchmark.extra_info["peak_rss_mb"] = box.get("peak_rss_mb")
-    benchmark.extra_info["source_mesh"] = source_mesh
     benchmark.extra_info["domain"] = domain
     benchmark.extra_info["resolution_deg"] = resolution_deg
-    benchmark.extra_info["n_src"] = _element_count(rof_mesh_path)
+    benchmark.extra_info["n_src"] = _element_count(ROF_MESH_PATH)
     benchmark.extra_info["n_dst"] = n_dst
 
 
-@pytest.mark.heavy  # needs the real GLOFAS meshes; even the smallest domain is a real regrid
-@pytest.mark.parametrize("source_mesh", ["regional", "global"])
+@pytest.mark.heavy  # needs the real GLOFAS mesh; even the smallest box is a real regrid
 @pytest.mark.parametrize("domain", list(DOMAINS))
-def test_gen_rof_maps_domain(benchmark, source_mesh, domain, tmp_path):
-    """gen_rof_maps() across real CROC ocean domains at fixed 1/12 deg resolution.
+def test_gen_rof_maps_domain(benchmark, domain, tmp_path):
+    """gen_rof_maps() across an ascending ocean-domain ladder at fixed 1/12 deg.
 
     Times the whole call — nearest-neighbor map + smoothed map, including both
     NETCDF3_64BIT writes — since that is what a CrocoDash case actually pays when
     process_forcings() generates runoff mapping files.
     """
-    if source_mesh == "regional" and not DOMAINS[domain]["in_regional_mesh"]:
-        pytest.skip(
-            f"regional ROF mesh (lon 250-326, lat -7..35) does not cover {domain}"
-        )
     _run_gen_rof_maps(
         benchmark,
-        source_mesh,
         domain,
         DOMAIN_SWEEP_RESOLUTION_DEG,
         tmp_path,
-        label=f"{source_mesh}_{domain}",
+        label=domain,
     )
 
 
@@ -241,12 +233,10 @@ def test_gen_rof_maps_resolution(benchmark, resolution_deg, tmp_path):
 
     Geographic footprint is held constant, so the source/destination overlap
     window and the set of contributing rivers do not change — only the
-    destination cell count does. Run against the production ROF mesh, since that
-    is what a real case uses.
+    destination cell count does.
     """
     _run_gen_rof_maps(
         benchmark,
-        "global",
         RESOLUTION_SWEEP_DOMAIN,
         resolution_deg,
         tmp_path,

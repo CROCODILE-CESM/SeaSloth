@@ -41,10 +41,11 @@ bash scripts/run_benchmarks.sh -k xesmf        # one suite
 This writes `results/latest.json`. On Derecho, `qsub scripts/pbs_submit.sh` runs the full
 suite (including the GEBCO/GLORYS-dependent ones) as a PBS job.
 
-Build the report page:
+Build the report pages:
 
 ```bash
-python scripts/generate_report.py
+python scripts/generate_report.py         # suite pages + landing page
+python scripts/generate_runoff_report.py  # runoff mapping page
 open report/index.html
 ```
 

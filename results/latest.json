@@ -53486,21 +53486,211 @@
     },
     {
       "group": null,
-      "name": "test_gen_rof_maps_domain[caribbean-global]",
-      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[caribbean-global]",
+      "name": "test_gen_rof_maps_domain[box_1deg]",
+      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[box_1deg]",
       "params": {
-        "domain": "caribbean",
-        "source_mesh": "global"
+        "domain": "box_1deg"
       },
-      "param": "caribbean-global",
+      "param": "box_1deg",
       "extra_info": {
-        "peak_rss_mb": 12699.92578125,
-        "source_mesh": "global",
+        "peak_rss_mb": 12538.4453125,
+        "domain": "box_1deg",
+        "resolution_deg": 0.08333333333333333,
+        "n_src": 21600000,
+        "n_dst": 144,
+        "run_datetime": "2026-08-19T21:41:08.491586",
+        "run_node": "crhtc75"
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 77.73195501416922,
+        "max": 77.73195501416922,
+        "mean": 77.73195501416922,
+        "stddev": 0,
+        "rounds": 1,
+        "median": 77.73195501416922,
+        "iqr": 0.0,
+        "q1": 77.73195501416922,
+        "q3": 77.73195501416922,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 77.73195501416922,
+        "hd15iqr": 77.73195501416922,
+        "ops": 0.012864722105827866,
+        "total": 77.73195501416922,
+        "data": [
+          77.73195501416922
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_gen_rof_maps_domain[box_2deg]",
+      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[box_2deg]",
+      "params": {
+        "domain": "box_2deg"
+      },
+      "param": "box_2deg",
+      "extra_info": {
+        "peak_rss_mb": 12954.5078125,
+        "domain": "box_2deg",
+        "resolution_deg": 0.08333333333333333,
+        "n_src": 21600000,
+        "n_dst": 576,
+        "run_datetime": "2026-08-19T21:41:08.491586",
+        "run_node": "crhtc75"
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 73.74785046000034,
+        "max": 73.74785046000034,
+        "mean": 73.74785046000034,
+        "stddev": 0,
+        "rounds": 1,
+        "median": 73.74785046000034,
+        "iqr": 0.0,
+        "q1": 73.74785046000034,
+        "q3": 73.74785046000034,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 73.74785046000034,
+        "hd15iqr": 73.74785046000034,
+        "ops": 0.013559717249554062,
+        "total": 73.74785046000034,
+        "data": [
+          73.74785046000034
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_gen_rof_maps_domain[box_4deg]",
+      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[box_4deg]",
+      "params": {
+        "domain": "box_4deg"
+      },
+      "param": "box_4deg",
+      "extra_info": {
+        "peak_rss_mb": 13368.85546875,
+        "domain": "box_4deg",
+        "resolution_deg": 0.08333333333333333,
+        "n_src": 21600000,
+        "n_dst": 2304,
+        "run_datetime": "2026-08-19T21:41:08.491586",
+        "run_node": "crhtc75"
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 76.52949086762965,
+        "max": 76.52949086762965,
+        "mean": 76.52949086762965,
+        "stddev": 0,
+        "rounds": 1,
+        "median": 76.52949086762965,
+        "iqr": 0.0,
+        "q1": 76.52949086762965,
+        "q3": 76.52949086762965,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 76.52949086762965,
+        "hd15iqr": 76.52949086762965,
+        "ops": 0.01306685813093497,
+        "total": 76.52949086762965,
+        "data": [
+          76.52949086762965
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_gen_rof_maps_domain[box_8deg]",
+      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[box_8deg]",
+      "params": {
+        "domain": "box_8deg"
+      },
+      "param": "box_8deg",
+      "extra_info": {
+        "peak_rss_mb": 13378.94921875,
+        "domain": "box_8deg",
+        "resolution_deg": 0.08333333333333333,
+        "n_src": 21600000,
+        "n_dst": 9216,
+        "run_datetime": "2026-08-19T21:41:08.491586",
+        "run_node": "crhtc75"
+      },
+      "options": {
+        "disable_gc": false,
+        "timer": "perf_counter",
+        "min_rounds": 5,
+        "max_time": 1.0,
+        "min_time": 5e-06,
+        "warmup": false
+      },
+      "stats": {
+        "min": 74.17595423106104,
+        "max": 74.17595423106104,
+        "mean": 74.17595423106104,
+        "stddev": 0,
+        "rounds": 1,
+        "median": 74.17595423106104,
+        "iqr": 0.0,
+        "q1": 74.17595423106104,
+        "q3": 74.17595423106104,
+        "iqr_outliers": 0,
+        "stddev_outliers": 0,
+        "outliers": "0;0",
+        "ld15iqr": 74.17595423106104,
+        "hd15iqr": 74.17595423106104,
+        "ops": 0.013481457843939025,
+        "total": 74.17595423106104,
+        "data": [
+          74.17595423106104
+        ],
+        "iterations": 1
+      }
+    },
+    {
+      "group": null,
+      "name": "test_gen_rof_maps_domain[caribbean]",
+      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[caribbean]",
+      "params": {
+        "domain": "caribbean"
+      },
+      "param": "caribbean",
+      "extra_info": {
+        "peak_rss_mb": 12650.35546875,
         "domain": "caribbean",
         "resolution_deg": 0.08333333333333333,
         "n_src": 21600000,
         "n_dst": 115920,
-        "run_datetime": "2026-08-19T18:13:55.094066",
+        "run_datetime": "2026-08-19T21:41:08.491586",
         "run_node": "crhtc75"
       },
       "options": {
@@ -53512,95 +53702,43 @@
         "warmup": false
       },
       "stats": {
-        "min": 85.88602654729038,
-        "max": 85.88602654729038,
-        "mean": 85.88602654729038,
+        "min": 78.89920397661626,
+        "max": 78.89920397661626,
+        "mean": 78.89920397661626,
         "stddev": 0,
         "rounds": 1,
-        "median": 85.88602654729038,
+        "median": 78.89920397661626,
         "iqr": 0.0,
-        "q1": 85.88602654729038,
-        "q3": 85.88602654729038,
+        "q1": 78.89920397661626,
+        "q3": 78.89920397661626,
         "iqr_outliers": 0,
         "stddev_outliers": 0,
         "outliers": "0;0",
-        "ld15iqr": 85.88602654729038,
-        "hd15iqr": 85.88602654729038,
-        "ops": 0.011643337574237203,
-        "total": 85.88602654729038,
+        "ld15iqr": 78.89920397661626,
+        "hd15iqr": 78.89920397661626,
+        "ops": 0.012674399101623064,
+        "total": 78.89920397661626,
         "data": [
-          85.88602654729038
+          78.89920397661626
         ],
         "iterations": 1
       }
     },
     {
       "group": null,
-      "name": "test_gen_rof_maps_domain[caribbean-regional]",
-      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[caribbean-regional]",
+      "name": "test_gen_rof_maps_domain[gulf_of_mexico]",
+      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[gulf_of_mexico]",
       "params": {
-        "domain": "caribbean",
-        "source_mesh": "regional"
+        "domain": "gulf_of_mexico"
       },
-      "param": "caribbean-regional",
+      "param": "gulf_of_mexico",
       "extra_info": {
-        "peak_rss_mb": 631.1328125,
-        "source_mesh": "regional",
-        "domain": "caribbean",
-        "resolution_deg": 0.08333333333333333,
-        "n_src": 319200,
-        "n_dst": 115920,
-        "run_datetime": "2026-08-19T18:13:55.094066",
-        "run_node": "crhtc75"
-      },
-      "options": {
-        "disable_gc": false,
-        "timer": "perf_counter",
-        "min_rounds": 5,
-        "max_time": 1.0,
-        "min_time": 5e-06,
-        "warmup": false
-      },
-      "stats": {
-        "min": 5.699431370943785,
-        "max": 5.699431370943785,
-        "mean": 5.699431370943785,
-        "stddev": 0,
-        "rounds": 1,
-        "median": 5.699431370943785,
-        "iqr": 0.0,
-        "q1": 5.699431370943785,
-        "q3": 5.699431370943785,
-        "iqr_outliers": 0,
-        "stddev_outliers": 0,
-        "outliers": "0;0",
-        "ld15iqr": 5.699431370943785,
-        "hd15iqr": 5.699431370943785,
-        "ops": 0.1754560999011393,
-        "total": 5.699431370943785,
-        "data": [
-          5.699431370943785
-        ],
-        "iterations": 1
-      }
-    },
-    {
-      "group": null,
-      "name": "test_gen_rof_maps_domain[gulf_of_mexico-global]",
-      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[gulf_of_mexico-global]",
-      "params": {
-        "domain": "gulf_of_mexico",
-        "source_mesh": "global"
-      },
-      "param": "gulf_of_mexico-global",
-      "extra_info": {
-        "peak_rss_mb": 12589.8125,
-        "source_mesh": "global",
+        "peak_rss_mb": 12588.41796875,
         "domain": "gulf_of_mexico",
         "resolution_deg": 0.08333333333333333,
         "n_src": 21600000,
         "n_dst": 33696,
-        "run_datetime": "2026-08-19T18:13:55.094066",
+        "run_datetime": "2026-08-19T21:41:08.491586",
         "run_node": "crhtc75"
       },
       "options": {
@@ -53612,74 +53750,24 @@
         "warmup": false
       },
       "stats": {
-        "min": 80.39345896430314,
-        "max": 80.39345896430314,
-        "mean": 80.39345896430314,
+        "min": 80.70080440305173,
+        "max": 80.70080440305173,
+        "mean": 80.70080440305173,
         "stddev": 0,
         "rounds": 1,
-        "median": 80.39345896430314,
+        "median": 80.70080440305173,
         "iqr": 0.0,
-        "q1": 80.39345896430314,
-        "q3": 80.39345896430314,
+        "q1": 80.70080440305173,
+        "q3": 80.70080440305173,
         "iqr_outliers": 0,
         "stddev_outliers": 0,
         "outliers": "0;0",
-        "ld15iqr": 80.39345896430314,
-        "hd15iqr": 80.39345896430314,
-        "ops": 0.01243882292020831,
-        "total": 80.39345896430314,
+        "ld15iqr": 80.70080440305173,
+        "hd15iqr": 80.70080440305173,
+        "ops": 0.012391450214121838,
+        "total": 80.70080440305173,
         "data": [
-          80.39345896430314
-        ],
-        "iterations": 1
-      }
-    },
-    {
-      "group": null,
-      "name": "test_gen_rof_maps_domain[gulf_of_mexico-regional]",
-      "fullname": "benchmarks/mom6_forge/test_mapping.py::test_gen_rof_maps_domain[gulf_of_mexico-regional]",
-      "params": {
-        "domain": "gulf_of_mexico",
-        "source_mesh": "regional"
-      },
-      "param": "gulf_of_mexico-regional",
-      "extra_info": {
-        "peak_rss_mb": 546.14453125,
-        "source_mesh": "regional",
-        "domain": "gulf_of_mexico",
-        "resolution_deg": 0.08333333333333333,
-        "n_src": 319200,
-        "n_dst": 33696,
-        "run_datetime": "2026-08-19T18:13:55.094066",
-        "run_node": "crhtc75"
-      },
-      "options": {
-        "disable_gc": false,
-        "timer": "perf_counter",
-        "min_rounds": 5,
-        "max_time": 1.0,
-        "min_time": 5e-06,
-        "warmup": false
-      },
-      "stats": {
-        "min": 3.3796524265781045,
-        "max": 3.3796524265781045,
-        "mean": 3.3796524265781045,
-        "stddev": 0,
-        "rounds": 1,
-        "median": 3.3796524265781045,
-        "iqr": 0.0,
-        "q1": 3.3796524265781045,
-        "q3": 3.3796524265781045,
-        "iqr_outliers": 0,
-        "stddev_outliers": 0,
-        "outliers": "0;0",
-        "ld15iqr": 3.3796524265781045,
-        "hd15iqr": 3.3796524265781045,
-        "ops": 0.2958884150736469,
-        "total": 3.3796524265781045,
-        "data": [
-          3.3796524265781045
+          80.70080440305173
         ],
         "iterations": 1
       }

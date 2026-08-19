@@ -75,7 +75,7 @@ Currently configured `data_config.json` keys:
 | Key | Used by |
 |---|---|
 | `gebco_path` | `test_topo.py` |
-| `rof_esmf_mesh_global_path` / `rof_esmf_mesh_regional_path` | `test_mapping.py` |
+| `rof_esmf_mesh_global_path` | `test_mapping.py` |
 | `obc_hgrid_path` / `obc_bathymetry_path` / `obc_vgrid_path` | `test_obc.py` |
 | `obc_raw_data_dir` | `test_obc.py` |
 | `obc_dates_start` / `obc_dates_end` | `test_obc.py` |
@@ -133,6 +133,7 @@ bash scripts/run_benchmarks.sh -m light               # smoke test across all li
 bash scripts/run_benchmarks.sh                         # everything -> results/latest.json
 
 python scripts/generate_report.py                      # -> report/{regridding,crocodash,mom6_forge,index}.html
+python scripts/generate_runoff_report.py               # -> report/runoff_mapping.html
 ```
 
 ## Committing results

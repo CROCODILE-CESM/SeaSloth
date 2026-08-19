@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 report_common.py — Shared page shell (CSS + header + nav + footer) for every
-generate_*_report.py script. Five generators render into the same report/
+generate_*_report.py script. Several generators render into the same report/
 directory and cross-link each other; keeping the shell in one place means the
 nav links can't drift out of sync page-by-page.
 
@@ -21,6 +21,7 @@ NAV_PAGES = [
     ("regridding.html", "Regridding", "latest.json"),
     ("crocodash.html", "CrocoDash", "latest.json"),
     ("mom6_forge.html", "mom6_forge", "latest.json"),
+    ("runoff_mapping.html", "Runoff mapping", "latest.json"),
     ("health.html", "Data access health", "health.json"),
     ("mom6_scaling.html", "MOM6 scaling", "mom6_scaling.json"),
 ]

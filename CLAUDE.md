@@ -77,6 +77,7 @@ SeaSloth/
 │   ├── merge_results.py                  # merge a partial run's JSON into results/latest.json
 │   ├── report_common.py                  # shared page shell (CSS, header, cross-page nav)
 │   ├── generate_report.py                # results/latest.json -> report/{regridding,crocodash,mom6_forge,index}.html
+│   ├── generate_runoff_report.py         # results/latest.json -> report/runoff_mapping.html
 │   ├── check_data_access.py              # link + validate_function checks -> results/health.json
 │   ├── generate_health_report.py         # results/health.json -> report/health.html
 │   ├── generate_scaling_report.py        # results/mom6_scaling.json -> report/mom6_scaling.html
@@ -98,6 +99,7 @@ bash scripts/run_benchmarks.sh -m light       # fast smoke test (synthetic suite
 bash scripts/run_benchmarks.sh -k xesmf       # one suite
 
 python scripts/generate_report.py             # -> report/{regridding,crocodash,mom6_forge,index}.html
+python scripts/generate_runoff_report.py      # -> report/runoff_mapping.html
 
 # On Derecho — PBS job for the full suite (needs GEBCO/GLORYS data)
 qsub scripts/pbs_submit.sh
@@ -114,27 +116,46 @@ merging:
 ```bash
 pytest benchmarks/mom6_forge/test_mapping.py --benchmark-json=/tmp/rof.json -v
 python scripts/merge_results.py /tmp/rof.json     # -> results/latest.json
-python scripts/generate_report.py
+python scripts/generate_runoff_report.py
 ```
 
 `merge_results.py` keys on `fullname` — incoming entries replace same-named ones, everything
-else is untouched. Since a merged snapshot spans multiple sessions, its top-level
+else is untouched. After reworking a `@parametrize`, add `--prune-stale` so the old parameter
+ids are dropped instead of lingering in the snapshot and being charted next to the new ones;
+don't combine it with `-k`, since it would delete the deselected cases' results. Since a merged snapshot spans multiple sessions, its top-level
 `machine_info`/`datetime` no longer cover every entry, so each merged benchmark carries its
 own `extra_info["run_datetime"]`/`["run_node"]`.
 
 ### Runoff mapping: basin-scale domains are a known-slow, unfixed case
 
-`test_gen_rof_maps_domain` parametrizes over four real domains. The two largest do
-**not** currently finish in a practical time and are deliberately left in the suite
-rather than removed or flag-gated — they are exactly the sizes that need to become
-tractable:
+`test_gen_rof_maps_domain` walks an ascending ladder of destination sizes, ~4× per
+rung. The two largest do **not** currently finish in a practical time and are
+deliberately left in the suite rather than removed or flag-gated — they are exactly
+the sizes that need to become tractable:
 
-| Domain | Cells @ 1/12° | Status |
+| Domain | Cells @ 1/12° | Measured |
 |---|---|---|
-| Gulf of Mexico | 34K | fast (~1 min against the production mesh) |
-| Caribbean | 116K | fast |
+| 1° box | 144 | 77.7 s |
+| 2° box | 576 | 73.7 s |
+| 4° box | 2.3K | 76.5 s |
+| 8° box | 9.2K | 74.2 s |
+| Gulf of Mexico | 34K | 80.7 s |
+| Caribbean | 116K | 78.9 s |
 | North Atlantic | 576K | **stalls** — >1 hr at 98% CPU in ESMF `ESMP_FieldRegridStore`, did not finish |
 | Indo-Pacific | 2.42M | not reached (4× larger again) |
+
+**The headline result:** across those six rungs the destination grid grows **805×** and
+wall time grows **1.02×**, non-monotonically. The destination grid is not the cost — it's
+the fixed source-mesh read/re-write (every source-domain field is ~2.2 GB and lands in
+both output files). Peak RSS is flat at ~12.5–13.4 GB throughout, for the same reason.
+Anything that optimizes the *ocean* side of this call has almost nothing left to win.
+
+The four `box_*` rungs are squares anchored at the Gulf of Mexico's southwest corner, so
+they nest inside the `gulf_of_mexico` rung — the small end of the ladder is a zoom-in on
+the smallest real configuration, not an unrelated patch of ocean. They sit below anything
+anyone would configure and exist to show where the curve starts; from `gulf_of_mexico` up,
+every rung is a domain CROC actually builds. Everything runs against the production ROF
+mesh only, since that's the only source mesh a real case gets.
 
 The cliff is steep, not gradual, so it sits somewhere between ~100K and ~600K
 destination cells. For a run that finishes today:
@@ -163,7 +184,7 @@ conda run -n mom6_forge pytest benchmarks/mom6_forge/test_mapping.py --benchmark
 The `CrocoDash` env imports its own nested mom6_forge checkout
 (`CrocoDash/CrocoDash/visualCaseGen/external/mom6_forge/`), which is on a different branch
 and lacks the mapping write-path fix (mom6_forge PR #125). Without that fix a single
-global-mesh run takes ~36 min and peaks near 13 GB, and on pre-fix `main` it OOMs outright.
+run against the production mesh takes ~36 min and peaks near 13 GB, and on pre-fix `main` it OOMs outright.
 The test detects this and skips rather than burning hours — so a `CrocoDash`-env run reports
 the suite as skipped, not as fast.
 
@@ -184,7 +205,6 @@ Keys that need to be set before HPC-dependent benchmarks will run:
 |---|---|---|
 | `gebco_path` | `test_topo.py` | Path to GEBCO_2024.nc |
 | `rof_esmf_mesh_global_path` | `test_mapping.py` | Registered production global GLOFAS ESMF mesh (21.6M elements) — what a real CESM case gets as `ROF_DOMAIN_MESH` |
-| `rof_esmf_mesh_regional_path` | `test_mapping.py` | Smaller regional (CARIB12-domain) GLOFAS ESMF mesh, 319K elements — the second series in the sweep |
 | `obc_hgrid_path` / `obc_bathymetry_path` / `obc_vgrid_path` | `test_obc.py` | Grid + bathymetry from an existing CrocoDash case |
 | `obc_raw_data_dir` | `test_obc.py` | Directory of pre-downloaded GLORYS OBC files, one per boundary, named `{boundary}_unprocessed.{start}_{end}.nc` with ISO dates |
 | `obc_dates_start` / `obc_dates_end` | `test_obc.py` | Date range those raw files cover |
@@ -228,28 +248,51 @@ in one place rather than five nav bars by hand.
   no separate detail tables, the heatmap is the whole story.
 - `report/mom6_forge.html` — `test_topo`'s `test_set_from_dataset` gets a small inline-SVG
   line chart (domain size → time, log-scale y-axis, direct value labels) since it's a
-  natural sweep. `test_mapping`'s two sweeps get one chart each, both drawn by
-  `_multiline_svg()` (shared log axis, HTML legend, optional two-line x labels):
-  `test_gen_rof_maps_domain` (real domains, one **series per ROF source mesh** — the
-  regional-vs-global comparison is the point, so both belong on one axis) and
-  `test_gen_rof_maps_resolution` (fixed footprint, increasing resolution). Series
-  labels and x-axis cell counts come from each benchmark's `extra_info`
-  (`n_src`/`n_dst`/`domain`) rather than being recomputed in the generator, so a chart can't
-  drift from the parameters the benchmark actually ran. The regional ROF mesh only covers the
-  western Atlantic, so its series renders with **gaps** for the domains it doesn't contain
-  (`_multiline_svg` takes `None` values) rather than shifting the remaining points.
+  natural sweep.
 - `report/crocodash.html` — `test_obc`'s `test_regrid_and_merge` gets the same style of
   line chart (time vs. regrid_step).
 - `report/index.html` — no benchmark content of its own; one card per report page
-  (regridding, CrocoDash, mom6_forge, data access health, MOM6 scaling) linking out to it.
+  (regridding, CrocoDash, mom6_forge, runoff mapping, data access health, MOM6 scaling)
+  linking out to it.
+
+`test_mapping`'s two sweeps are *not* on the mom6_forge page — they have their own page
+(below). `TESTS_ON_OTHER_PAGES` in `generate_report.py` is what keeps them from also
+appearing there as a fallback table; add to it whenever a test moves onto a curated page.
+
+`scripts/generate_runoff_report.py` writes `report/runoff_mapping.html` from the same
+`results/latest.json`, importing its two chart builders from `generate_report.py` so the two
+files can't disagree about how a rung is named. Both charts are drawn by `_multiline_svg()`
+(log axis, HTML legend, two-line x labels): `test_gen_rof_maps_domain` (the destination-size
+ladder) and `test_gen_rof_maps_resolution` (fixed footprint, increasing resolution). There's
+a single series — the production ROF mesh — and the legend carries its element count, since
+that's what sets the absolute numbers. x-axis cell counts and the legend label come from each
+benchmark's `extra_info` (`n_src`/`n_dst`/`domain`) rather than being recomputed in the
+generator, so a chart can't drift from the parameters the benchmark actually ran. A rung with
+no data yet renders as a **gap** (`_multiline_svg` takes `None` values) rather than shifting
+the remaining points.
+
+Both ROF charts pass `_multiline_svg(..., y_span_decades=1)`. Auto-scaling a log axis to the
+data's own range is right for a sweep spanning orders of magnitude, but it *lies* about a flat
+one — fit a 1.02× spread to the full plot height and run-to-run noise renders as a mountain
+range, saying the opposite of what the page says. Pinning the axis to one decade makes a flat
+curve look flat. Keep this in mind before reusing `_multiline_svg` for anything else nearly
+flat.
 
 Any test function not covered by a chart still gets a plain table (params, mean, min, max,
 rss). `scripts/generate_health_report.py` renders `results/health.json`'s
 `link_checks`/`validate_checks` lists as two small tables on `report/health.html`.
 `scripts/generate_scaling_report.py` renders `results/mom6_scaling.json` as a line chart +
-table on `report/mom6_scaling.html`. None of them compute cross-benchmark ratios or write
-prose — if you're tempted to add narrative back in, don't; that's the complexity the
-original rewrite removed.
+table on `report/mom6_scaling.html`.
+
+**Where prose is allowed.** The auto-generated suite pages (`regridding`, `crocodash`,
+`mom6_forge`) stay numbers-only: no cross-benchmark ratios, no narrative. If you're tempted
+to add narrative there, don't — that's the complexity the original rewrite removed. The two
+curated pages, `mom6_scaling.html` and `runoff_mapping.html`, do carry hand-written framing,
+because their numbers are meaningless without it (a runoff timing of 80 s reads as slow until
+you know it barely moves across an 800× range of ocean grids). The rule for those: any
+*number* inside the prose is computed from the JSON, never typed in — see
+`generate_runoff_report.py`'s `_spread_sentence()`, which derives the headline ratio from the
+data so it can't go stale when the sweep is re-run.
 
 Every generator also calls `report_common.publish_results_json()`, which copies the
 `results/*.json` it just rendered into `report/` next to the HTML (e.g. `results/health.json`
