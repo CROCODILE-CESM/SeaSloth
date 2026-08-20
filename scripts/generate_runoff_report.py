@@ -13,7 +13,8 @@ Three sections:
   2. Resolution sweep — the same call at a fixed geographic footprint, so only
      the destination cell count varies.
   3. The 0/360 seam — why the boxes sit where they do, and the mom6_forge bbox
-     bug that made this page briefly report a size cliff that does not exist.
+     bug (since fixed) that made this page briefly report a size cliff that does
+     not exist.
 
 Charts and the domain label table come from generate_report.py so the two pages
 can't disagree about how a rung is named.
@@ -207,8 +208,9 @@ def build_seam_section():
 
     Static prose, not derived from the JSON: it documents why the ladder's boxes
     sit where they do, and it is the reason this page briefly claimed a
-    destination-size cliff that does not exist. Worth keeping visible even after
-    the underlying mom6_forge bug is fixed, because the failure mode is silent.
+    destination-size cliff that does not exist. Kept visible now that the
+    underlying mom6_forge bug is fixed, because the failure mode was silent and
+    the shape of the mistake is the useful part.
     """
     return """
     <section>
@@ -234,13 +236,20 @@ def build_seam_section():
          the 144-cell box, not orders of magnitude more. For comparison, the production
          <code>CrocIndoPacific_112</code> case (2.65M cells, 1.91M of them active after
          land masking) writes its nearest-neighbor map in ~210&nbsp;s, which lines up.</p>
-      <p><strong>Status:</strong> open as a <code>mom6_forge</code> bug. A regional domain
-         ending at lon 360 is a legitimate thing to configure, and today it produces an
-         unexplained hang — no error, no memory growth, ~1&nbsp;GB RSS, one core pinned.
-         The fix belongs in <code>_get_mesh_bbox()</code>, which needs a wrap-aware
-         longitude range rather than <code>min</code>/<code>max</code> of normalized
-         values. Same class of bug as the <code>normalize_deg(src_lat)</code> defect
-         already fixed on that branch.</p>
+      <p><strong>Status:</strong> fixed in <code>mom6_forge</code> (PR&nbsp;#125).
+         <code>_get_mesh_bbox()</code> now delegates to <code>_lon_bbox()</code>, which
+         returns the interval outside the largest angular <em>gap</em> between successive
+         longitudes — so a seam-crossing domain gets an honestly wrapped range
+         (<code>lon_min&nbsp;&gt;&nbsp;lon_max</code>) instead of a near-global one — and
+         <code>_lon_outside()</code> is the matching membership test that
+         <code>map_overlap</code> consumes. The exact box that hung, lon 280..360 at 576K
+         cells, now reports an 80.00&deg; bbox and finishes in 67.7&nbsp;s. The same change
+         fixed a quieter case nobody had noticed: a domain spanning &minus;10..10 had been
+         reporting a 350&deg; bbox for the same reason.</p>
+      <p>The rungs above stay off-seam regardless, and the benchmark keeps asserting it at
+         import — the numbers on this page were measured off-seam and should stay
+         comparable, and against an older <code>mom6_forge</code> the failure is silent, so
+         a reintroduced seam box would still just look like a hang.</p>
     </section>"""
 
 

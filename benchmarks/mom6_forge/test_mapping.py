@@ -41,8 +41,10 @@ longitude bbox (0.0 .. 359.92) instead of 280 .. 360. That makes
 `generate_ESMF_map_via_xesmf`'s `map_overlap` masking a no-op in longitude, so
 the regrid runs against the whole global latitude band instead of the domain's
 own window. Shifted 5 degrees west, the identical 576K-cell case finishes in
-106 s. Tracked as a mom6_forge bug in its own right — a user can legitimately
-configure a domain ending at lon 360 and would just see an unexplained hang.
+106 s. Fixed in mom6_forge PR #125, where _lon_bbox()/_lon_outside() make the
+bbox and its membership test wrap-aware; the boxes here stay off-seam so this
+ladder's numbers remain comparable, and because the failure is silent against an
+older mom6_forge.
 """
 
 import inspect
@@ -77,7 +79,8 @@ FOLD_KM = 20
 # north_atlantic rung was originally (280.0, 80.0, ...), whose eastern edge lands on
 # exactly lon 360, and it did not complete in over an hour at ~98% CPU. Shifted 5 deg
 # west, the identical 576K-cell case finishes in 106 s. There is no destination-size
-# cliff here; there was one malformed box.
+# cliff here; there was one malformed box. The underlying bbox bug is fixed (mom6_forge
+# PR #125), but the ladder stays off-seam so its numbers remain comparable.
 DOMAINS = {
     "box_1deg": {"box": (262.0, 1.0, 18.0, 1.0)},
     "box_2deg": {"box": (262.0, 2.0, 18.0, 2.0)},
@@ -92,17 +95,18 @@ DOMAINS = {
 }
 
 # A destination mesh whose nodes land on exactly lon 360 has 601 nodes at 360.0, which
-# on a sphere is the same point as 0.0 -- so ESMF sees a mesh whose Cartesian bounding
-# volume spans nearly the whole globe in longitude and its nearest-neighbour search
-# loses the ability to prune. The regrid then does not finish in any practical time,
-# with no error and no memory growth to hint at the cause. Fail loudly at import
-# instead of silently hanging a benchmark run for an hour.
+# normalizes to 0.0 -- and a pre-PR-#125 mom6_forge then reports a near-global longitude
+# bbox for it, which disables map_overlap's longitude masking so the regrid runs against
+# the whole global latitude band. It does not finish in any practical time, with no error
+# and no memory growth to hint at the cause. Fixed now, but fail loudly at import anyway:
+# this ladder was measured off-seam, and against an older mom6_forge a reintroduced seam
+# box would silently hang a run for an hour.
 for _name, _spec in DOMAINS.items():
     _xstart, _lenx, _, _ = _spec["box"]
     assert _xstart > 0 and _xstart + _lenx < 360, (
         f"domain {_name!r} touches the 0/360 periodic seam "
-        f"(lon {_xstart}..{_xstart + _lenx}); shift it so ESMF can prune its "
-        f"nearest-neighbour search -- otherwise gen_rof_maps will appear to hang"
+        f"(lon {_xstart}..{_xstart + _lenx}); shift it -- this ladder's numbers were "
+        f"measured off-seam, and on a pre-PR-#125 mom6_forge gen_rof_maps will hang"
     )
 
 # Destination resolution for the domain sweep — 1/12 deg, the resolution the real
@@ -181,7 +185,7 @@ def _run_gen_rof_maps(benchmark, domain, resolution_deg, tmp_path, label):
     if not _has_write_path_fix():
         pytest.skip(
             "installed mom6_forge lacks the mapping write-path fix "
-            "(mom6_forge PR #125) — a run would take ~36 min; "
+            "from mom6_forge PR #125 — a run would take ~36 min; "
             "use the mom6_forge conda env"
         )
 

@@ -161,15 +161,22 @@ regrid runs against the entire global 20–70°N band rather than the domain's o
 window — and does not finish in over an hour. Shifted 5° west, the identical
 576K-cell case takes 106 s.
 
-`DOMAINS` therefore asserts at import that no box touches the seam, with the reason
-inline. Don't remove that guard: the failure mode is silent (no error, no memory
-growth, ~1 GB RSS, one core pinned), so a reintroduced seam box just looks like a hang.
+Fixed in `mom6_forge` (PR #125). `_get_mesh_bbox()` now delegates to `_lon_bbox()`,
+which returns the interval outside the largest angular *gap* between successive
+longitudes — so a seam-crossing domain gets an honestly wrapped range
+(`lon_min > lon_max`) rather than a near-global one — and `_lon_outside()` is the
+matching membership test that `map_overlap` consumes. The exact box that hung, lon
+280..360 at 576K cells, now reports an 80.00° bbox and finishes in 67.7 s. (Faster than
+the 105.7 s north_atlantic rung above, but not inconsistent with it: the two 80° windows
+sit over different river density — 275..355 carries the Mississippi/Gulf outflow,
+280..360 trades that for the quieter east Atlantic.) The same change fixed a quieter
+case nobody had noticed: a domain spanning -10..10 previously reported a 350° bbox.
 
-Status of the underlying bug: open in `mom6_forge`. The fix belongs in
-`_get_mesh_bbox()`, which needs a wrap-aware longitude range instead of `min`/`max`
-of normalized values, and the `map_overlap` comparison that consumes it needs to
-handle a wrapped interval. Same class of defect as the `normalize_deg(src_lat)` bug
-already fixed on that branch.
+`DOMAINS` still asserts at import that no box touches the seam. Keep that guard — not
+because the bug is live, but because the ladder above was measured off-seam and should
+stay comparable, and because the suite can be run against an older `mom6_forge` where
+the failure mode is silent (no error, no memory growth, ~1 GB RSS, one core pinned) and
+a reintroduced seam box just looks like a hang.
 
 ### The runoff-mapping suite needs the `mom6_forge` env
 
@@ -182,7 +189,8 @@ conda run -n mom6_forge pytest benchmarks/mom6_forge/test_mapping.py --benchmark
 
 The `CrocoDash` env imports its own nested mom6_forge checkout
 (`CrocoDash/CrocoDash/visualCaseGen/external/mom6_forge/`), which is on a different branch
-and lacks the mapping write-path fix (mom6_forge PR #125). Without that fix a single
+and lacks the mapping write-path fix from mom6_forge PR #125 until CrocoDash bumps its
+pointer. Without that fix a single
 run against the production mesh takes ~36 min and peaks near 13 GB, and on pre-fix `main` it OOMs outright.
 The test detects this and skips rather than burning hours — so a `CrocoDash`-env run reports
 the suite as skipped, not as fast.
