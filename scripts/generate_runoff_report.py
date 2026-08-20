@@ -7,14 +7,17 @@ the numbers only mean something with the narrative attached: the destination gri
 spans a factor of ~800 across the sweep and the wall time barely moves, which is a
 finding about where the cost lives, not a row in a timing table.
 
-Three sections:
+Two sections:
   1. Domain ladder — gen_rof_maps() up an ascending destination-size ladder at
      fixed 1/12 deg, sub-real boxes first, then the real CROC domains.
   2. Resolution sweep — the same call at a fixed geographic footprint, so only
      the destination cell count varies.
-  3. The 0/360 seam — why the boxes sit where they do, and the mom6_forge bbox
-     bug (since fixed) that made this page briefly report a size cliff that does
-     not exist.
+
+The page carried a third section on the 0/360 seam bbox bug, which made it
+briefly report a destination-size cliff that does not exist. That bug is fixed
+(mom6_forge PR #125) and the section is gone; the reason the ladder's boxes stay
+off-seam is documented where it is actionable instead: next to the import-time
+assertion in benchmarks/mom6_forge/test_mapping.py, and in CLAUDE.md.
 
 Charts and the domain label table come from generate_report.py so the two pages
 can't disagree about how a rung is named.
@@ -203,62 +206,8 @@ def build_resolution_section(grouped):
     </section>"""
 
 
-def build_seam_section():
-    """The 0/360 seam hazard.
-
-    Static prose, not derived from the JSON: it documents why the ladder's boxes
-    sit where they do, and it is the reason this page briefly claimed a
-    destination-size cliff that does not exist. Kept visible now that the
-    underlying mom6_forge bug is fixed, because the failure mode was silent and
-    the shape of the mistake is the useful part.
-    """
-    return """
-    <section>
-      <h2>The 0/360 seam — why these boxes sit where they do</h2>
-      <p>Every rung above is deliberately clear of the 0/360 periodic seam, and the
-         benchmark asserts it at import. This page previously reported the two
-         basin-scale rungs as intractable — &gt;1 hr at ~98% CPU in ESMF&rsquo;s
-         <code>ESMP_FieldRegridStore</code> without completing. That was wrong, and the
-         cause is worth writing down.</p>
-      <div class="note"><strong>The bug:</strong> the North Atlantic box was
-         <code>(xstart=280, lenx=80)</code>, and 280&nbsp;+&nbsp;80&nbsp;=&nbsp;360.
-         <code>_get_mesh_bbox()</code> normalizes longitudes into [0,&nbsp;360), so the
-         601 mesh nodes sitting on exactly 360 become 0 — and a naive
-         <code>min()</code>/<code>max()</code> then returns a <em>near-global</em>
-         longitude bounding box, <code>0.00 .. 359.92</code> instead of
-         <code>280 .. 360</code>. That makes <code>generate_ESMF_map_via_xesmf</code>&rsquo;s
-         <code>map_overlap</code> masking a no-op in longitude, so the regrid runs
-         against the entire global 20–70&deg;N band rather than the domain&rsquo;s own
-         80&deg; window. Shift the box 5&deg; west and the identical 576K-cell case
-         finishes in 106&nbsp;s.</div>
-      <p>There was never a destination-size cliff. Cost is flat to ~116K cells and then
-         rises mildly with the grid — the 2.4M-cell Indo-Pacific rung is about 2.4&times;
-         the 144-cell box, not orders of magnitude more. For comparison, the production
-         <code>CrocIndoPacific_112</code> case (2.65M cells, 1.91M of them active after
-         land masking) writes its nearest-neighbor map in ~210&nbsp;s, which lines up.</p>
-      <p><strong>Status:</strong> fixed in <code>mom6_forge</code> (PR&nbsp;#125).
-         <code>_get_mesh_bbox()</code> now delegates to <code>_lon_bbox()</code>, which
-         returns the interval outside the largest angular <em>gap</em> between successive
-         longitudes — so a seam-crossing domain gets an honestly wrapped range
-         (<code>lon_min&nbsp;&gt;&nbsp;lon_max</code>) instead of a near-global one — and
-         <code>_lon_outside()</code> is the matching membership test that
-         <code>map_overlap</code> consumes. The exact box that hung, lon 280..360 at 576K
-         cells, now reports an 80.00&deg; bbox and finishes in 67.7&nbsp;s. The same change
-         fixed a quieter case nobody had noticed: a domain spanning &minus;10..10 had been
-         reporting a 350&deg; bbox for the same reason.</p>
-      <p>The rungs above stay off-seam regardless, and the benchmark keeps asserting it at
-         import — the numbers on this page were measured off-seam and should stay
-         comparable, and against an older <code>mom6_forge</code> the failure is silent, so
-         a reintroduced seam box would still just look like a hang.</p>
-    </section>"""
-
-
 def build_html(grouped):
-    body = (
-        build_domain_section(grouped)
-        + build_resolution_section(grouped)
-        + build_seam_section()
-    )
+    body = build_domain_section(grouped) + build_resolution_section(grouped)
     return page_shell(
         PAGE,
         TITLE,
