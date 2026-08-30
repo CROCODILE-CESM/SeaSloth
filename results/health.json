@@ -1,47 +1,47 @@
 {
-  "date": "2026-08-29T06:48:55+00:00",
+  "date": "2026-08-30T06:36:02+00:00",
   "link_checks": [
     {
       "product": "cesm inputdata",
       "url": "https://svn-ccsm-inputdata.cgd.ucar.edu/trunk/inputdata/ocn/mom/croc",
       "ok": true,
-      "elapsed_s": 0.27
+      "elapsed_s": 0.67
     },
     {
       "product": "gebco",
       "url": "https://www.gebco.net/data_and_products/gridded_bathymetry_data/#global",
       "ok": true,
-      "elapsed_s": 0.5
+      "elapsed_s": 0.43
     },
     {
       "product": "glofas",
       "url": "https://ewds.climate.copernicus.eu/datasets/cems-glofas-historical?tab=download",
       "ok": true,
-      "elapsed_s": 1.44
+      "elapsed_s": 1.43
     },
     {
       "product": "glorys",
       "url": "https://data.marine.copernicus.eu/product/GLOBAL_MULTIYEAR_PHY_001_030/description",
       "ok": true,
-      "elapsed_s": 0.45
+      "elapsed_s": 0.12
     },
     {
       "product": "mom6_output",
       "url": "https://gdex.ucar.edu/datasets/d267000/",
       "ok": true,
-      "elapsed_s": 0.42
+      "elapsed_s": 0.69
     },
     {
       "product": "seawifs",
       "url": "https://oceandata.sci.gsfc.nasa.gov/getfile/SEASTAR_SEAWIFS_GAC.19980201_20100228.L3m.MC.CHL.chlor_a.9km.nc",
-      "ok": false,
-      "elapsed_s": 20.17
+      "ok": true,
+      "elapsed_s": 0.08
     },
     {
       "product": "tpxo",
       "url": "https://www.tpxo.net/global",
       "ok": true,
-      "elapsed_s": 0.34
+      "elapsed_s": 0.15
     }
   ],
   "validate_checks": [
@@ -55,7 +55,7 @@
       "product": "era5_wave_spectra",
       "method": "get_era5_2d_spectra",
       "ok": false,
-      "elapsed_s": 0.02
+      "elapsed_s": 0.03
     },
     {
       "product": "gebco",
@@ -67,7 +67,7 @@
       "product": "gebco",
       "method": "get_gebco_data_with_python",
       "ok": false,
-      "elapsed_s": 900
+      "elapsed_s": 431.74
     },
     {
       "product": "glofas",
@@ -85,7 +85,7 @@
       "product": "glorys",
       "method": "get_glorys_data_from_cds_api",
       "ok": true,
-      "elapsed_s": 0.85
+      "elapsed_s": 0.64
     },
     {
       "product": "glorys",
@@ -109,7 +109,7 @@
       "product": "reference_ice",
       "method": "get_reference_ice_data",
       "ok": true,
-      "elapsed_s": 0.15
+      "elapsed_s": 0.2
     },
     {
       "product": "reference_ocean",
@@ -121,7 +121,7 @@
       "product": "reference_waves",
       "method": "get_reference_wave_spectra",
       "ok": true,
-      "elapsed_s": 0.0
+      "elapsed_s": 0.01
     },
     {
       "product": "seawifs",
